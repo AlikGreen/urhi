@@ -146,7 +146,7 @@ namespace NRHI
         // Parse the shader
         constexpr auto messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
-        if (const bool parseResult = shader.parse(resources, 100, false, messages); !parseResult)
+        if (const bool parseResult = shader.parse(&resources, 100, false, messages); !parseResult)
         {
             std::printf("Shader parsing failed:\n%s\n%s\n", shader.getInfoLog(), shader.getInfoDebugLog());
             return {};
