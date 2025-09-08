@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 
 
-namespace NRHI
+namespace Neon::RHI
 {
     BufferOGL::BufferOGL(const GLenum target) : target(target)
     {

@@ -2,7 +2,7 @@
 
 #include "implementations/opengl/windowOGL.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     Window* Window::createWindow(const WindowCreationOptions& creationOptions, const BackendAPI backendApi)
     {

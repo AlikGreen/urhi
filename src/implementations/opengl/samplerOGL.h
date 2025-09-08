@@ -4,7 +4,7 @@
 
 #include <glad/glad.h>
 
-namespace NRHI
+namespace Neon::RHI
 {
 class SamplerOGL : public Sampler
 {

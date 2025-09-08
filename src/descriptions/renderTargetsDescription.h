@@ -1,7 +1,7 @@
 #pragma once
 #include "enums/textureFormat.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 struct RenderTargetsDescription
 {

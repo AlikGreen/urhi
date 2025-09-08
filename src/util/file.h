@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace NRHI
+namespace Neon::RHI
 {
 class File
 {

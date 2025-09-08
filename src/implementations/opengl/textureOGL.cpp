@@ -4,7 +4,7 @@
 
 #include "convertOGL.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     TextureOGL::TextureOGL(const TextureDescription &description) : description(description)
     {

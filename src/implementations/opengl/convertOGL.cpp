@@ -4,7 +4,7 @@
 #include "enums/shaderType.h"
 #include "GLFW/glfw3.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     GLenum ConvertOGL::typeinfoToGL(const std::type_info *type)
     {

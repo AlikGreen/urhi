@@ -4,7 +4,7 @@
 #include "enums/textureFormat.h"
 #include "enums/textureUsage.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 struct TextureDescription
 {

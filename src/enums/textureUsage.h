@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace NRHI
+namespace Neon::RHI
 {
     enum class TextureUsage : uint32_t {
         Sampler = 1u << 0,

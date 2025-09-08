@@ -13,7 +13,7 @@
 #include "util/memory.h"
 #include "descriptions/textureDescription.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 class Device
 {

@@ -3,7 +3,7 @@
 #include "graphicsPipeline.h"
 #include "descriptions/graphicsPipelineDescription.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 struct VertexAttributeOGL
 {

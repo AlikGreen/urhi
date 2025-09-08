@@ -9,7 +9,7 @@
 #include "glm/glm.hpp"
 #include "util/memory.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 class CommandList
 {

@@ -113,7 +113,7 @@ TBuiltInResource DefaultTBuiltInResource()
     return R;
 }
 
-namespace NRHI
+namespace Neon::RHI
 {
     std::vector<uint32_t> compileToSpirv(const std::string& source_name,
                                     const ShaderType type,

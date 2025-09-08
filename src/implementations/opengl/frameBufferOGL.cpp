@@ -1,6 +1,6 @@
 #include "frameBufferOGL.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     FrameBufferOGL::FrameBufferOGL(const GLuint existing) : handle(existing)
     {

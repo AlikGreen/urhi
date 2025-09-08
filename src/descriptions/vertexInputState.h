@@ -4,7 +4,7 @@
 #include "vertexAttribute.h"
 #include "vertexBufferDescription.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 class VertexInputState
 {

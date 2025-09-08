@@ -9,7 +9,7 @@
 #include "samplerOGL.h"
 #include "textureOGL.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     void CommandListOGL::executeCommands()
     {

@@ -1,12 +1,10 @@
 #pragma once
 
-namespace NRHI
+namespace Neon::RHI
 {
 class FrameBuffer
 {
 public:
     virtual ~FrameBuffer() = default;
-
-
 };
 }

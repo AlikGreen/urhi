@@ -2,7 +2,7 @@
 #include "texture.h"
 #include "descriptions/textureDescription.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 class TextureOGL final : public Texture
 {

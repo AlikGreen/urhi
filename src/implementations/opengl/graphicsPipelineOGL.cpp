@@ -4,7 +4,7 @@
 
 #include "convertOGL.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     GraphicsPipelineOGL::GraphicsPipelineOGL(GraphicsPipelineDescription &description) : description(description)
     {

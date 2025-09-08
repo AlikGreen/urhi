@@ -8,7 +8,7 @@
 #include "shader.h"
 #include "enums/shaderType.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 class ShaderOGL final : public Shader
 {

@@ -5,7 +5,7 @@
 #include "enums/backendAPI.h"
 #include "glm/glm.hpp"
 
-namespace NRHI
+namespace Neon::RHI
 {
 class Window
 {

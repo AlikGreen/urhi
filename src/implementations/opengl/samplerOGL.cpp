@@ -4,7 +4,7 @@
 
 #include "convertOGL.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     SamplerOGL::SamplerOGL(const SamplerDescription &description)
     {

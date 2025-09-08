@@ -3,7 +3,7 @@
 #include "device.h"
 #include "descriptions/samplerDescription.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 class WindowOGL;
 class DeviceOGL final : public Device

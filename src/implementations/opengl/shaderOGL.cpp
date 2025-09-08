@@ -6,7 +6,7 @@
 #include "spirv_glsl.hpp"
 
 
-namespace NRHI
+namespace Neon::RHI
 {
     ShaderOGL::ShaderOGL(const std::unordered_map<ShaderType, std::vector<uint32_t>> &shadersSpirv) : shadersSpirv(shadersSpirv) {  }
 

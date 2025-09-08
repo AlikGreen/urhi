@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace NRHI
+namespace Neon::RHI
 {
 class Texture
 {

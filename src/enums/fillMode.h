@@ -1,6 +1,6 @@
 #pragma once
 
-namespace NRHI
+namespace Neon::RHI
 {
 enum class FillMode
 {

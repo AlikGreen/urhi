@@ -10,7 +10,7 @@
 #include "textureOGL.h"
 #include "windowOGL.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     DeviceOGL::DeviceOGL(WindowOGL *window) : window(window)
     {

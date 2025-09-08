@@ -9,7 +9,7 @@
 #include "enums/textureWrap.h"
 #include "input/keyCodes.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 class ConvertOGL
 {

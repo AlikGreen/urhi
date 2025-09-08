@@ -4,7 +4,7 @@
 #include <vector>
 #include "commandList.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     class GraphicsPipelineOGL;
 

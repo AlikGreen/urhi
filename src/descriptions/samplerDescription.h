@@ -7,7 +7,7 @@
 #include "enums/textureUsage.h"
 #include "enums/textureWrap.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
 struct SamplerDescription
 {

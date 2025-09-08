@@ -1,7 +1,7 @@
 #pragma once
 #include "input/keyCodes.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     class Event
     {

@@ -2,7 +2,7 @@
 #include "frameBuffer.h"
 #include <glad/glad.h>
 
-namespace NRHI
+namespace Neon::RHI
 {
 class FrameBufferOGL final : public FrameBuffer
 {

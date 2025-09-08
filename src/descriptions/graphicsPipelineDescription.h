@@ -8,7 +8,7 @@
 #include "descriptions/vertexInputState.h"
 #include "util/memory.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     struct GraphicsPipelineDescription
     {

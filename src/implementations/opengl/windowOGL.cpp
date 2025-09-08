@@ -6,7 +6,7 @@
 #include "convertOGL.h"
 #include "deviceOGL.h"
 
-namespace NRHI
+namespace Neon::RHI
 {
     void WindowOGL::keyCallback(GLFWwindow* windowGLFW, int key, int scancode, int action, int mods)
     {
