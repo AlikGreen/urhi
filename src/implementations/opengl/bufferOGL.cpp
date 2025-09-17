@@ -2,6 +2,8 @@
 
 #include <glad/glad.h>
 
+#include "debug.h"
+
 
 namespace Neon::RHI
 {
@@ -30,7 +32,7 @@ namespace Neon::RHI
 
     void BufferOGL::uploadData(const void *data, const size_t size) const
     {
-        // Assert::check(size <= this->capacity, "Data to be uploaded has a greater size than the capacity of the buffer.");
+        Debug::ensure(size <= this->capacity, "Data to be uploaded has a greater size than the capacity of the buffer.");
         bind();
         glBufferSubData(target, 0, static_cast<uint32_t>(size), data);
         unbind();

@@ -5,6 +5,8 @@
     <mapping directory="$PROJECT_DIR$/dependencies/glfw" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/glslang" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/neonLog" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/neonLog/dependencies/spdlog" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/spirv-cross" vcs="Git" />
   </component>
 </project>

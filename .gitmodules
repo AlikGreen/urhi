@@ -13,3 +13,6 @@
 [submodule "dependencies/glslang"]
 	path = dependencies/glslang
 	url = https://github.com/KhronosGroup/glslang.git
+[submodule "dependencies/neonLog"]
+	path = dependencies/neonLog
+	url = https://github.com/AlikGreen/NeonLog.git

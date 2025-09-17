@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 
 #include "convertOGL.h"
+#include "debug.h"
 #include "deviceOGL.h"
 
 namespace Neon::RHI
@@ -86,7 +87,7 @@ namespace Neon::RHI
 
     void WindowOGL::run()
     {
-        // Assert::check(glfwInit(), "Failed to initialize GLFW");
+        Debug::ensure(glfwInit(), "Failed to initialize GLFW");
         glfwInit();
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -99,10 +100,10 @@ namespace Neon::RHI
         int height = creationOptions.height;
 
         GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-        // Assert::check(primaryMonitor != nullptr, "Failed to get primary monitor");
+        Debug::ensure(primaryMonitor != nullptr, "Failed to get primary monitor");
 
         const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
-        // Assert::check(mode != nullptr, "Couldn't get video mode");
+        Debug::ensure(mode != nullptr, "Couldn't get video mode");
 
         if(width <= 0)
             width = static_cast<int>(mode->width * 0.75);
@@ -112,7 +113,7 @@ namespace Neon::RHI
 
         GLFWmonitor* monitor = creationOptions.fullscreen ? primaryMonitor : nullptr;
         handle = glfwCreateWindow(width, height, creationOptions.title, monitor, nullptr);
-        // Assert::check(handle != nullptr, "Failed to create GLFW window");
+        Debug::ensure(handle != nullptr, "Failed to create GLFW window");
 
         glfwSetWindowUserPointer(handle, this);
 
@@ -124,8 +125,7 @@ namespace Neon::RHI
 
         glfwMakeContextCurrent(handle);
 
-        // Assert::check(gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)), "Failed to initialize GLAD");
-        gladLoadGL(glfwGetProcAddress);
+        Debug::ensure(gladLoadGL(glfwGetProcAddress), "Failed to initialize GLAD");
 
         glViewport(0, 0, width, height);
 

@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "bufferOGL.h"
+#include "debug.h"
 #include "samplerOGL.h"
 #include "textureOGL.h"
 
@@ -30,7 +31,7 @@ namespace Neon::RHI
         {
             const uint32_t binding = getPipeline()->getShader()->getUBOLocation(name);
             const auto* uniformBufferOGL = dynamic_cast<BufferOGL*>(buffer);
-            // Assert::check(uniformBufferOGL->getTarget() == GL_UNIFORM_BUFFER, "Buffer being set as Uniform Buffer was not created as a Uniform Buffer");
+            Debug::ensure(uniformBufferOGL->getTarget() == GL_UNIFORM_BUFFER, "Buffer being set as Uniform Buffer was not created as a Uniform Buffer");
             uniformBufferOGL->bindBase(binding);
         });
     }
@@ -75,7 +76,7 @@ namespace Neon::RHI
         commands.emplace_back([this, vertexBuffer]
         {
             const auto* oglVertexBuffer = dynamic_cast<BufferOGL*>(vertexBuffer);
-            // Assert::check(oglVertexBuffer->getTarget() == GL_ARRAY_BUFFER, "Buffer being set as Vertex Buffer was not created as a Vertex Buffer");
+            Debug::ensure(oglVertexBuffer->getTarget() == GL_ARRAY_BUFFER, "Buffer being set as Vertex Buffer was not created as a Vertex Buffer");
             oglVertexBuffer->bind();
 
             const auto& attributes = pipeline->getVertexAttributes();
@@ -98,7 +99,7 @@ namespace Neon::RHI
         commands.emplace_back([indexBuffer]
         {
             const auto* indexBufferOGL = dynamic_cast<BufferOGL*>(indexBuffer);
-            // Assert::check(indexBufferOGL->getTarget() == GL_ELEMENT_ARRAY_BUFFER, "Buffer being set as Index Buffer was not created as an Index Buffer");
+            Debug::ensure(indexBufferOGL->getTarget() == GL_ELEMENT_ARRAY_BUFFER, "Buffer being set as Index Buffer was not created as an Index Buffer");
             indexBufferOGL->bind();
         });
     }
@@ -172,7 +173,7 @@ namespace Neon::RHI
 
     GraphicsPipelineOGL * CommandListOGL::getPipeline() const
     {
-        // Assert::check(pipeline != nullptr, "Pipeline has not been set")
+        Debug::ensure(pipeline != nullptr, "Pipeline has not been set");
         return pipeline;
     }
 }

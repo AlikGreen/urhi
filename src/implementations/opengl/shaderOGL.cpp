@@ -1,6 +1,7 @@
 #include "shaderOGL.h"
 
 #include <ranges>
+#include <neonLog/neonLog.h>
 
 #include "convertOGL.h"
 #include "spirv_glsl.hpp"
@@ -81,7 +82,7 @@ namespace Neon::RHI
             glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &success);
             glGetShaderInfoLog(shaderHandle, 512, nullptr, infoLog);
 
-            // Assert::check<const char*>(success, "Shader compilation error: {}", infoLog);
+            Debug::ensure(success, "Shader compilation error: {}", infoLog);
         }
 
         handle = glCreateProgram();
