@@ -4,6 +4,7 @@
 #include "buffer.h"
 #include "sampler.h"
 #include "texture.h"
+#include "descriptions/textureUploadDescription.h"
 #include "enums/indexFormat.h"
 #include "enums/shaderType.h"
 #include "glm/glm.hpp"
@@ -34,7 +35,7 @@ public:
     virtual void clearColorTarget(uint32_t target, glm::vec4 color) = 0;
     virtual void clearDepthStencil(float value) = 0;
 
-    virtual void updateTexture(Texture* texture, const void* data) = 0;
+    virtual void updateTexture(Texture* texture, TextureUploadDescription uploadDescription) = 0;
 
     virtual void reserveBuffer(Buffer* buffer, size_t size) = 0;
 

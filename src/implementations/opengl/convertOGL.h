@@ -3,6 +3,8 @@
 #include <glad/glad.h>
 
 #include "enums/mipmapFilter.h"
+#include "enums/pixelFormat.h"
+#include "enums/pixelType.h"
 #include "enums/shaderType.h"
 #include "enums/textureFilter.h"
 #include "enums/textureFormat.h"
@@ -24,5 +26,7 @@ public:
     static MouseButton mouseButtonFromGLFW(int button);
     static GLenum textureWrapToGL(TextureWrap wrap);
     static GLenum textureFilterCombineToGL(TextureFilter filter, MipmapFilter mipmapFilter);
+    static GLenum pixelFormatToGL(PixelFormat format);
+    static GLenum pixelTypeToGL(PixelType type);
 };
 }

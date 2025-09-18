@@ -28,7 +28,7 @@ namespace Neon::RHI
         void clearColorTarget(uint32_t target, glm::vec4 color) override;
         void clearDepthStencil(float value) override;
 
-        void updateTexture(Texture* texture, const void* data) override;
+        void updateTexture(Texture* texture, TextureUploadDescription uploadDescription) override;
         void reserveBuffer(Buffer* buffer, size_t size) override;
 
         void executeCommands();

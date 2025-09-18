@@ -2,85 +2,91 @@
 
 namespace Neon::RHI
 {
-enum class TextureFormat
-{
-    // 8‑bit normalized / integer
-    R8Unorm,
-    R8Snorm,
-    R8Uint,
-    R8Int,
+    enum class TextureFormat
+    {
+        R8Unorm,
+        R8Snorm,
+        R8Uint,
+        R8Int,
 
-    // 16‑bit normalized / integer / float
-    R16Unorm,
-    R16Snorm,
-    R16Uint,
-    R16Int,
-    R16Float,
+        R16Unorm,
+        R16Snorm,
+        R16Uint,
+        R16Int,
+        R16Float,
 
-    // 8‑bit two‑channel
-    R8G8Unorm,
-    R8G8Snorm,
-    R8G8Uint,
-    R8G8Int,
+        R8G8Unorm,
+        R8G8Snorm,
+        R8G8Uint,
+        R8G8Int,
 
-    // 16‑bit two‑channel
-    R16G16Unorm,
-    R16G16Snorm,
-    R16G16Uint,
-    R16G16Int,
-    R16G16Float,
+        R16G16Unorm,
+        R16G16Snorm,
+        R16G16Uint,
+        R16G16Int,
+        R16G16Float,
 
-    // 32‑bit two‑channel
-    R32G32Float,
-    R32G32Uint,
-    R32G32Int,
+        R32G32Float,
+        R32G32Uint,
+        R32G32Int,
 
-    // 32‑bit single‑channel
-    R32Float,
-    R32Uint,
-    R32Int,
+        R32Float,
+        R32Uint,
+        R32Int,
 
-    // 8‑bit four‑channel
-    R8G8B8A8Unorm,
-    R8G8B8A8Snorm,
-    R8G8B8A8Uint,
-    R8G8B8A8Int,
-    R8G8B8A8UnormSrgb,
-    B8G8R8A8Unorm,
-    B8G8R8A8UnormSrgb,
+        R8G8B8Unorm,
+        R8G8B8Snorm,
+        R8G8B8Uint,
+        R8G8B8Int,
+        R8G8B8UnormSrgb,
+        B8G8R8Unorm,
+        B8G8R8UnormSrgb,
 
-    // 16‑bit four‑channel
-    R16G16B16A16Unorm,
-    R16G16B16A16Snorm,
-    R16G16B16A16Uint,
-    R16G16B16A16Int,
-    R16G16B16A16Float,
+        R16G16B16Unorm,
+        R16G16B16Snorm,
+        R16G16B16Uint,
+        R16G16B16Int,
+        R16G16B16Float,
 
-    // 32‑bit four‑channel
-    R32G32B32A32Float,
-    R32G32B32A32Uint,
-    R32G32B32A32Int,
+        R32G32B32Float,
+        R32G32B32Uint,
+        R32G32B32Int,
 
-    // Packed / special
-    R10G10B10A2Unorm,
-    R11G11B10Ufloat,
+        R8G8B8A8Unorm,
+        R8G8B8A8Snorm,
+        R8G8B8A8Uint,
+        R8G8B8A8Int,
+        R8G8B8A8UnormSrgb,
+        B8G8R8A8Unorm,
+        B8G8R8A8UnormSrgb,
 
-    // Block‑compressed
-    BC1RgbaUnorm,
-    BC1RgbaUnormSrgb,
-    BC2RgbaUnorm,
-    BC2RgbaUnormSrgb,
-    BC3RgbaUnorm,
-    BC3RgbaUnormSrgb,
-    BC4RUnorm,
-    BC5RgUnorm,
-    BC7RgbaUnorm,
-    BC7RgbaUnormSrgb,
+        R16G16B16A16Unorm,
+        R16G16B16A16Snorm,
+        R16G16B16A16Uint,
+        R16G16B16A16Int,
+        R16G16B16A16Float,
 
-    // Depth‑stencil
-    D24UnormS8Uint,
-    D32FloatS8Uint,
+        R32G32B32A32Float,
+        R32G32B32A32Uint,
+        R32G32B32A32Int,
 
-    Invalid,
-};
+        R10G10B10A2Unorm,
+        R11G11B10Ufloat,
+
+        BC1RgbaUnorm,
+        BC1RgbaUnormSrgb,
+        BC2RgbaUnorm,
+        BC2RgbaUnormSrgb,
+        BC3RgbaUnorm,
+        BC3RgbaUnormSrgb,
+        BC4RUnorm,
+        BC5RgUnorm,
+        BC7RgbaUnorm,
+        BC7RgbaUnormSrgb,
+
+        D24UnormS8Uint,
+        D32FloatS8Uint,
+
+        Invalid,
+    };
 }

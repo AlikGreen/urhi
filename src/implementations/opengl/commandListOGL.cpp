@@ -124,12 +124,12 @@ namespace Neon::RHI
         });
     }
 
-    void CommandListOGL::updateTexture(Texture* texture, const void *data)
+    void CommandListOGL::updateTexture(Texture* texture, TextureUploadDescription uploadDescription)
     {
-        commands.emplace_back([texture, data]
+        commands.emplace_back([texture, uploadDescription]
         {
             const auto* textureOGL = dynamic_cast<TextureOGL*>(texture);
-            textureOGL->setData(data);
+            textureOGL->setData(uploadDescription);
         });
     }
 

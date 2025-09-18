@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 
 #include "convertOGL.h"
+#include "descriptions/textureUploadDescription.h"
 
 namespace Neon::RHI
 {
@@ -17,7 +18,15 @@ namespace Neon::RHI
         glBindTexture(GL_TEXTURE_2D, handle);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, static_cast<int>(description.numMipmaps-1));
-        glTexImage2D(GL_TEXTURE_2D, 0, static_cast<int>(ConvertOGL::textureFormatToGL(description.format)), static_cast<int>(width), static_cast<int>(height), 0, GL_NONE, ConvertOGL::textureFormatToGLType(description.format), nullptr);
+        glTexImage2D(GL_TEXTURE_2D,
+            0,
+            static_cast<int>(ConvertOGL::textureFormatToGL(description.format)),
+            static_cast<int>(width),
+            static_cast<int>(height),
+            0,
+            GL_NONE,
+            GL_NONE,
+            nullptr);
 
         glBindTexture(GL_TEXTURE_2D, 0);
     }
@@ -43,10 +52,18 @@ namespace Neon::RHI
         return depth;
     }
 
-    void TextureOGL::setData(const void *data) const
+    void TextureOGL::setData(const TextureUploadDescription uploadDescription) const
     {
         glBindTexture(GL_TEXTURE_2D, handle);
-        glTexImage2D(GL_TEXTURE_2D, 0, static_cast<int>(ConvertOGL::textureFormatToGL(description.format)), static_cast<int>(width), static_cast<int>(height), 0, GL_RGBA, ConvertOGL::textureFormatToGLType(description.format), data);
+        glTexImage2D(GL_TEXTURE_2D,
+            0,
+            static_cast<int>(ConvertOGL::textureFormatToGL(description.format)),
+            static_cast<int>(width),
+            static_cast<int>(height),
+            0,
+            ConvertOGL::pixelFormatToGL(uploadDescription.pixelFormat),
+            ConvertOGL::pixelTypeToGL(uploadDescription.pixelType),
+            uploadDescription.data);
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
