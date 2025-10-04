@@ -6,7 +6,7 @@
 
 namespace Neon::RHI
 {
-    class GraphicsPipelineOGL;
+    class PipelineOGL;
 
     class CommandListOGL final : public CommandList
     {
@@ -16,11 +16,13 @@ namespace Neon::RHI
         void begin() override;
 
         void setUniformBuffer(const std::string& name, Buffer* buffer) override;
-        void setTexture(      const std::string& name, uint32_t offset, Texture* texture) override;
-        void setSampler(      const std::string& name, uint32_t offset, Sampler* sampler) override;
 
-        void setPipeline(GraphicsPipeline* pipeline) override;
-        void setFrameBuffer(FrameBuffer* frameBuffer) override;
+        void setTexture(const std::string& name, TextureView* texture) override;
+        void setSampler(const std::string& name, Sampler* sampler) override;
+        void generateMipmaps(Texture* texture) override;
+
+        void setPipeline(Pipeline* pipeline) override;
+        void setFramebuffer(Framebuffer* frameBuffer) override;
 
         void setVertexBuffer(uint32_t index, Buffer* vertexBuffer) override;
         void setIndexBuffer(Buffer* indexBuffer, IndexFormat indexFormat) override;
@@ -31,6 +33,8 @@ namespace Neon::RHI
         void updateTexture(Texture* texture, TextureUploadDescription uploadDescription) override;
         void reserveBuffer(Buffer* buffer, size_t size) override;
 
+        void dispatch(const glm::ivec3& numGroups) override;
+
         void executeCommands();
     protected:
         void drawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
@@ -39,8 +43,8 @@ namespace Neon::RHI
 
     private:
         std::vector<std::function<void()>> commands{};
-        GraphicsPipelineOGL* pipeline{};
+        PipelineOGL* pipeline{};
 
-        [[nodiscard]] GraphicsPipelineOGL* getPipeline() const;
+        [[nodiscard]] PipelineOGL* getPipeline() const;
     };
 }

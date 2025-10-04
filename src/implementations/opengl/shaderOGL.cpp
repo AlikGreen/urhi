@@ -18,16 +18,14 @@ namespace Neon::RHI
 
         auto resources = compiler.get_shader_resources();
 
-        // UBOs
         for (const auto& ub : resources.uniform_buffers)
         {
-            std::string name = compiler.get_name(ub.id);
+            std::string name = compiler.get_name(ub.base_type_id);
             if (name.empty()) name = ub.name;
             const uint32_t binding = compiler.get_decoration(ub.id, spv::DecorationBinding);
             reflection.uboBinding[name] = binding;
         }
 
-        // SSBOs
         for (const auto& sb : resources.storage_buffers)
         {
             std::string name = compiler.get_name(sb.id);
@@ -36,7 +34,6 @@ namespace Neon::RHI
             reflection.ssboBinding[name] = binding;
         }
 
-        // Sampled images (combined samplers)
         for (const auto& s : resources.sampled_images)
         {
             std::string name = compiler.get_name(s.id);
@@ -45,7 +42,6 @@ namespace Neon::RHI
             reflection.samplerUnit[name] = unit;
         }
 
-        // Storage images
         for (const auto& img : resources.storage_images)
         {
             std::string name = compiler.get_name(img.id);
@@ -53,7 +49,6 @@ namespace Neon::RHI
             const uint32_t unit = compiler.get_decoration(img.id, spv::DecorationBinding);
             reflection.imageUnit[name] = unit;
         }
-
 
         spirv_cross::CompilerGLSL::Options options;
         options.version = 460;
@@ -109,6 +104,12 @@ namespace Neon::RHI
         glUseProgram(handle);
     }
 
+    ShaderReflection ShaderOGL::getShaderReflection()
+    {
+        Debug::ensure(false, "Not implemented");
+        return {};
+    }
+
     uint32_t ShaderOGL::getUBOLocation(const std::string &name) const
     {
         return reflection.uboBinding.at(name);
@@ -127,10 +128,5 @@ namespace Neon::RHI
     uint32_t ShaderOGL::getImageLocation(const std::string &name) const
     {
         return reflection.imageUnit.at(name);
-    }
-
-    uint32_t ShaderOGL::getUniformLocation(const std::string &name) const
-    {
-        return reflection.uniformLocation.at(name);
     }
 }

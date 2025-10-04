@@ -1,5 +1,6 @@
 #include "textureOGL.h"
 
+#include <format>
 #include <glad/glad.h>
 
 #include "convertOGL.h"
@@ -7,28 +8,28 @@
 
 namespace Neon::RHI
 {
-    TextureOGL::TextureOGL(const TextureDescription &description) : description(description)
+    TextureOGL::TextureOGL(const TextureDescription &description)
     {
-        width = description.width;
-        height = description.height;
-        depth = description.depth;
+        width = description.dimensions.x;
+        height = description.dimensions.y;
+        depth = description.dimensions.z;
 
-        glGenTextures(1, &handle);
+        format = description.format;
 
-        glBindTexture(GL_TEXTURE_2D, handle);
+        if(description.numMipmaps > 0)
+            numMipmaps = description.numMipmaps;
+        else
+            numMipmaps = static_cast<uint32_t>(log(std::max(width, height)))+1;
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, static_cast<int>(description.numMipmaps-1));
-        glTexImage2D(GL_TEXTURE_2D,
-            0,
-            static_cast<int>(ConvertOGL::textureFormatToGL(description.format)),
-            static_cast<int>(width),
-            static_cast<int>(height),
-            0,
-            GL_NONE,
-            GL_NONE,
-            nullptr);
+        arrayLayers = description.arrayLayers;
 
-        glBindTexture(GL_TEXTURE_2D, 0);
+        type = ConvertOGL::textureTypeToGLType(description.type);
+
+        glCreateTextures(GL_TEXTURE_2D, 1, &handle);
+
+        glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, static_cast<int>(numMipmaps) - 1);
+
+        glTextureStorage2D(handle, static_cast<int>(numMipmaps), ConvertOGL::pixelFormatToGL(description.format), static_cast<int>(width), static_cast<int>(height));
     }
 
     void TextureOGL::bind(const uint32_t binding) const
@@ -52,19 +53,38 @@ namespace Neon::RHI
         return depth;
     }
 
+    uint32_t TextureOGL::getMipLevels()
+    {
+        return numMipmaps;
+    }
+
+    uint32_t TextureOGL::getArrayLayers()
+    {
+        return arrayLayers;
+    }
+
+    PixelFormat TextureOGL::getFormat()
+    {
+        return format;
+    }
+
+    GLenum TextureOGL::getType() const
+    {
+        return type;
+    }
+
+    GLuint TextureOGL::getHandle() const
+    {
+        return handle;
+    }
+
+    void TextureOGL::generateMipmaps() const
+    {
+        glGenerateTextureMipmap(handle);
+    }
+
     void TextureOGL::setData(const TextureUploadDescription uploadDescription) const
     {
-        glBindTexture(GL_TEXTURE_2D, handle);
-        glTexImage2D(GL_TEXTURE_2D,
-            0,
-            static_cast<int>(ConvertOGL::textureFormatToGL(description.format)),
-            static_cast<int>(width),
-            static_cast<int>(height),
-            0,
-            ConvertOGL::pixelFormatToGL(uploadDescription.pixelFormat),
-            ConvertOGL::pixelTypeToGL(uploadDescription.pixelType),
-            uploadDescription.data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glTextureSubImage2D(handle, 0, 0, 0, static_cast<int>(width), static_cast<int>(height), GL_RGBA, GL_UNSIGNED_BYTE, uploadDescription.data);
     }
 }

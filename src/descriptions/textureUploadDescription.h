@@ -7,7 +7,6 @@ namespace Neon::RHI
 struct TextureUploadDescription
 {
     const void* data{};
-    PixelFormat pixelFormat = PixelFormat::RGBA;
     PixelType pixelType = PixelType::UnsignedByte;
 };
 }

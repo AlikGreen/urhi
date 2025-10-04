@@ -1,7 +1,9 @@
 #pragma once
 #include "shaderOGL.h"
-#include "graphicsPipeline.h"
+#include "pipeline.h"
+#include "descriptions/computePipelineDescription.h"
 #include "descriptions/graphicsPipelineDescription.h"
+#include "glm/glm.hpp"
 
 namespace Neon::RHI
 {
@@ -14,10 +16,11 @@ struct VertexAttributeOGL
     const void *pointer;
 };
 
-class GraphicsPipelineOGL final : public GraphicsPipeline
+class PipelineOGL final : public Pipeline
 {
 public:
-    explicit GraphicsPipelineOGL(GraphicsPipelineDescription &description);
+    explicit PipelineOGL(const GraphicsPipelineDescription &description);
+    explicit PipelineOGL(const ComputePipelineDescription &description);
 
     [[nodiscard]] std::vector<VertexAttributeOGL> getVertexAttributes() const;
 
@@ -26,6 +29,8 @@ public:
 
     GLuint vao{};
 private:
+    bool isComputePipeline = false;
+    glm::ivec3 theadGroupSize{};
     std::vector<VertexAttributeOGL> vertexAttributesOGL;
     ShaderOGL* shader;
     GraphicsPipelineDescription description;

@@ -1,7 +1,7 @@
 #include "commandListOGL.h"
 
 #include "frameBufferOGL.h"
-#include "graphicsPipelineOGL.h"
+#include "pipelineOGL.h"
 
 #include <cstring>
 
@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "samplerOGL.h"
 #include "textureOGL.h"
+#include "textureViewOGL.h"
 
 namespace Neon::RHI
 {
@@ -36,38 +37,46 @@ namespace Neon::RHI
         });
     }
 
-    void CommandListOGL::setTexture(const std::string& name, uint32_t offset, Texture* texture)
+    void CommandListOGL::setTexture(const std::string& name, TextureView* texture)
     {
-        commands.emplace_back([name, texture, this, offset]
+        commands.emplace_back([name, texture, this]
         {
-            const uint32_t binding = getPipeline()->getShader()->getSamplerLocation(name) + offset;
-            dynamic_cast<TextureOGL*>(texture)->bind(binding);
+            const uint32_t binding = getPipeline()->getShader()->getSamplerLocation(name);
+            dynamic_cast<TextureViewOGL*>(texture)->bind(binding);
         });
     }
 
-    void CommandListOGL::setSampler(const std::string& name, const uint32_t offset, Sampler* sampler)
+    void CommandListOGL::setSampler(const std::string& name, Sampler* sampler)
     {
-        commands.emplace_back([name, sampler, this, offset]
+        commands.emplace_back([name, sampler, this]
         {
-            const uint32_t binding = getPipeline()->getShader()->getSamplerLocation(name) + offset;
+            const uint32_t binding = getPipeline()->getShader()->getSamplerLocation(name);
             dynamic_cast<SamplerOGL*>(sampler)->bind(binding);
         });
     }
 
-    void CommandListOGL::setPipeline(GraphicsPipeline* pipeline)
+    void CommandListOGL::generateMipmaps(Texture *texture)
+    {
+        commands.emplace_back([texture]
+        {
+            dynamic_cast<TextureOGL*>(texture)->generateMipmaps();
+        });
+    }
+
+    void CommandListOGL::setPipeline(Pipeline* pipeline)
     {
         commands.emplace_back([this, pipeline]
         {
-            this->pipeline = dynamic_cast<GraphicsPipelineOGL*>(pipeline);
+            this->pipeline = dynamic_cast<PipelineOGL*>(pipeline);
             this->pipeline->bind();
         });
     }
 
-    void CommandListOGL::setFrameBuffer(FrameBuffer* frameBuffer)
+    void CommandListOGL::setFramebuffer(Framebuffer* frameBuffer)
     {
         commands.emplace_back([frameBuffer]
         {
-            dynamic_cast<FrameBufferOGL*>(frameBuffer)->bind();
+            dynamic_cast<FramebufferOGL*>(frameBuffer)->bind();
         });
     }
 
@@ -142,6 +151,14 @@ namespace Neon::RHI
         });
     }
 
+    void CommandListOGL::dispatch(const glm::ivec3& numGroups)
+    {
+        commands.emplace_back([numGroups]
+        {
+            glDispatchCompute(numGroups.x, numGroups.y, numGroups.z);
+        });
+    }
+
     void CommandListOGL::drawImpl(const uint32_t vertexCount, const uint32_t instanceCount, const uint32_t firstVertex,
                                   const uint32_t firstInstance)
     {
@@ -171,7 +188,7 @@ namespace Neon::RHI
         });
     }
 
-    GraphicsPipelineOGL * CommandListOGL::getPipeline() const
+    PipelineOGL* CommandListOGL::getPipeline() const
     {
         Debug::ensure(pipeline != nullptr, "Pipeline has not been set");
         return pipeline;

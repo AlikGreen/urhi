@@ -6,7 +6,7 @@
 
 namespace Neon::RHI
 {
-class VertexInputState
+class InputLayout
 {
 public:
     template<typename  T>
@@ -22,17 +22,17 @@ public:
         vertexAttributes.emplace_back(location, slot, sizeof(T), typeid(T));
     }
 
-    std::vector<VertexAttribute> getVertexAttributes()
+    [[nodiscard]] const std::vector<VertexAttribute>& getVertexAttributes() const
     {
         return vertexAttributes;
     }
 
-    std::vector<VertexBufferDescription> getVertexBuffers()
+    [[nodiscard]] const std::vector<VertexBufferDescription>& getVertexBuffers() const
     {
         return vertexBuffers;
     }
 
-    uint32_t getStride() const
+    [[nodiscard]] uint32_t getStride() const
     {
         return stride;
     }

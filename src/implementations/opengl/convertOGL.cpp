@@ -72,211 +72,209 @@ namespace Neon::RHI
         return GL_INVALID_ENUM;
     }
 
-    GLenum ConvertOGL::textureFormatToGL(TextureFormat format)
+    GLenum ConvertOGL::pixelFormatToGL(PixelFormat format)
     {
         switch (format)
         {
             // 8-bit normalized / integer
-            case TextureFormat::R8Unorm:        return GL_R8;
-            case TextureFormat::R8Snorm:        return GL_R8_SNORM;
-            case TextureFormat::R8Uint:         return GL_R8UI;
-            case TextureFormat::R8Int:          return GL_R8I;
+            case PixelFormat::R8Unorm:        return GL_R8;
+            case PixelFormat::R8Snorm:        return GL_R8_SNORM;
+            case PixelFormat::R8Uint:         return GL_R8UI;
+            case PixelFormat::R8Int:          return GL_R8I;
 
             // 16-bit normalized / integer / float
-            case TextureFormat::R16Unorm:       return GL_R16;
-            case TextureFormat::R16Snorm:       return GL_R16_SNORM;
-            case TextureFormat::R16Uint:        return GL_R16UI;
-            case TextureFormat::R16Int:         return GL_R16I;
-            case TextureFormat::R16Float:       return GL_R16F;
+            case PixelFormat::R16Unorm:       return GL_R16;
+            case PixelFormat::R16Snorm:       return GL_R16_SNORM;
+            case PixelFormat::R16Uint:        return GL_R16UI;
+            case PixelFormat::R16Int:         return GL_R16I;
+            case PixelFormat::R16Float:       return GL_R16F;
 
             // 8-bit two-channel
-            case TextureFormat::R8G8Unorm:      return GL_RG8;
-            case TextureFormat::R8G8Snorm:      return GL_RG8_SNORM;
-            case TextureFormat::R8G8Uint:       return GL_RG8UI;
-            case TextureFormat::R8G8Int:        return GL_RG8I;
+            case PixelFormat::R8G8Unorm:      return GL_RG8;
+            case PixelFormat::R8G8Snorm:      return GL_RG8_SNORM;
+            case PixelFormat::R8G8Uint:       return GL_RG8UI;
+            case PixelFormat::R8G8Int:        return GL_RG8I;
 
             // 16-bit two-channel
-            case TextureFormat::R16G16Unorm:    return GL_RG16;
-            case TextureFormat::R16G16Snorm:    return GL_RG16_SNORM;
-            case TextureFormat::R16G16Uint:     return GL_RG16UI;
-            case TextureFormat::R16G16Int:      return GL_RG16I;
-            case TextureFormat::R16G16Float:    return GL_RG16F;
+            case PixelFormat::R16G16Unorm:    return GL_RG16;
+            case PixelFormat::R16G16Snorm:    return GL_RG16_SNORM;
+            case PixelFormat::R16G16Uint:     return GL_RG16UI;
+            case PixelFormat::R16G16Int:      return GL_RG16I;
+            case PixelFormat::R16G16Float:    return GL_RG16F;
 
             // 32-bit two-channel
-            case TextureFormat::R32G32Float:    return GL_RG32F;
-            case TextureFormat::R32G32Uint:     return GL_RG32UI;
-            case TextureFormat::R32G32Int:      return GL_RG32I;
+            case PixelFormat::R32G32Float:    return GL_RG32F;
+            case PixelFormat::R32G32Uint:     return GL_RG32UI;
+            case PixelFormat::R32G32Int:      return GL_RG32I;
 
             // 32-bit single-channel
-            case TextureFormat::R32Float:       return GL_R32F;
-            case TextureFormat::R32Uint:        return GL_R32UI;
-            case TextureFormat::R32Int:         return GL_R32I;
+            case PixelFormat::R32Float:       return GL_R32F;
+            case PixelFormat::R32Uint:        return GL_R32UI;
+            case PixelFormat::R32Int:         return GL_R32I;
 
             // 8-bit three-channel
-            case TextureFormat::R8G8B8Unorm:    return GL_RGB8;
-            case TextureFormat::R8G8B8Snorm:    return GL_RGB8_SNORM;
-            case TextureFormat::R8G8B8Uint:     return GL_RGB8UI;
-            case TextureFormat::R8G8B8Int:      return GL_RGB8I;
-            case TextureFormat::R8G8B8UnormSrgb: return GL_SRGB8;
-            case TextureFormat::B8G8R8Unorm:    return GL_RGB8; // Note: BGR stored as RGB
-            case TextureFormat::B8G8R8UnormSrgb: return GL_SRGB8;
+            case PixelFormat::R8G8B8Unorm:    return GL_RGB8;
+            case PixelFormat::R8G8B8Snorm:    return GL_RGB8_SNORM;
+            case PixelFormat::R8G8B8Uint:     return GL_RGB8UI;
+            case PixelFormat::R8G8B8Int:      return GL_RGB8I;
+            case PixelFormat::R8G8B8UnormSrgb: return GL_SRGB8;
+            case PixelFormat::B8G8R8Unorm:    return GL_RGB8; // Note: BGR stored as RGB
+            case PixelFormat::B8G8R8UnormSrgb: return GL_SRGB8;
 
             // 16-bit three-channel
-            case TextureFormat::R16G16B16Unorm: return GL_RGB16;
-            case TextureFormat::R16G16B16Snorm: return GL_RGB16_SNORM;
-            case TextureFormat::R16G16B16Uint:  return GL_RGB16UI;
-            case TextureFormat::R16G16B16Int:   return GL_RGB16I;
-            case TextureFormat::R16G16B16Float: return GL_RGB16F;
+            case PixelFormat::R16G16B16Unorm: return GL_RGB16;
+            case PixelFormat::R16G16B16Snorm: return GL_RGB16_SNORM;
+            case PixelFormat::R16G16B16Uint:  return GL_RGB16UI;
+            case PixelFormat::R16G16B16Int:   return GL_RGB16I;
+            case PixelFormat::R16G16B16Float: return GL_RGB16F;
 
             // 32-bit three-channel
-            case TextureFormat::R32G32B32Float: return GL_RGB32F;
-            case TextureFormat::R32G32B32Uint:  return GL_RGB32UI;
-            case TextureFormat::R32G32B32Int:   return GL_RGB32I;
+            case PixelFormat::R32G32B32Float: return GL_RGB32F;
+            case PixelFormat::R32G32B32Uint:  return GL_RGB32UI;
+            case PixelFormat::R32G32B32Int:   return GL_RGB32I;
 
             // 8-bit four-channel
-            case TextureFormat::R8G8B8A8Unorm:    return GL_RGBA8;
-            case TextureFormat::R8G8B8A8Snorm:    return GL_RGBA8_SNORM;
-            case TextureFormat::R8G8B8A8Uint:     return GL_RGBA8UI;
-            case TextureFormat::R8G8B8A8Int:      return GL_RGBA8I;
-            case TextureFormat::R8G8B8A8UnormSrgb: return GL_SRGB8_ALPHA8;
-            case TextureFormat::B8G8R8A8Unorm:    return GL_RGBA8; // Note: BGRA stored as RGBA
-            case TextureFormat::B8G8R8A8UnormSrgb: return GL_SRGB8_ALPHA8;
+            case PixelFormat::R8G8B8A8Unorm:    return GL_RGBA8;
+            case PixelFormat::R8G8B8A8Snorm:    return GL_RGBA8_SNORM;
+            case PixelFormat::R8G8B8A8Uint:     return GL_RGBA8UI;
+            case PixelFormat::R8G8B8A8Int:      return GL_RGBA8I;
+            case PixelFormat::R8G8B8A8UnormSrgb: return GL_SRGB8_ALPHA8;
+            case PixelFormat::B8G8R8A8Unorm:    return GL_RGBA8; // Note: BGRA stored as RGBA
+            case PixelFormat::B8G8R8A8UnormSrgb: return GL_SRGB8_ALPHA8;
 
             // 16-bit four-channel
-            case TextureFormat::R16G16B16A16Unorm: return GL_RGBA16;
-            case TextureFormat::R16G16B16A16Snorm: return GL_RGBA16_SNORM;
-            case TextureFormat::R16G16B16A16Uint:  return GL_RGBA16UI;
-            case TextureFormat::R16G16B16A16Int:   return GL_RGBA16I;
-            case TextureFormat::R16G16B16A16Float: return GL_RGBA16F;
+            case PixelFormat::R16G16B16A16Unorm: return GL_RGBA16;
+            case PixelFormat::R16G16B16A16Snorm: return GL_RGBA16_SNORM;
+            case PixelFormat::R16G16B16A16Uint:  return GL_RGBA16UI;
+            case PixelFormat::R16G16B16A16Int:   return GL_RGBA16I;
+            case PixelFormat::R16G16B16A16Float: return GL_RGBA16F;
 
             // 32-bit four-channel
-            case TextureFormat::R32G32B32A32Float: return GL_RGBA32F;
-            case TextureFormat::R32G32B32A32Uint:  return GL_RGBA32UI;
-            case TextureFormat::R32G32B32A32Int:   return GL_RGBA32I;
+            case PixelFormat::R32G32B32A32Float: return GL_RGBA32F;
+            case PixelFormat::R32G32B32A32Uint:  return GL_RGBA32UI;
+            case PixelFormat::R32G32B32A32Int:   return GL_RGBA32I;
 
             // Packed / special
-            case TextureFormat::R10G10B10A2Unorm: return GL_RGB10_A2;
-            case TextureFormat::R11G11B10Ufloat:  return GL_R11F_G11F_B10F;
+            case PixelFormat::R10G10B10A2Unorm: return GL_RGB10_A2;
+            case PixelFormat::R11G11B10Ufloat:  return GL_R11F_G11F_B10F;
 
             // Block-compressed
-            case TextureFormat::BC4RUnorm:        return GL_COMPRESSED_RED_RGTC1;
-            case TextureFormat::BC5RgUnorm:       return GL_COMPRESSED_RG_RGTC2;
-            case TextureFormat::BC7RgbaUnorm:     return GL_COMPRESSED_RGBA_BPTC_UNORM;
-            case TextureFormat::BC7RgbaUnormSrgb: return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+            case PixelFormat::BC4RUnorm:        return GL_COMPRESSED_RED_RGTC1;
+            case PixelFormat::BC5RgUnorm:       return GL_COMPRESSED_RG_RGTC2;
+            case PixelFormat::BC7RgbaUnorm:     return GL_COMPRESSED_RGBA_BPTC_UNORM;
+            case PixelFormat::BC7RgbaUnormSrgb: return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
 
             // Depth-stencil
-            case TextureFormat::D24UnormS8Uint:   return GL_DEPTH24_STENCIL8;
-            case TextureFormat::D32FloatS8Uint:   return GL_DEPTH32F_STENCIL8;
+            case PixelFormat::D24UnormS8Uint:   return GL_DEPTH24_STENCIL8;
+            case PixelFormat::D32FloatS8Uint:   return GL_DEPTH32F_STENCIL8;
 
-            case TextureFormat::Invalid:
+            case PixelFormat::Invalid:
             default:
                 return GL_RGBA8; // Safe fallback
         }
     }
 
-    GLenum ConvertOGL::textureFormatToGLType(const TextureFormat format)
+    GLenum ConvertOGL::pixelFormatToGLType(const PixelFormat format)
     {
         switch(format)
         {
-            case TextureFormat::R8Unorm:
-            case TextureFormat::R8G8Unorm:
-            case TextureFormat::R8G8B8A8Unorm:
-            case TextureFormat::B8G8R8A8Unorm:
-            case TextureFormat::R8G8B8A8UnormSrgb:
-            case TextureFormat::B8G8R8A8UnormSrgb:
+            case PixelFormat::R8Unorm:
+            case PixelFormat::R8G8Unorm:
+            case PixelFormat::R8G8B8A8Unorm:
+            case PixelFormat::B8G8R8A8Unorm:
+            case PixelFormat::R8G8B8A8UnormSrgb:
+            case PixelFormat::B8G8R8A8UnormSrgb:
                 return GL_UNSIGNED_BYTE;
 
             // Unsigned normalized 16-bit
-            case TextureFormat::R16Unorm:
-            case TextureFormat::R16G16Unorm:
-            case TextureFormat::R16G16B16A16Unorm:
+            case PixelFormat::R16Unorm:
+            case PixelFormat::R16G16Unorm:
+            case PixelFormat::R16G16B16A16Unorm:
                 return GL_UNSIGNED_SHORT;
 
             // Signed normalized 8-bit
-            case TextureFormat::R8Snorm:
-            case TextureFormat::R8G8Snorm:
-            case TextureFormat::R8G8B8A8Snorm:
+            case PixelFormat::R8Snorm:
+            case PixelFormat::R8G8Snorm:
+            case PixelFormat::R8G8B8A8Snorm:
                 return GL_BYTE;
 
             // Signed normalized 16-bit
-            case TextureFormat::R16Snorm:
-            case TextureFormat::R16G16Snorm:
-            case TextureFormat::R16G16B16A16Snorm:
+            case PixelFormat::R16Snorm:
+            case PixelFormat::R16G16Snorm:
+            case PixelFormat::R16G16B16A16Snorm:
                 return GL_SHORT;
 
             // Half float (16-bit)
-            case TextureFormat::R16Float:
-            case TextureFormat::R16G16Float:
-            case TextureFormat::R16G16B16A16Float:
+            case PixelFormat::R16Float:
+            case PixelFormat::R16G16Float:
+            case PixelFormat::R16G16B16A16Float:
                 return GL_HALF_FLOAT;
 
             // Float (32-bit)
-            case TextureFormat::R32Float:
-            case TextureFormat::R32G32Float:
-            case TextureFormat::R32G32B32A32Float:
+            case PixelFormat::R32Float:
+            case PixelFormat::R32G32Float:
+            case PixelFormat::R32G32B32A32Float:
                 return GL_FLOAT;
 
             // Unsigned integer 8-bit
-            case TextureFormat::R8Uint:
-            case TextureFormat::R8G8Uint:
-            case TextureFormat::R8G8B8A8Uint:
+            case PixelFormat::R8Uint:
+            case PixelFormat::R8G8Uint:
+            case PixelFormat::R8G8B8A8Uint:
                 return GL_UNSIGNED_BYTE;
 
             // Unsigned integer 16-bit
-            case TextureFormat::R16Uint:
-            case TextureFormat::R16G16Uint:
-            case TextureFormat::R16G16B16A16Uint:
+            case PixelFormat::R16Uint:
+            case PixelFormat::R16G16Uint:
+            case PixelFormat::R16G16B16A16Uint:
                 return GL_UNSIGNED_SHORT;
 
             // Unsigned integer 32-bit
-            case TextureFormat::R32Uint:
-            case TextureFormat::R32G32Uint:
-            case TextureFormat::R32G32B32A32Uint:
+            case PixelFormat::R32Uint:
+            case PixelFormat::R32G32Uint:
+            case PixelFormat::R32G32B32A32Uint:
                 return GL_UNSIGNED_INT;
 
             // Signed integer 8-bit
-            case TextureFormat::R8Int:
-            case TextureFormat::R8G8Int:
-            case TextureFormat::R8G8B8A8Int:
+            case PixelFormat::R8Int:
+            case PixelFormat::R8G8Int:
+            case PixelFormat::R8G8B8A8Int:
                 return GL_BYTE;
 
             // Signed integer 16-bit
-            case TextureFormat::R16Int:
-            case TextureFormat::R16G16Int:
-            case TextureFormat::R16G16B16A16Int:
+            case PixelFormat::R16Int:
+            case PixelFormat::R16G16Int:
+            case PixelFormat::R16G16B16A16Int:
                 return GL_SHORT;
 
             // Signed integer 32-bit
-            case TextureFormat::R32Int:
-            case TextureFormat::R32G32Int:
-            case TextureFormat::R32G32B32A32Int:
+            case PixelFormat::R32Int:
+            case PixelFormat::R32G32Int:
+            case PixelFormat::R32G32B32A32Int:
                 return GL_INT;
 
             // Special packed formats
-            case TextureFormat::R10G10B10A2Unorm:
+            case PixelFormat::R10G10B10A2Unorm:
                 return GL_UNSIGNED_INT_2_10_10_10_REV;
 
-            case TextureFormat::R11G11B10Ufloat:
+            case PixelFormat::R11G11B10Ufloat:
                 return GL_UNSIGNED_INT_10F_11F_11F_REV;
 
-            case TextureFormat::D24UnormS8Uint:
+            case PixelFormat::D24UnormS8Uint:
                 return GL_UNSIGNED_INT_24_8;
 
-            case TextureFormat::D32FloatS8Uint:
+            case PixelFormat::D32FloatS8Uint:
                 return GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 
-            // Compressed formats - these don't have a "type" in the traditional sense
-            // They're handled differently in OpenGL (glCompressedTexImage2D)
-            case TextureFormat::BC1RgbaUnorm:
-            case TextureFormat::BC1RgbaUnormSrgb:
-            case TextureFormat::BC2RgbaUnorm:
-            case TextureFormat::BC2RgbaUnormSrgb:
-            case TextureFormat::BC3RgbaUnorm:
-            case TextureFormat::BC3RgbaUnormSrgb:
-            case TextureFormat::BC4RUnorm:
-            case TextureFormat::BC5RgUnorm:
-            case TextureFormat::BC7RgbaUnorm:
-            case TextureFormat::BC7RgbaUnormSrgb:
+            case PixelFormat::BC1RgbaUnorm:
+            case PixelFormat::BC1RgbaUnormSrgb:
+            case PixelFormat::BC2RgbaUnorm:
+            case PixelFormat::BC2RgbaUnormSrgb:
+            case PixelFormat::BC3RgbaUnorm:
+            case PixelFormat::BC3RgbaUnormSrgb:
+            case PixelFormat::BC4RUnorm:
+            case PixelFormat::BC5RgUnorm:
+            case PixelFormat::BC7RgbaUnorm:
+            case PixelFormat::BC7RgbaUnormSrgb:
             default:
                 return GL_NONE; // Not applicable for compressed formats
         }
@@ -499,12 +497,10 @@ namespace Neon::RHI
             {
                 case TextureFilter::Nearest:
                     return GL_NEAREST;
-
                 case TextureFilter::Linear:
                     return GL_LINEAR;
-
                 default:
-                    return GL_LINEAR;
+                    return GL_NONE;
             }
         }
 
@@ -517,7 +513,7 @@ namespace Neon::RHI
                 case MipmapFilter::Linear:
                     return GL_NEAREST_MIPMAP_LINEAR;
                 default:
-                    return GL_NEAREST_MIPMAP_LINEAR;
+                    return GL_NONE;
             }
         }
 
@@ -528,30 +524,10 @@ namespace Neon::RHI
             case MipmapFilter::Linear:
                 return GL_LINEAR_MIPMAP_LINEAR;
             default:
-                return GL_LINEAR_MIPMAP_LINEAR;
+                return GL_NONE;
         }
     }
 
-    GLenum ConvertOGL::pixelFormatToGL(const PixelFormat format)
-    {
-        switch (format)
-        {
-            case PixelFormat::R:
-            case PixelFormat::Red:           return GL_RED;
-            case PixelFormat::RG:            return GL_RG;
-            case PixelFormat::RGB:           return GL_RGB;
-            case PixelFormat::BGR:           return GL_BGR;
-            case PixelFormat::RGBA:          return GL_RGBA;
-            case PixelFormat::BGRA:          return GL_BGRA;
-            case PixelFormat::Green:         return GL_GREEN;
-            case PixelFormat::Blue:          return GL_BLUE;
-            case PixelFormat::Alpha:         return GL_ALPHA;
-            case PixelFormat::DepthComponent: return GL_DEPTH_COMPONENT;
-            case PixelFormat::DepthStencil:  return GL_DEPTH_STENCIL;
-            default:
-                return GL_RGBA; // Safe fallback
-        }
-    }
 
     GLenum ConvertOGL::pixelTypeToGL(const PixelType type)
     {
@@ -570,5 +546,19 @@ namespace Neon::RHI
             default:
                 return GL_UNSIGNED_BYTE; // Safe fallback
         }
+    }
+
+    GLenum ConvertOGL::textureTypeToGLType(const TextureType type)
+    {
+        switch (type)
+        {
+            case TextureType::Texture1D:
+                return GL_TEXTURE_1D;
+            case TextureType::Texture2D:
+                return GL_TEXTURE_2D;
+            case TextureType::Texture3D:
+                return GL_TEXTURE_3D;
+        }
+        return GL_NONE;
     }
 }

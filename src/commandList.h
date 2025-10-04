@@ -1,12 +1,13 @@
 #pragma once
 #include "frameBuffer.h"
-#include "graphicsPipeline.h"
+#include "pipeline.h"
 #include "buffer.h"
+
 #include "sampler.h"
 #include "texture.h"
+#include "textureView.h"
 #include "descriptions/textureUploadDescription.h"
 #include "enums/indexFormat.h"
-#include "enums/shaderType.h"
 #include "glm/glm.hpp"
 #include "util/memory.h"
 
@@ -20,14 +21,12 @@ public:
     virtual void begin() = 0;
 
     virtual void setUniformBuffer(const std::string& name, Buffer* buffer) = 0;
-    virtual void setTexture(      const std::string& name, uint32_t offset, Texture* texture) = 0;
-    virtual void setSampler(      const std::string& name, uint32_t offset, Sampler* sampler) = 0;
-    void setTexture(              const std::string& name, Texture* texture) { setTexture(name, 0, texture); };
-    void setSampler(              const std::string& name, Sampler* sampler) { setSampler(name, 0, sampler); };
 
+    virtual void setTexture(const std::string& name, TextureView* texture) = 0;
+    virtual void setSampler(const std::string& name, Sampler* sampler) = 0;
 
-    virtual void setPipeline(GraphicsPipeline* pipeline) = 0;
-    virtual void setFrameBuffer(FrameBuffer* frameBuffer) = 0;
+    virtual void setPipeline(Pipeline* pipeline) = 0;
+    virtual void setFramebuffer(Framebuffer* frameBuffer) = 0;
 
     virtual void setVertexBuffer(uint32_t index, Buffer* vertexBuffer) = 0;
     virtual void setIndexBuffer(Buffer* indexBuffer, IndexFormat indexFormat) = 0;
@@ -36,8 +35,11 @@ public:
     virtual void clearDepthStencil(float value) = 0;
 
     virtual void updateTexture(Texture* texture, TextureUploadDescription uploadDescription) = 0;
+    virtual void generateMipmaps(Texture* texture) = 0;
 
     virtual void reserveBuffer(Buffer* buffer, size_t size) = 0;
+
+    virtual void dispatch(const glm::ivec3& numGroups) = 0;
 
     template<typename T>
     void updateBuffer(Buffer* buffer, T& data)

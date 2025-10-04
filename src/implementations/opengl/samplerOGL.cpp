@@ -8,7 +8,7 @@ namespace Neon::RHI
 {
     SamplerOGL::SamplerOGL(const SamplerDescription &description)
     {
-        glGenSamplers(1, &handle);
+        glCreateSamplers(1, &handle);
 
         glSamplerParameteri(handle, GL_TEXTURE_WRAP_S, static_cast<int>(ConvertOGL::textureWrapToGL(description.wrapMode.x)));
         glSamplerParameteri(handle, GL_TEXTURE_WRAP_T, static_cast<int>(ConvertOGL::textureWrapToGL(description.wrapMode.y)));

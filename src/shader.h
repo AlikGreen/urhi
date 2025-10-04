@@ -1,4 +1,5 @@
 #pragma once
+#include "descriptions/shaderReflection.h"
 
 namespace Neon::RHI
 {
@@ -9,6 +10,7 @@ public:
 
     virtual void compile() = 0;
     virtual void dispose() = 0;
-    // TODO implement more shader types
+
+    virtual ShaderReflection getShaderReflection() = 0;
 };
 }

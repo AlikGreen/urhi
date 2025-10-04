@@ -1,11 +1,12 @@
 #pragma once
-#include "enums/textureFormat.h"
+
+#include "enums/pixelFormat.h"
 
 namespace Neon::RHI
 {
 struct RenderTargetsDescription
 {
-    std::vector<TextureFormat> colorTargetFormats = {};
-    TextureFormat depthTargetFormat = TextureFormat::Invalid;
+    std::vector<PixelFormat> colorTargetFormats = {};
+    PixelFormat depthTargetFormat = PixelFormat::Invalid;
 };
 }

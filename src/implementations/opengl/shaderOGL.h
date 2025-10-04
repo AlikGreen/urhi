@@ -20,11 +20,12 @@ public:
 
     void bind() const;
 
+    ShaderReflection getShaderReflection() override; // TODO: implement
+
     uint32_t getUBOLocation(    const std::string &name) const;
     uint32_t getSSBOLocation(   const std::string &name) const;
     uint32_t getSamplerLocation(const std::string &name) const;
     uint32_t getImageLocation(  const std::string &name) const;
-    uint32_t getUniformLocation(const std::string &name) const;
 
 private:
     struct ShaderStage
@@ -41,7 +42,6 @@ private:
         std::unordered_map<std::string, GLuint> ssboBinding{};
         std::unordered_map<std::string, GLuint> samplerUnit{};
         std::unordered_map<std::string, GLuint> imageUnit{};
-        std::unordered_map<std::string, GLint>  uniformLocation{};
     };
 
     static std::string spirvToGlsl(const std::vector<uint32_t> &spirv, ShaderBindingReflection& reflection);

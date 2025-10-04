@@ -1,10 +1,7 @@
 #pragma once
-#include <cstdint>
 
 #include "enums/mipmapFilter.h"
 #include "enums/textureFilter.h"
-#include "enums/textureFormat.h"
-#include "enums/textureUsage.h"
 #include "enums/textureWrap.h"
 
 namespace Neon::RHI

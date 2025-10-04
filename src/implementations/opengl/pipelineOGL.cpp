@@ -1,4 +1,4 @@
-#include "graphicsPipelineOGL.h"
+#include "pipelineOGL.h"
 
 #include <utility>
 
@@ -6,19 +6,19 @@
 
 namespace Neon::RHI
 {
-    GraphicsPipelineOGL::GraphicsPipelineOGL(GraphicsPipelineDescription &description) : description(description)
+    PipelineOGL::PipelineOGL(const GraphicsPipelineDescription &description) : description(description)
     {
         shader = dynamic_cast<ShaderOGL*>(description.shader);
 
         uint32_t offset = 0;
-        for (const auto& attr : description.vertexInputState.getVertexAttributes())
+        for (const auto& attr : description.inputLayout.getVertexAttributes())
         {
             const GLenum glType = ConvertOGL::typeinfoToGL(attr.type);
             VertexAttributeOGL attrib =
             {
                 attr.location,
                 static_cast<int>(ConvertOGL::getComponentCount(attr.type)), glType,
-                static_cast<int>(description.vertexInputState.getStride()),
+                static_cast<int>(description.inputLayout.getStride()),
                 reinterpret_cast<const void*>(offset)
             };
 
@@ -30,12 +30,19 @@ namespace Neon::RHI
         glGenVertexArrays(1, &vao);
     }
 
-    std::vector<VertexAttributeOGL> GraphicsPipelineOGL::getVertexAttributes() const
+    PipelineOGL::PipelineOGL(const ComputePipelineDescription &description)
+    {
+        isComputePipeline = true;
+        shader = dynamic_cast<ShaderOGL*>(description.shader);
+        theadGroupSize = description.threadGroupSize;
+    }
+
+    std::vector<VertexAttributeOGL> PipelineOGL::getVertexAttributes() const
     {
         return vertexAttributesOGL;
     }
 
-    void GraphicsPipelineOGL::bind() const
+    void PipelineOGL::bind() const
     {
         glBindVertexArray( vao);
         shader->bind();
@@ -46,7 +53,7 @@ namespace Neon::RHI
             glDisable(GL_DEPTH_TEST);
     }
 
-    ShaderOGL* GraphicsPipelineOGL::getShader() const
+    ShaderOGL* PipelineOGL::getShader() const
     {
         return shader;
     }

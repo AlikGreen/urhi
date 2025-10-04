@@ -4,10 +4,11 @@
 #include "bufferOGL.h"
 #include "commandListOGL.h"
 #include "frameBufferOGL.h"
-#include "graphicsPipelineOGL.h"
+#include "pipelineOGL.h"
 #include "samplerOGL.h"
 #include "shaderOGL.h"
 #include "textureOGL.h"
+#include "textureViewOGL.h"
 #include "windowOGL.h"
 
 namespace Neon::RHI
@@ -17,9 +18,14 @@ namespace Neon::RHI
 
     }
 
-    GraphicsPipeline* DeviceOGL::createGraphicsPipeline(GraphicsPipelineDescription graphicsPipelineDescription)
+    Pipeline* DeviceOGL::createPipeline(const GraphicsPipelineDescription& description)
     {
-        return new GraphicsPipelineOGL(graphicsPipelineDescription);
+        return new PipelineOGL(description);
+    }
+
+    Pipeline * DeviceOGL::createPipeline(const ComputePipelineDescription &description)
+    {
+        return new PipelineOGL(description);
     }
 
     CommandList* DeviceOGL::createCommandList()
@@ -42,14 +48,19 @@ namespace Neon::RHI
         return new BufferOGL(GL_ARRAY_BUFFER);
     }
 
-    Texture* DeviceOGL::createTexture(TextureDescription textureDescription)
+    Texture* DeviceOGL::createTexture(const TextureDescription& description)
     {
-        return new TextureOGL(textureDescription);
+        return new TextureOGL(description);
     }
 
-    Sampler* DeviceOGL::createSampler(SamplerDescription samplerDescription)
+    Sampler* DeviceOGL::createSampler(const SamplerDescription& description)
     {
-        return new SamplerOGL(samplerDescription);
+        return new SamplerOGL(description);
+    }
+
+    TextureView * DeviceOGL::createTextureView(const TextureViewDescription &description)
+    {
+        return new TextureViewOGL(description);
     }
 
     void DeviceOGL::submit(CommandList* commandList)
@@ -62,9 +73,9 @@ namespace Neon::RHI
         window->swapBuffers();
     }
 
-    FrameBuffer* DeviceOGL::getSwapChainFrameBuffer()
+    Framebuffer* DeviceOGL::getSwapChainFramebuffer()
     {
-        return new FrameBufferOGL(0);
+        return new FramebufferOGL(0);
     }
 
 
