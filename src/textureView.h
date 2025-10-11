@@ -5,6 +5,6 @@ namespace Neon::RHI
 class TextureView
 {
 public:
-    virtual ~TextureView() = 0;
+    virtual ~TextureView() = default;
 };
 }
