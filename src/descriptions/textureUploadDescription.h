@@ -1,6 +1,7 @@
 #pragma once
-#include "enums/pixelFormat.h"
 #include "enums/pixelType.h"
+
+#include "glm/glm.hpp"
 
 namespace Neon::RHI
 {
