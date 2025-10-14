@@ -8,7 +8,7 @@ namespace Neon::RHI
     TextureViewOGL::TextureViewOGL(const TextureViewDescription &description)
     {
         const auto tex = dynamic_cast<TextureOGL*>(description.target);
-        glCreateTextures(tex->getType(), 1, &handle);
+        glGenTextures(1, &handle);
 
         glTextureView(handle,
                       tex->getType(),

@@ -19,17 +19,32 @@ namespace Neon::RHI
         if(description.numMipmaps > 0)
             numMipmaps = description.numMipmaps;
         else
-            numMipmaps = static_cast<uint32_t>(log(std::max(width, height)))+1;
+            numMipmaps = static_cast<uint32_t>(log2(std::max(width, height)))+1;
 
         arrayLayers = description.arrayLayers;
 
         type = ConvertOGL::textureTypeToGLType(description.type);
 
-        glCreateTextures(GL_TEXTURE_2D, 1, &handle);
-
+        glCreateTextures(type, 1, &handle);
         glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, static_cast<int>(numMipmaps) - 1);
 
-        glTextureStorage2D(handle, static_cast<int>(numMipmaps), ConvertOGL::pixelFormatToGL(description.format), static_cast<int>(width), static_cast<int>(height));
+        if (type == GL_TEXTURE_1D)
+        {
+            glTextureStorage1D(handle, static_cast<int>(numMipmaps),
+                               ConvertOGL::pixelFormatToGL(description.format),
+                               static_cast<int>(width));
+        }
+        else if (type == GL_TEXTURE_2D)
+        {
+            glTextureStorage2D(handle, static_cast<int>(numMipmaps),
+                               ConvertOGL::pixelFormatToGL(description.format),
+                               static_cast<int>(width), static_cast<int>(height));
+        } else if (type == GL_TEXTURE_2D_ARRAY || type == GL_TEXTURE_3D)
+        {
+            glTextureStorage3D(handle, static_cast<int>(numMipmaps),
+                               ConvertOGL::pixelFormatToGL(description.format),
+                               static_cast<int>(width), static_cast<int>(height), static_cast<int>(depth));
+        }
     }
 
     void TextureOGL::bind(const uint32_t binding) const
@@ -83,8 +98,31 @@ namespace Neon::RHI
         glGenerateTextureMipmap(handle);
     }
 
-    void TextureOGL::setData(const TextureUploadDescription uploadDescription) const
+    void TextureOGL::setData(const TextureUploadDescription &uploadDescription) const
     {
-        glTextureSubImage2D(handle, 0, 0, 0, static_cast<int>(width), static_cast<int>(height), GL_RGBA, GL_UNSIGNED_BYTE, uploadDescription.data);
+        const GLenum glFormat = ConvertOGL::pixelFormatToGL(format);
+
+        if (type == GL_TEXTURE_2D)
+        {
+            glTextureSubImage2D(handle,
+                static_cast<int>(uploadDescription.mipLevel),
+                static_cast<int>(uploadDescription.offset.x),
+                static_cast<int>(uploadDescription.offset.y),
+                static_cast<int>(uploadDescription.size.x),
+                static_cast<int>(uploadDescription.size.y),
+                glFormat, type,
+                uploadDescription.data);
+        } else
+        {
+            glTextureSubImage3D(handle,
+                static_cast<int>(uploadDescription.mipLevel),
+                static_cast<int>(uploadDescription.offset.x),
+                static_cast<int>(uploadDescription.offset.y),
+                static_cast<int>(uploadDescription.offset.z),
+                static_cast<int>(uploadDescription.size.x),
+                static_cast<int>(uploadDescription.size.y),
+                static_cast<int>(uploadDescription.size.z),
+                glFormat, type, uploadDescription.data);
+        }
     }
 }

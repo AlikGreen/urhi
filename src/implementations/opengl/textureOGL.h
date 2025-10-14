@@ -25,7 +25,7 @@ public:
     [[nodiscard]] GLuint getHandle() const;
 
     void generateMipmaps() const;
-    void setData(TextureUploadDescription uploadDescription) const;
+    void setData(const TextureUploadDescription &uploadDescription) const;
 private:
     uint32_t width{}, height{}, depth{};
     uint32_t numMipmaps{}, arrayLayers{};

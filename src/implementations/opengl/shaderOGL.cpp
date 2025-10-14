@@ -112,21 +112,25 @@ namespace Neon::RHI
 
     uint32_t ShaderOGL::getUBOLocation(const std::string &name) const
     {
+        Debug::ensure(reflection.uboBinding.contains(name), "Shader does not contain a uniform buffer with the name {}", name);
         return reflection.uboBinding.at(name);
     }
 
     uint32_t ShaderOGL::getSSBOLocation(const std::string &name) const
     {
+        Debug::ensure(reflection.ssboBinding.contains(name), "Shader does not contain a storage buffer with the name {}", name);
         return reflection.ssboBinding.at(name);
     }
 
     uint32_t ShaderOGL::getSamplerLocation(const std::string &name) const
     {
+        Debug::ensure(reflection.samplerUnit.contains(name), "Shader does not contain a sampler with the name {}", name);
         return reflection.samplerUnit.at(name);
     }
 
     uint32_t ShaderOGL::getImageLocation(const std::string &name) const
     {
+        Debug::ensure(reflection.imageUnit.contains(name), "Shader does not contain an image with the name {}", name);
         return reflection.imageUnit.at(name);
     }
 }
