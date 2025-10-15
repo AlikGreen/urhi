@@ -100,7 +100,8 @@ namespace Neon::RHI
 
     void TextureOGL::setData(const TextureUploadDescription &uploadDescription) const
     {
-        const GLenum glFormat = ConvertOGL::pixelFormatToGL(format);
+        const GLenum uploadType = ConvertOGL::pixelTypeToGL(uploadDescription.pixelType);
+        const GLenum uploadFormat = ConvertOGL::pixelLayoutToGL(uploadDescription.pixelLayout);
 
         if (type == GL_TEXTURE_2D)
         {
@@ -110,7 +111,7 @@ namespace Neon::RHI
                 static_cast<int>(uploadDescription.offset.y),
                 static_cast<int>(uploadDescription.size.x),
                 static_cast<int>(uploadDescription.size.y),
-                glFormat, type,
+                uploadFormat, uploadType,
                 uploadDescription.data);
         } else
         {
@@ -122,7 +123,8 @@ namespace Neon::RHI
                 static_cast<int>(uploadDescription.size.x),
                 static_cast<int>(uploadDescription.size.y),
                 static_cast<int>(uploadDescription.size.z),
-                glFormat, type, uploadDescription.data);
+                uploadFormat, uploadType,
+                uploadDescription.data);
         }
     }
 }

@@ -1,6 +1,7 @@
 #include "convertOGL.h"
 #include <glm/glm.hpp>
 
+#include "enums/pixelLayout.h"
 #include "enums/shaderType.h"
 #include "GLFW/glfw3.h"
 
@@ -12,11 +13,9 @@ namespace Neon::RHI
 
         static const std::unordered_map<size_t, GLenum> typeMap =
         {
-            // --- Floating point types ---
             {typeid(float).hash_code(), GL_FLOAT},
             {typeid(double).hash_code(), GL_DOUBLE},
 
-            // --- Signed integer types ---
             {typeid(int8_t).hash_code(), GL_BYTE},
             {typeid(signed char).hash_code(), GL_BYTE},
             {typeid(int16_t).hash_code(), GL_SHORT},
@@ -24,7 +23,6 @@ namespace Neon::RHI
             {typeid(int32_t).hash_code(), GL_INT},
             {typeid(int).hash_code(), GL_INT},
 
-            // --- Unsigned integer types ---
             {typeid(uint8_t).hash_code(), GL_UNSIGNED_BYTE},
             {typeid(unsigned char).hash_code(), GL_UNSIGNED_BYTE},
             {typeid(uint16_t).hash_code(), GL_UNSIGNED_SHORT},
@@ -32,37 +30,29 @@ namespace Neon::RHI
             {typeid(uint32_t).hash_code(), GL_UNSIGNED_INT},
             {typeid(unsigned int).hash_code(), GL_UNSIGNED_INT},
 
-            // --- GLM Types ---
-            // GLM vector types (vec2, vec3, vec4) are composed of floats.
-            // Their OpenGL type is GL_FLOAT.
             {typeid(glm::vec2).hash_code(), GL_FLOAT},
             {typeid(glm::vec3).hash_code(), GL_FLOAT},
             {typeid(glm::vec4).hash_code(), GL_FLOAT},
 
-            // GLM integer vector types (ivec2, ivec3, ivec4) are composed of ints.
-            // Their OpenGL type is GL_INT.
             {typeid(glm::ivec2).hash_code(), GL_INT},
             {typeid(glm::ivec3).hash_code(), GL_INT},
             {typeid(glm::ivec4).hash_code(), GL_INT},
 
-            // GLM unsigned integer vector types (uvec2, uvec3, uvec4) are composed of unsigned ints.
-            // Their OpenGL type is GL_UNSIGNED_INT.
             {typeid(glm::uvec2).hash_code(), GL_UNSIGNED_INT},
             {typeid(glm::uvec3).hash_code(), GL_UNSIGNED_INT},
             {typeid(glm::uvec4).hash_code(), GL_UNSIGNED_INT},
 
-            // GLM matrix types (mat2, mat3, mat4) are composed of floats.
-            // Their OpenGL type is GL_FLOAT, as each column is a vector of floats.
             {typeid(glm::mat2).hash_code(), GL_FLOAT},
             {typeid(glm::mat3).hash_code(), GL_FLOAT},
             {typeid(glm::mat4).hash_code(), GL_FLOAT},
         };
 
-        const auto it = typeMap.find(type->hash_code());
-        if (it != typeMap.end()) return it->second;
+        if (const auto it = typeMap.find(type->hash_code()); it != typeMap.end()) return it->second;
 
         return GL_INVALID_ENUM;
     }
+
+
 
     GLenum ConvertOGL::shaderTypeToGL(const ShaderType type)
     {
@@ -72,7 +62,7 @@ namespace Neon::RHI
         return GL_INVALID_ENUM;
     }
 
-    GLenum ConvertOGL::pixelFormatToGL(PixelFormat format)
+    GLenum ConvertOGL::pixelFormatToGL(const PixelFormat format)
     {
         switch (format)
         {
@@ -526,6 +516,23 @@ namespace Neon::RHI
             default:
                 return GL_NONE;
         }
+    }
+
+    GLenum ConvertOGL::pixelLayoutToGL(const PixelLayout layout)
+    {
+        switch (layout)
+        {
+            case PixelLayout::R:              return GL_RED;
+            case PixelLayout::RG:             return GL_RG;
+            case PixelLayout::RGB:            return GL_RGB;
+            case PixelLayout::BGR:            return GL_BGR;
+            case PixelLayout::RGBA:           return GL_RGBA;
+            case PixelLayout::BGRA:           return GL_BGRA;
+            case PixelLayout::Depth:          return GL_DEPTH_COMPONENT;
+            case PixelLayout::Stencil:        return GL_STENCIL_INDEX;
+            case PixelLayout::DepthStencil:   return GL_DEPTH_STENCIL;
+        }
+        return GL_INVALID_ENUM;
     }
 
 

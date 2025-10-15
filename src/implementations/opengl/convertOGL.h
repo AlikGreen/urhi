@@ -4,6 +4,7 @@
 
 #include "enums/mipmapFilter.h"
 #include "enums/pixelFormat.h"
+#include "enums/pixelLayout.h"
 #include "enums/pixelType.h"
 #include "enums/shaderType.h"
 #include "enums/textureFilter.h"
@@ -27,6 +28,7 @@ public:
     static GLenum textureWrapToGL(TextureWrap wrap);
     static GLenum textureFilterCombineToGL(TextureFilter filter, MipmapFilter mipmapFilter);
     static GLenum pixelTypeToGL(PixelType type);
+    static GLenum pixelLayoutToGL(PixelLayout layout);
     static GLenum textureTypeToGLType(TextureType type);
 };
 }
