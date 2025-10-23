@@ -9,7 +9,7 @@
 #include "descriptions/textureUploadDescription.h"
 #include "enums/indexFormat.h"
 #include "glm/glm.hpp"
-#include "util/memory.h"
+#include <string>
 
 namespace Neon::RHI
 {

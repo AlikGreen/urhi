@@ -3,7 +3,6 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <algorithm>
 
 #include "glslang/Public/ShaderLang.h"
 #include "glslang/Public/ResourceLimits.h"
@@ -12,7 +11,7 @@
 #include "SPIRV/GlslangToSpv.h"
 
 #include "enums/shaderType.h"
-#include "util/string.h"
+#include "util/stringUtil.h"
 
 TBuiltInResource DefaultTBuiltInResource()
 {
