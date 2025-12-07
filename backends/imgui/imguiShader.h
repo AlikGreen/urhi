@@ -6,7 +6,7 @@ const char* vertexShaderSource = R"(
 #type vertex
 layout(location = 0) in vec2 inPosition;
 layout(location = 1) in vec2 inUV;
-layout(location = 2) in vec4 inColor;
+layout(location = 2) in uint inColor;
 
 layout(std140, binding = 0) uniform ImGuiProjection
 {
@@ -18,8 +18,8 @@ layout(location = 1) out vec4 vColor;
 
 void main()
 {
-    vUV = inUV;
-    vColor = inColor;
+    vUV    = inUV;
+    vColor = unpackUnorm4x8(inColor); // RGBA in [0,1]
     gl_Position = proj.projMatrix * vec4(inPosition, 0.0, 1.0);
 }
 
