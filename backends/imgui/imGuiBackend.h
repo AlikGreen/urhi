@@ -21,18 +21,13 @@ public:
     void newFrame();
     void render(ImDrawData *drawData, CommandList *cmdList);
 
-    void onResize(Framebuffer *newFramebuffer); // optional
+    void setFramebuffer(Framebuffer *newFramebuffer); // optional
 
 private:
     void createFont();
     void createPipeline();
     void updateProjection(const ImDrawData *drawData, CommandList* cmdList) const;
 
-    void ensureBuffers(int vertexCount, int indexCount);
-    void uploadDrawData(ImDrawData *drawData);
-    void setupRenderState(ImDrawData *drawData, CommandList *cmdList);
-
-private:
     Device* m_device;
     Framebuffer* m_framebuffer;
 

@@ -22,6 +22,10 @@ namespace Neon::RHI
         createFont();
     }
 
+    ImGuiBackend::~ImGuiBackend()
+    {
+    }
+
     void ImGuiBackend::newFrame()
     {
         auto io = ImGui::GetIO();
@@ -131,6 +135,11 @@ namespace Neon::RHI
                 cmdList->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
             }
         }
+    }
+
+    void ImGuiBackend::setFramebuffer(Framebuffer *newFramebuffer)
+    {
+        m_framebuffer = newFramebuffer;
     }
 
     void ImGuiBackend::createFont()
