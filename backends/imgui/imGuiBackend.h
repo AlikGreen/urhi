@@ -13,12 +13,13 @@ public:
     {
         Device *device;
         Framebuffer *framebuffer; // or swapchain format / render pass info
+        Window *window;
     };
 
     explicit ImGuiBackend(const InitInfo &initInfo);
     ~ImGuiBackend();
 
-    void newFrame();
+    void newFrame() const;
     void render(ImDrawData *drawData, CommandList *cmdList);
 
     void setFramebuffer(Framebuffer *newFramebuffer); // optional
@@ -30,6 +31,7 @@ private:
 
     Device* m_device;
     Framebuffer* m_framebuffer;
+    Window* m_window;
 
     Box<Pipeline> m_pipeline;
     Box<Buffer> m_vertexBuffer;

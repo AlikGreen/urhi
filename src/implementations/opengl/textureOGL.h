@@ -13,9 +13,9 @@ public:
 
     void bind(uint32_t binding) const;
 
-    uint32_t getWidth() override;
-    uint32_t getHeight() override;
-    uint32_t getDepth() override;
+    [[nodiscard]] uint32_t getWidth() const override;
+    [[nodiscard]] uint32_t getHeight() const override;
+    [[nodiscard]] uint32_t getDepth() const override;
 
     uint32_t getMipLevels() override;
     uint32_t getArrayLayers() override;

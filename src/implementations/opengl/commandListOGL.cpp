@@ -74,9 +74,10 @@ namespace Neon::RHI
 
     void CommandListOGL::setFramebuffer(Framebuffer* frameBuffer)
     {
-        commands.emplace_back([frameBuffer]
+        commands.emplace_back([frameBuffer, this]
         {
-            dynamic_cast<FramebufferOGL*>(frameBuffer)->bind();
+            framebuffer = dynamic_cast<FramebufferOGL*>(frameBuffer);
+            framebuffer->bind();
         });
     }
 
@@ -135,9 +136,13 @@ namespace Neon::RHI
 
     void CommandListOGL::setScissor(ScissorRect rect)
     {
-        commands.emplace_back([rect]
+        commands.emplace_back([rect, this]
         {
-            glScissor(rect.x, rect.y, rect.width, rect.height);
+            const int x = rect.x;
+            const int y = static_cast<GLint>(framebuffer->getHeight() - (rect.y + rect.height));
+            const int w = rect.width;
+            const int h = rect.height;
+            glScissor(x, y, w, h);
         });
     }
 

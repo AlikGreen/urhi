@@ -53,17 +53,17 @@ namespace Neon::RHI
     }
 
 
-    uint32_t TextureOGL::getWidth()
+    uint32_t TextureOGL::getWidth() const
     {
         return width;
     }
 
-    uint32_t TextureOGL::getHeight()
+    uint32_t TextureOGL::getHeight() const
     {
         return height;
     }
 
-    uint32_t TextureOGL::getDepth()
+    uint32_t TextureOGL::getDepth() const
     {
         return depth;
     }

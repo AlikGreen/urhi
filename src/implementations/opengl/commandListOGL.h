@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 #include "commandList.h"
+#include "framebufferOGL.h"
 
 namespace Neon::RHI
 {
@@ -46,6 +47,7 @@ namespace Neon::RHI
     private:
         std::vector<std::function<void()>> commands{};
         PipelineOGL* pipeline{};
+        FramebufferOGL* framebuffer{};
 
         [[nodiscard]] PipelineOGL* getPipeline() const;
     };

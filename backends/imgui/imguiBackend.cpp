@@ -9,6 +9,7 @@ namespace Neon::RHI
     {
         m_device = initInfo.device;
         m_framebuffer = initInfo.framebuffer;
+        m_window = initInfo.window;
 
         m_projUniformBuffer = Box<Buffer>(m_device->createUniformBuffer());
 
@@ -24,9 +25,15 @@ namespace Neon::RHI
 
     ImGuiBackend::~ImGuiBackend() = default;
 
-    void ImGuiBackend::newFrame()
+    void ImGuiBackend::newFrame() const
     {
         auto io = ImGui::GetIO();
+        io.DisplaySize = ImVec2(
+            static_cast<float>(m_window->getWidth()),
+            static_cast<float>(m_window->getHeight())
+        );
+
+        io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
     }
 
     void ImGuiBackend::render(ImDrawData *drawData, CommandList *cmdList)
@@ -66,18 +73,13 @@ namespace Neon::RHI
         for(int n = 0; n < drawData->CmdListsCount; n++)
         {
             const ImDrawList *cmdListImGui = drawData->CmdLists[n];
-
             listIndexOffsets[n] = indexOffset;
 
             for(int v = 0; v < cmdListImGui->VtxBuffer.Size; v++)
-            {
                 vertices.push_back(cmdListImGui->VtxBuffer[v]);
-            }
 
             for(int i = 0; i < cmdListImGui->IdxBuffer.Size; i++)
-            {
                 indices.push_back(static_cast<uint32_t>(cmdListImGui->IdxBuffer[i]) + vertexOffset);
-            }
 
             vertexOffset += cmdListImGui->VtxBuffer.Size;
             indexOffset  += cmdListImGui->IdxBuffer.Size;

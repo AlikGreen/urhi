@@ -75,7 +75,7 @@ namespace Neon::RHI
 
     Framebuffer* DeviceOGL::getSwapChainFramebuffer()
     {
-        return new FramebufferOGL(0);
+        return new FramebufferOGL();
     }
 
 
