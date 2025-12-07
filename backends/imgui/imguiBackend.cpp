@@ -89,6 +89,7 @@ namespace Neon::RHI
         cmdList->updateBuffer(m_indexBuffer.get(), indices);
 
         cmdList->setPipeline(m_pipeline.get());
+        cmdList->setFramebuffer(m_framebuffer);
         cmdList->setVertexBuffer(0, m_vertexBuffer.get());
         cmdList->setIndexBuffer(m_indexBuffer.get(), IndexFormat::UInt32);
 
