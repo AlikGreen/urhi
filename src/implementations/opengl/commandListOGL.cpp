@@ -138,6 +138,8 @@ namespace Neon::RHI
     {
         commands.emplace_back([rect, this]
         {
+            Debug::ensure(framebuffer != nullptr, "Must have framebuffer bound to use setScissor(ScissorRect rect)");
+
             const int x = rect.x;
             const int y = static_cast<GLint>(framebuffer->getHeight() - (rect.y + rect.height));
             const int w = rect.width;
