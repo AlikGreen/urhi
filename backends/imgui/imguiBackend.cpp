@@ -22,9 +22,7 @@ namespace Neon::RHI
         createFont();
     }
 
-    ImGuiBackend::~ImGuiBackend()
-    {
-    }
+    ImGuiBackend::~ImGuiBackend() = default;
 
     void ImGuiBackend::newFrame()
     {
@@ -211,13 +209,20 @@ namespace Neon::RHI
 
         const RenderTargetsDescription targetsDesc{};
 
+        RasterizerState rasterState{};
+        rasterState.cullMode = CullMode::None;
+        rasterState.enableScissorTest = true;
+
+        BlendState blendState{};
+        blendState.enableBlend = true;
+
         GraphicsPipelineDescription pipelineDescription{};
-        pipelineDescription.cullMode           = CullMode::None;
         pipelineDescription.depthState         = depthState;
         pipelineDescription.shader             = shader;
         pipelineDescription.inputLayout		   = vertexInputState;
         pipelineDescription.targetsDescription = targetsDesc;
-        pipelineDescription.enableScissorTest  = true;
+        pipelineDescription.rasterizerState    = rasterState;
+        pipelineDescription.blendState         = blendState;
 
         m_pipeline = Box<Pipeline>(m_device->createPipeline(pipelineDescription));
     }

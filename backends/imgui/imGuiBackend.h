@@ -40,7 +40,7 @@ private:
     Box<TextureView> m_fontTextureView;
     Box<Sampler> m_fontSampler;
 
-    size_t m_vertexBufferSize;
-    size_t m_indexBufferSize;
+    size_t m_vertexBufferSize{};
+    size_t m_indexBufferSize{};
 };
 }

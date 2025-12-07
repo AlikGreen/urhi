@@ -8,12 +8,12 @@ namespace Neon::RHI
     {
         bool enableBlend = false;
 
-        BlendFactor srcColorFactor = BlendFactor::One;
-        BlendFactor dstColorFactor = BlendFactor::Zero;
-        BlendOp colorOp = BlendOp::Add;
+        BlendFactor srcColorFactor = BlendFactor::SrcAlpha;
+        BlendFactor dstColorFactor = BlendFactor::InvSrcAlpha;
+        BlendOp colorOp            = BlendOp::Add;
 
         BlendFactor srcAlphaFactor = BlendFactor::One;
-        BlendFactor dstAlphaFactor = BlendFactor::Zero;
-        BlendOp alphaOp = BlendOp::Add;
+        BlendFactor dstAlphaFactor = BlendFactor::InvSrcAlpha;
+        BlendOp alphaOp            = BlendOp::Add;
     };
 }
