@@ -52,10 +52,31 @@ namespace Neon::RHI
         else
             glDisable(GL_DEPTH_TEST);
 
-        if(description.enableScissorTest)
+        if(description.rasterizerState.enableScissorTest)
             glEnable(GL_SCISSOR_TEST);
         else
             glDisable(GL_SCISSOR_TEST);
+
+        if (description.blendState.enableBlend)
+        {
+            glEnable(GL_BLEND);
+
+            glBlendFuncSeparate(
+            ConvertOGL::blendFactorToGL(description.blendState.srcColorFactor),
+            ConvertOGL::blendFactorToGL(description.blendState.dstColorFactor),
+            ConvertOGL::blendFactorToGL(description.blendState.srcAlphaFactor),
+            ConvertOGL::blendFactorToGL(description.blendState.dstAlphaFactor)
+            );
+
+            glBlendEquationSeparate(
+                ConvertOGL::blendOpToGL(description.blendState.colorOp),
+                ConvertOGL::blendOpToGL(description.blendState.alphaOp)
+            );
+        }
+        else
+        {
+            glDisable(GL_BLEND);
+        }
     }
 
     ShaderOGL* PipelineOGL::getShader() const

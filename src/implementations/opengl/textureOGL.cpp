@@ -23,7 +23,7 @@ namespace Neon::RHI
 
         arrayLayers = description.arrayLayers;
 
-        type = ConvertOGL::textureTypeToGLType(description.type);
+        type = ConvertOGL::textureTypeToGL(description.type);
 
         glCreateTextures(type, 1, &handle);
         glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, static_cast<int>(numMipmaps) - 1);

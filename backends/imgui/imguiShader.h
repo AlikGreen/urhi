@@ -1,6 +1,6 @@
 #pragma once
 
-const char* vertexShaderSource = R"(
+inline auto vertexShaderSource = R"(
 #version 460 core
 
 #type vertex

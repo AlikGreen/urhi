@@ -166,7 +166,7 @@ namespace Neon::RHI
         uploadDesc.size.x = width;
         uploadDesc.size.y = height;
         uploadDesc.pixelLayout = PixelLayout::RGBA;
-        uploadDesc.pixelType = PixelType::Byte;
+        uploadDesc.pixelType = PixelType::UnsignedByte;
 
         // Upload pixels to the texture with a command list or staging buffer
         CommandList* cmdList = m_device->createCommandList();
@@ -190,7 +190,7 @@ namespace Neon::RHI
 
         m_fontSampler = Box<Sampler>(m_device->createSampler(samplerDesc));
 
-        io.Fonts->TexID = reinterpret_cast<ImTextureID>(m_fontTextureView.get());
+        io.Fonts->TexID = m_fontTextureView.get();
     }
 
     void ImGuiBackend::createPipeline()

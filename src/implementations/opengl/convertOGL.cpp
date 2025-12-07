@@ -555,7 +555,7 @@ namespace Neon::RHI
         }
     }
 
-    GLenum ConvertOGL::textureTypeToGLType(const TextureType type)
+    GLenum ConvertOGL::textureTypeToGL(const TextureType type)
     {
         switch (type)
         {
@@ -568,4 +568,32 @@ namespace Neon::RHI
         }
         return GL_NONE;
     }
+
+    GLenum ConvertOGL::blendFactorToGL(const BlendFactor factor)
+    {
+        switch (factor)
+        {
+            case BlendFactor::Zero:         return GL_ZERO;
+            case BlendFactor::One:          return GL_ONE;
+            case BlendFactor::SrcAlpha:     return GL_SRC_ALPHA;
+            case BlendFactor::InvSrcAlpha:  return GL_ONE_MINUS_SRC_ALPHA;
+        }
+
+        return GL_ONE;
+    }
+
+    GLenum ConvertOGL::blendOpToGL(const BlendOp op)
+    {
+        switch (op)
+        {
+            case BlendOp::Add:          return GL_FUNC_ADD;
+            case BlendOp::Subtract:     return GL_FUNC_SUBTRACT;
+            case BlendOp::RevSubtract:  return GL_FUNC_REVERSE_SUBTRACT;
+            case BlendOp::Min:          return GL_MIN;
+            case BlendOp::Max:          return GL_MAX;
+        }
+
+        return GL_FUNC_ADD;
+    }
+
 }

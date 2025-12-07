@@ -10,6 +10,8 @@
 #include "enums/textureFilter.h"
 #include "enums/textureType.h"
 #include "enums/textureWrap.h"
+#include "enums/blendFactor.h"
+#include "enums/blendOp.h"
 #include "input/keyCodes.h"
 
 namespace Neon::RHI
@@ -29,6 +31,8 @@ public:
     static GLenum textureFilterCombineToGL(TextureFilter filter, MipmapFilter mipmapFilter);
     static GLenum pixelTypeToGL(PixelType type);
     static GLenum pixelLayoutToGL(PixelLayout layout);
-    static GLenum textureTypeToGLType(TextureType type);
+    static GLenum textureTypeToGL(TextureType type);
+    static GLenum blendFactorToGL(BlendFactor factor);
+    static GLenum blendOpToGL(BlendOp op);
 };
 }

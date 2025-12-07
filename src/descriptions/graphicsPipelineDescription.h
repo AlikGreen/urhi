@@ -1,6 +1,8 @@
 #pragma once
+#include "blendState.h"
 #include "depthState.h"
 #include "inputLayout.h"
+#include "rasterizerState.h"
 #include "shader.h"
 #include "enums/primitiveType.h"
 #include "enums/fillMode.h"
@@ -14,11 +16,10 @@ namespace Neon::RHI
     {
         Shader* shader = nullptr;
         PrimitiveType primitiveType = PrimitiveType::TriangleList;
-        FillMode fillMode = FillMode::Fill;
-        CullMode cullMode = CullMode::None;
         InputLayout inputLayout{};
         DepthState depthState{};
         RenderTargetsDescription targetsDescription{};
-        bool enableScissorTest = false;
+        RasterizerState rasterizerState{};
+        BlendState blendState{};
     };
 }
