@@ -133,6 +133,14 @@ namespace Neon::RHI
         });
     }
 
+    void CommandListOGL::setScissor(ScissorRect rect)
+    {
+        commands.emplace_back([rect]
+        {
+            glScissor(rect.x, rect.y, rect.width, rect.height);
+        });
+    }
+
     void CommandListOGL::updateTexture(Texture* texture, TextureUploadDescription uploadDescription)
     {
         commands.emplace_back([texture, uploadDescription]

@@ -51,6 +51,11 @@ namespace Neon::RHI
             glEnable(GL_DEPTH_TEST);
         else
             glDisable(GL_DEPTH_TEST);
+
+        if(description.enableScissorTest)
+            glEnable(GL_SCISSOR_TEST);
+        else
+            glDisable(GL_SCISSOR_TEST);
     }
 
     ShaderOGL* PipelineOGL::getShader() const

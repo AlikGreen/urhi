@@ -11,6 +11,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/spirv-cross)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glfw)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glad)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonLog)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonCore)
+
+### NEON RHI
 
 file(GLOB_RECURSE
         SRC_FILES
@@ -26,3 +29,29 @@ target_compile_definitions(neonRHI PRIVATE GLFW_INCLUDE_NONE)
 target_include_directories(neonRHI PUBLIC src/)
 target_include_directories(neonRHI PUBLIC include/)
 target_link_libraries(neonRHI PUBLIC glfw glm::glm glslang spirv-cross-c glad neonLog)
+
+
+### IMGUI LIB
+set(IMGUI_SOURCES
+        dependencies/imgui/imgui.cpp
+        dependencies/imgui/imgui_demo.cpp
+        dependencies/imgui/imgui_draw.cpp
+        dependencies/imgui/imgui_tables.cpp
+        dependencies/imgui/imgui_widgets.cpp
+)
+
+add_library(imgui_static STATIC ${IMGUI_SOURCES})
+
+target_include_directories(imgui_static PUBLIC
+        dependencies/imgui
+)
+
+### IMGUI BACKEND
+add_library(neonRHI_imgui STATIC
+        backends/imgui/imGuiBackend.h
+        backends/imgui/imguiBackend.cpp)
+
+target_include_directories(neonRHI_imgui PUBLIC backends/)
+target_link_libraries(neonRHI_imgui PUBLIC neonRHI imgui_static neonCore)
+
+add_library(neonRHI::imgui ALIAS neonRHI_imgui)

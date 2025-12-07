@@ -19,5 +19,6 @@ namespace Neon::RHI
         InputLayout inputLayout{};
         DepthState depthState{};
         RenderTargetsDescription targetsDescription{};
+        bool enableScissorTest = false;
     };
 }

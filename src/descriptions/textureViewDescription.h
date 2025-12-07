@@ -6,7 +6,7 @@ namespace Neon::RHI
 {
 struct TextureViewDescription
 {
-    Texture* target{};
+    Texture* target = nullptr;
 
     uint32_t baseMipLevel = 0;
     uint32_t mipLevels = 1;
@@ -14,6 +14,8 @@ struct TextureViewDescription
     uint32_t arrayLayers = 1;
 
     PixelFormat format = PixelFormat::R8G8B8A8Unorm;
+
+    TextureViewDescription() = default;
 
     explicit TextureViewDescription(Texture* target)
     {

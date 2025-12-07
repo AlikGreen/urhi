@@ -16,3 +16,9 @@
 [submodule "dependencies/neonLog"]
 	path = dependencies/neonLog
 	url = https://github.com/AlikGreen/NeonLog.git
+[submodule "dependencies/imgui"]
+	path = dependencies/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "dependencies/neonCore"]
+	path = dependencies/neonCore
+	url = https://github.com/AlikGreen/NeonCore.git

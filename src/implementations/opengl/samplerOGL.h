@@ -7,7 +7,7 @@
 
 namespace Neon::RHI
 {
-class SamplerOGL : public Sampler
+class SamplerOGL final : public Sampler
 {
 public:
     explicit SamplerOGL(const SamplerDescription &description);

@@ -11,6 +11,8 @@
 #include "glm/glm.hpp"
 #include <string>
 
+#include "descriptions/scissorRect.h"
+
 namespace Neon::RHI
 {
 class CommandList
@@ -33,6 +35,12 @@ public:
 
     virtual void clearColorTarget(uint32_t target, glm::vec4 color) = 0;
     virtual void clearDepthStencil(float value) = 0;
+
+    virtual void setScissor(ScissorRect rect) = 0;
+    void setScissor(const int x, const int y, const int width, const int height)
+    {
+        setScissor(ScissorRect{ x, y, width, height });
+    }
 
     virtual void updateTexture(Texture* texture, TextureUploadDescription uploadDescription) = 0;
     virtual void generateMipmaps(Texture* texture) = 0;
