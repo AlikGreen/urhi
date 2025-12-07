@@ -26,14 +26,14 @@ void main()
 #type fragment
 layout(location = 0) out vec4 outColor;
 
-layout(binding = 1) uniform sampler2D fontTexture;
+layout(binding = 1) uniform sampler2D ImGuiTexture;
 
 layout(location = 0) in vec2 vUV;
 layout(location = 1) in vec4 vColor;
 
 void main()
 {
-    vec4 texColor = texture(fontTexture, vUV);
+    vec4 texColor = texture(ImGuiTexture, vUV);
     outColor = vColor * texColor;
 }
 )";
