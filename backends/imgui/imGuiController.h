@@ -6,7 +6,7 @@
 
 namespace Neon::RHI
 {
-class ImGuiBackend
+class ImGuiController
 {
 public:
     struct InitInfo
@@ -16,22 +16,31 @@ public:
         Window *window;
     };
 
-    explicit ImGuiBackend(const InitInfo &initInfo);
-    ~ImGuiBackend();
+    explicit ImGuiController(const InitInfo &initInfo);
+    ~ImGuiController();
 
-    void newFrame() const;
-    void render(ImDrawData *drawData, CommandList *cmdList);
+    void newFrame();
+    void endFrame();
 
-    void setFramebuffer(Framebuffer *newFramebuffer); // optional
+    static void processEvent(const Event &e);
 
+    void setFramebuffer(Framebuffer *newFramebuffer);
 private:
     void createFont();
     void createPipeline();
-    void updateProjection(const ImDrawData *drawData, CommandList* cmdList) const;
+
+    void updateBuffers(const Box<CommandList> &cmdList);
+    void updateProjection(const ImDrawData *drawData, const Box<CommandList> &cmdList) const;
+    [[nodiscard]] ScissorRect calculateScissorRect(const ImDrawCmd &drawCmd) const;
+
+    static int toImGuiMouseButton(MouseButton button);
+    static ImGuiKey toImGuiKey(KeyCode key);
+    static ImGuiKeyChord toImGuiMods(KeyMod mod);
 
     Device* m_device;
     Framebuffer* m_framebuffer;
     Window* m_window;
+    ImDrawData* m_drawData{};
 
     Box<Pipeline> m_pipeline;
     Box<Buffer> m_vertexBuffer;
@@ -44,6 +53,7 @@ private:
 
     size_t m_vertexBufferSize{};
     size_t m_indexBufferSize{};
-    std::vector<Box<Buffer>> m_tempBuffers;
+
+    float m_mouseWheel{};
 };
 }

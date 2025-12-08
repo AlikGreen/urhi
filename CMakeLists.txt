@@ -48,8 +48,8 @@ target_include_directories(imgui_static PUBLIC
 
 ### IMGUI BACKEND
 add_library(neonRHI_imgui STATIC
-        backends/imgui/imGuiBackend.h
-        backends/imgui/imguiBackend.cpp)
+        backends/imgui/imGuiController.cpp
+        backends/imgui/imGuiController.h)
 
 target_include_directories(neonRHI_imgui PUBLIC backends/)
 target_link_libraries(neonRHI_imgui PUBLIC neonRHI imgui_static neonCore)
