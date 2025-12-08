@@ -596,4 +596,28 @@ namespace Neon::RHI
         return GL_FUNC_ADD;
     }
 
+    GLenum ConvertOGL::indexFormatToGL(const IndexFormat format)
+    {
+        switch (format)
+        {
+            case IndexFormat::UInt16:
+                return GL_UNSIGNED_SHORT;
+            case IndexFormat::UInt32:
+                return GL_UNSIGNED_INT;
+        }
+        return GL_INVALID_ENUM;
+    }
+
+    uint32_t ConvertOGL::indexFormatToSize(const IndexFormat format)
+    {
+        switch (format)
+        {
+            case IndexFormat::UInt16:
+                return 2;
+            case IndexFormat::UInt32:
+                return 4;
+        }
+
+        return 0;
+    }
 }

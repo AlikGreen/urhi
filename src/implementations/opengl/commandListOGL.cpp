@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "bufferOGL.h"
+#include "convertOGL.h"
 #include "debug.h"
 #include "samplerOGL.h"
 #include "textureOGL.h"
@@ -106,8 +107,9 @@ namespace Neon::RHI
 
     void CommandListOGL::setIndexBuffer(Buffer* indexBuffer, const IndexFormat indexFormat)
     {
-        commands.emplace_back([indexBuffer]
+        commands.emplace_back([indexBuffer, indexFormat, this]
         {
+            this->indexFormat = indexFormat;
             const auto* indexBufferOGL = dynamic_cast<BufferOGL*>(indexBuffer);
             Debug::ensure(indexBufferOGL->getTarget() == GL_ELEMENT_ARRAY_BUFFER, "Buffer being set as Index Buffer was not created as an Index Buffer");
             indexBufferOGL->bind();
@@ -186,9 +188,11 @@ namespace Neon::RHI
     void CommandListOGL::drawIndexedImpl(const uint32_t indexCount, const uint32_t instanceCount, const uint32_t firstIndex,
                                          const int vertexOffset, const uint32_t firstInstance)
     {
-        commands.emplace_back([indexCount, instanceCount, firstIndex, vertexOffset, firstInstance]
+        commands.emplace_back([indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, this]
         {
-            glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, static_cast<int>(indexCount), GL_UNSIGNED_INT, reinterpret_cast<void *>(firstIndex), static_cast<int>(instanceCount), vertexOffset, firstInstance);
+            const GLenum indexType = ConvertOGL::indexFormatToGL(indexFormat);
+            uint32_t indexSize = ConvertOGL::indexFormatToSize(indexFormat);
+            glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, static_cast<int>(indexCount), indexType, reinterpret_cast<void *>(firstIndex * indexSize), static_cast<int>(instanceCount), vertexOffset, firstInstance);
         });
     }
 

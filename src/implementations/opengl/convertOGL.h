@@ -12,6 +12,7 @@
 #include "enums/textureWrap.h"
 #include "enums/blendFactor.h"
 #include "enums/blendOp.h"
+#include "enums/indexFormat.h"
 #include "input/keyCodes.h"
 
 namespace Neon::RHI
@@ -34,5 +35,7 @@ public:
     static GLenum textureTypeToGL(TextureType type);
     static GLenum blendFactorToGL(BlendFactor factor);
     static GLenum blendOpToGL(BlendOp op);
+    static GLenum indexFormatToGL(IndexFormat format);
+    static uint32_t indexFormatToSize(IndexFormat format);
 };
 }

@@ -48,6 +48,7 @@ namespace Neon::RHI
         std::vector<std::function<void()>> commands{};
         PipelineOGL* pipeline{};
         FramebufferOGL* framebuffer{};
+        IndexFormat indexFormat;
 
         [[nodiscard]] PipelineOGL* getPipeline() const;
     };

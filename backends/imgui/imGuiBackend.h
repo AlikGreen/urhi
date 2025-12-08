@@ -44,5 +44,6 @@ private:
 
     size_t m_vertexBufferSize{};
     size_t m_indexBufferSize{};
+    std::vector<Box<Buffer>> m_tempBuffers;
 };
 }
