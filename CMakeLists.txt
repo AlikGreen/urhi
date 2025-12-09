@@ -55,8 +55,9 @@ add_library(neonRHI_imgui STATIC
 target_include_directories(neonRHI_imgui PUBLIC backends/)
 target_link_libraries(neonRHI_imgui PUBLIC neonRHI imgui_static neonCore)
 
-target_compile_definitions(neonRHI_imgui
-        PRIVATE IMGUI_USER_CONFIG="imgui/imGuiConfig.h"
+target_compile_definitions(neonRHI_imgui PRIVATE
+        IMGUI_USER_CONFIG="imgui/imGuiConfig.h"
+        IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 )
 
 add_library(neonRHI::imgui ALIAS neonRHI_imgui)

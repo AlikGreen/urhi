@@ -21,16 +21,16 @@ namespace Neon::RHI
 
         ImGuiIO &io = ImGui::GetIO();
         io.BackendPlatformName = "neonRHI_Platform";
+        io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
 
         createPipeline();
-        createFont();
     }
 
     ImGuiController::~ImGuiController() = default;
 
     void ImGuiController::newFrame()
     {
-        auto io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
         io.DisplaySize = ImVec2(
             static_cast<float>(m_window->getWidth()),
             static_cast<float>(m_window->getHeight())
@@ -48,6 +48,8 @@ namespace Neon::RHI
     {
         ImGui::Render();
         m_drawData = ImGui::GetDrawData();
+
+        updateTextures();
 
         if(m_drawData == nullptr || m_drawData->TotalVtxCount == 0)
             return;
@@ -108,6 +110,8 @@ namespace Neon::RHI
                 cmdList->setScissor(scissor);
 
                 const ImGuiImage image = pcmd.GetTexID();
+
+                if(image.view == nullptr) continue;
 
                 Sampler* sampler = image.sampler;
 
@@ -191,15 +195,37 @@ namespace Neon::RHI
         m_framebuffer = newFramebuffer;
     }
 
-    void ImGuiController::createFont() const
+    void ImGuiController::updateTextures()
     {
         const ImGuiIO &io = ImGui::GetIO();
-        ImFontAtlas *atlas = io.Fonts;
+        const ImFontAtlas *atlas = io.Fonts;
 
-        unsigned char *pixels = nullptr;
-        int width = 0;
-        int height = 0;
-        atlas->GetTexDataAsRGBA32(&pixels, &width, &height);
+        switch(ImTextureData *texData = atlas->TexRef._TexData; texData->Status)
+        {
+            case ImTextureStatus_WantCreate:
+            {
+                const ImGuiImage img = createFontTexture(texData);
+                texData->SetTexID(img);
+
+                break;
+            }
+            case ImTextureStatus_WantDestroy:
+            {
+                destroyFontTexture();
+                texData->SetTexID(ImTextureID_Invalid);
+                break;
+            }
+
+            default:
+                break; // Alive or Destroyed → nothing to do
+        }
+    }
+
+    ImGuiImage ImGuiController::createFontTexture(const ImTextureData *texData) const
+    {
+        const unsigned char *pixels = texData->Pixels;
+        const int width = texData->Width;
+        const int height = texData->Height;
 
         TextureDescription texDesc{};
         texDesc.dimensions.x = width;
@@ -239,7 +265,16 @@ namespace Neon::RHI
 
         Sampler* fontSampler = m_device->createSampler(samplerDesc);
 
-        io.Fonts->SetTexID({ fontTextureView, fontSampler });
+        return { fontTextureView, fontSampler };
+    }
+
+    void ImGuiController::destroyFontTexture() const
+    {
+        const ImGuiIO& io = ImGui::GetIO();
+        ImGuiImage img = io.Fonts->TexData->TexID;
+
+        // m_device->destroy(img.sampler);
+        // m_device->destroy(img.view);
     }
 
     void ImGuiController::createPipeline()

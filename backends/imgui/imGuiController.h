@@ -25,8 +25,14 @@ public:
     static void processEvent(const Event &e);
 
     void setFramebuffer(Framebuffer *newFramebuffer);
+
+    void updateTextures();
+
 private:
-    void createFont() const;
+    ImGuiImage createFontTexture(const ImTextureData *texData) const;
+
+    void destroyFontTexture() const;
+
     void createPipeline();
 
     void updateBuffers(const Box<CommandList> &cmdList);

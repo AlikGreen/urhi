@@ -26,6 +26,7 @@ namespace Neon::RHI
 
     inline bool operator==(const ImGuiImage& a, const ImGuiImage& b)
     {
+        if(a.view == nullptr && b.view == nullptr) return true;
         return a.view == b.view && a.sampler == b.sampler;
     }
 
@@ -38,6 +39,3 @@ namespace Neon::RHI
 #define ImTextureID Neon::RHI::ImGuiImage
 
 #define ImTextureID_Invalid ImTextureID()
-#define ImTextureID_Compare(lhs, rhs) ((lhs) == (rhs))
-#define ImTextureID_IsNil(id)         ((id).view == nullptr)
-#define ImTextureID_IsValid(id)       (!ImTextureID_IsNil(id))
