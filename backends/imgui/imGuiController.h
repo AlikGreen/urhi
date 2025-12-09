@@ -29,7 +29,7 @@ public:
     void updateTextures();
 
 private:
-    ImGuiImage createFontTexture(const ImTextureData *texData) const;
+    ImTextureID createFontTexture(const ImTextureData *texData) const;
 
     void destroyFontTexture() const;
 
