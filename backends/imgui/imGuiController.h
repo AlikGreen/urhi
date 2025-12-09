@@ -26,12 +26,10 @@ public:
 
     void setFramebuffer(Framebuffer *newFramebuffer);
 
-    void updateTextures();
-
+    void updateTextures(const ImDrawData *drawData) const;
 private:
-    ImTextureID createFontTexture(const ImTextureData *texData) const;
-
-    void destroyFontTexture() const;
+    ImTextureID createTexture(ImTextureData *texData) const;
+    void destroyTexture(const ImTextureData *texData) const;
 
     void createPipeline();
 

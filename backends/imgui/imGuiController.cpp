@@ -22,6 +22,7 @@ namespace Neon::RHI
         ImGuiIO &io = ImGui::GetIO();
         io.BackendPlatformName = "neonRHI_Platform";
         io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+        io.Fonts->TexDesiredFormat = ImTextureFormat_RGBA32;
 
         createPipeline();
     }
@@ -49,10 +50,10 @@ namespace Neon::RHI
         ImGui::Render();
         m_drawData = ImGui::GetDrawData();
 
-        updateTextures();
-
         if(m_drawData == nullptr || m_drawData->TotalVtxCount == 0)
             return;
+
+        updateTextures(m_drawData);
 
         const Box<CommandList> cmdList(m_device->createCommandList());
 
@@ -109,11 +110,11 @@ namespace Neon::RHI
                 const ScissorRect scissor = calculateScissorRect(pcmd);
                 cmdList->setScissor(scissor);
 
-                const ImGuiImage image = pcmd.GetTexID();
+                ImGuiImage* image = pcmd.GetTexID();
 
-                if(image.view == nullptr) continue;
+                if(image == nullptr || image->view == nullptr) continue; // buh
 
-                Sampler* sampler = image.sampler;
+                Sampler* sampler = image->sampler;
 
                 if(sampler == nullptr)
                 {
@@ -121,7 +122,7 @@ namespace Neon::RHI
                     sampler = m_device->createSampler(samplerDesc);
                 }
 
-                cmdList->setTexture("ImGuiTexture", image.view);
+                cmdList->setTexture("ImGuiTexture", image->view);
                 cmdList->setSampler("ImGuiTexture", sampler);
 
                 cmdList->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
@@ -195,35 +196,52 @@ namespace Neon::RHI
         m_framebuffer = newFramebuffer;
     }
 
-    void ImGuiController::updateTextures()
+    void ImGuiController::updateTextures(const ImDrawData* drawData) const
     {
-        const ImGuiIO &io = ImGui::GetIO();
-        const ImFontAtlas *atlas = io.Fonts;
+        if(drawData == nullptr || drawData->Textures == nullptr)
+            return;
 
-        switch(ImTextureData *texData = atlas->TexRef._TexData; texData->Status)
+        for(ImTextureData* texData : *drawData->Textures)
         {
-            case ImTextureStatus_WantCreate:
+            switch(texData->Status)
             {
-                const ImGuiImage img = createFontTexture(texData);
-                texData->SetTexID(img);
+                case ImTextureStatus_WantCreate:
+                {
+                    ImGuiImage* img = createTexture(texData);
+                    texData->SetTexID(img);
+                    texData->SetStatus(ImTextureStatus_OK);
+                    break;
+                }
 
-                break;
-            }
-            case ImTextureStatus_WantDestroy:
-            {
-                destroyFontTexture();
-                texData->SetTexID(ImTextureID_Invalid);
-                break;
-            }
+                case ImTextureStatus_WantDestroy:
+                {
+                    destroyTexture(texData);
+                    texData->SetTexID(ImTextureID_Invalid);
+                    texData->SetStatus(ImTextureStatus_Destroyed);
+                    break;
+                }
 
-            default:
-                break; // Alive or Destroyed → nothing to do
+                case ImTextureStatus_WantUpdates:
+                {
+                    // Optional: implement partial updates if you care.
+                    // For font atlas you can often ignore this, but robust backends handle it.
+                    // texData->Updates / texData->UpdateRect give regions to update.
+                    destroyTexture(texData);
+                    ImGuiImage* img = createTexture(texData);         // create from updated pixels
+                    texData->SetTexID(img);
+                    texData->SetStatus(ImTextureStatus_OK);
+                    break;
+                }
+
+                default:
+                    break;
+            }
         }
     }
 
-    ImGuiImage ImGuiController::createFontTexture(const ImTextureData *texData) const
+    ImTextureID ImGuiController::createTexture(ImTextureData *texData) const
     {
-        const unsigned char *pixels = texData->Pixels;
+        const void *pixels = texData->GetPixels();
         const int width = texData->Width;
         const int height = texData->Height;
 
@@ -265,13 +283,13 @@ namespace Neon::RHI
 
         Sampler* fontSampler = m_device->createSampler(samplerDesc);
 
-        return { fontTextureView, fontSampler };
+        return new ImGuiImage{ fontTextureView, fontSampler };
     }
 
-    void ImGuiController::destroyFontTexture() const
+    void ImGuiController::destroyTexture(const ImTextureData *texData) const
     {
         const ImGuiIO& io = ImGui::GetIO();
-        ImGuiImage img = io.Fonts->TexData->TexID;
+        ImGuiImage* img = io.Fonts->TexData->TexID;
 
         // m_device->destroy(img.sampler);
         // m_device->destroy(img.view);
