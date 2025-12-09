@@ -26,7 +26,7 @@ public:
 
     void setFramebuffer(Framebuffer *newFramebuffer);
 private:
-    void createFont();
+    void createFont() const;
     void createPipeline();
 
     void updateBuffers(const Box<CommandList> &cmdList);
@@ -46,10 +46,6 @@ private:
     Box<Buffer> m_vertexBuffer;
     Box<Buffer> m_indexBuffer;
     Box<Buffer> m_projUniformBuffer;
-
-    Box<Texture> m_fontTexture;
-    Box<TextureView> m_fontTextureView;
-    Box<Sampler> m_fontSampler;
 
     size_t m_vertexBufferSize{};
     size_t m_indexBufferSize{};

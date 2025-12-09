@@ -95,9 +95,6 @@ namespace Neon::RHI
 
         updateProjection(m_drawData, cmdList);
 
-        cmdList->setTexture("ImGuiTexture", m_fontTextureView.get());
-        cmdList->setSampler("ImGuiTexture", m_fontSampler.get());
-
         for(int n = 0; n < m_drawData->CmdListsCount; n++)
         {
             const ImDrawList *cmdListImGui = m_drawData->CmdLists[n];
@@ -109,6 +106,19 @@ namespace Neon::RHI
 
                 const ScissorRect scissor = calculateScissorRect(pcmd);
                 cmdList->setScissor(scissor);
+
+                const ImGuiImage image = pcmd.GetTexID();
+
+                Sampler* sampler = image.sampler;
+
+                if(sampler == nullptr)
+                {
+                    SamplerDescription samplerDesc {};
+                    sampler = m_device->createSampler(samplerDesc);
+                }
+
+                cmdList->setTexture("ImGuiTexture", image.view);
+                cmdList->setSampler("ImGuiTexture", sampler);
 
                 cmdList->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
             }
@@ -181,7 +191,7 @@ namespace Neon::RHI
         m_framebuffer = newFramebuffer;
     }
 
-    void ImGuiController::createFont()
+    void ImGuiController::createFont() const
     {
         const ImGuiIO &io = ImGui::GetIO();
         ImFontAtlas *atlas = io.Fonts;
@@ -198,7 +208,7 @@ namespace Neon::RHI
         texDesc.format = PixelFormat::R8G8B8A8Unorm;
         texDesc.usage = TextureUsage::Sampler;
 
-        m_fontTexture = Box<Texture>(m_device->createTexture(texDesc));
+        Texture* fontTexture = m_device->createTexture(texDesc);
         TextureUploadDescription uploadDesc{};
 
         uploadDesc.data = pixels;
@@ -211,13 +221,13 @@ namespace Neon::RHI
         CommandList* cmdList = m_device->createCommandList();
 
         cmdList->begin();
-        cmdList->updateTexture(m_fontTexture.get(), uploadDesc);
+        cmdList->updateTexture(fontTexture, uploadDesc);
         m_device->submit(cmdList);
 
         TextureViewDescription viewDesc;
-        viewDesc.target = m_fontTexture.get();
+        viewDesc.target = fontTexture;
 
-        m_fontTextureView = Box<TextureView>(m_device->createTextureView(viewDesc));
+        TextureView* fontTextureView = m_device->createTextureView(viewDesc);
 
         SamplerDescription samplerDesc{};
         samplerDesc.minFilter = TextureFilter::Linear;
@@ -227,9 +237,9 @@ namespace Neon::RHI
         samplerDesc.wrapMode.y = TextureWrap::ClampToEdge;
         samplerDesc.wrapMode.z = TextureWrap::ClampToEdge;
 
-        m_fontSampler = Box<Sampler>(m_device->createSampler(samplerDesc));
+        Sampler* fontSampler = m_device->createSampler(samplerDesc);
 
-        io.Fonts->TexID = m_fontTextureView.get();
+        io.Fonts->SetTexID({ fontTextureView, fontSampler });
     }
 
     void ImGuiController::createPipeline()

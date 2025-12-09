@@ -49,9 +49,14 @@ target_include_directories(imgui_static PUBLIC
 ### IMGUI BACKEND
 add_library(neonRHI_imgui STATIC
         backends/imgui/imGuiController.cpp
-        backends/imgui/imGuiController.h)
+        backends/imgui/imGuiController.h
+        backends/imgui/imGuiConfig.h)
 
 target_include_directories(neonRHI_imgui PUBLIC backends/)
 target_link_libraries(neonRHI_imgui PUBLIC neonRHI imgui_static neonCore)
+
+target_compile_definitions(neonRHI_imgui
+        PRIVATE IMGUI_USER_CONFIG="imgui/imGuiConfig.h"
+)
 
 add_library(neonRHI::imgui ALIAS neonRHI_imgui)
