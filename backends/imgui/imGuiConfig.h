@@ -22,17 +22,17 @@ namespace Neon::RHI
         ImGuiImage(TextureView* v, Sampler* s)
             : view(v),
               sampler(s) { }
-
-        bool operator==(const ImGuiImage& other) const
-        {
-            return view == other.view && sampler == other.sampler;
-        }
-
-        bool operator!=(const ImGuiImage& a, const ImGuiImage& b) const
-        {
-            return a != b;
-        }
     };
+
+    inline bool operator==(const ImGuiImage& a, const ImGuiImage& b)
+    {
+        return a.view == b.view && a.sampler == b.sampler;
+    }
+
+    inline bool operator!=(const ImGuiImage& a, const ImGuiImage& b)
+    {
+        return !(a == b);
+    }
 }
 
 #define ImTextureID Neon::RHI::ImGuiImage
