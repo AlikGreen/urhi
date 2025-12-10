@@ -33,5 +33,7 @@ public:
 
   virtual void setCursorLocked(bool locked) = 0;
   virtual void setCursorVisible(bool visible) = 0;
+
+  virtual void swapBuffers() = 0;
 };
 }

@@ -68,17 +68,17 @@ namespace Neon::RHI
         return depth;
     }
 
-    uint32_t TextureOGL::getMipLevels()
+    uint32_t TextureOGL::getMipLevels() const
     {
         return numMipmaps;
     }
 
-    uint32_t TextureOGL::getArrayLayers()
+    uint32_t TextureOGL::getArrayLayers() const
     {
         return arrayLayers;
     }
 
-    PixelFormat TextureOGL::getFormat()
+    PixelFormat TextureOGL::getFormat() const
     {
         return format;
     }

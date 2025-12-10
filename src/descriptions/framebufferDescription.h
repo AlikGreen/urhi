@@ -1,17 +1,17 @@
 #pragma once
 #include <vector>
 
-#include "texture.h"
+#include "textureView.h"
 
 namespace Neon::RHI
 {
 struct FramebufferDescription
 {
-    Texture* depthTarget{};
-    std::vector<Texture*> colorTargets{};
+    TextureView* depthTarget{};
+    std::vector<TextureView*> colorTargets{};
 
-    template<std::same_as<Texture*>... Colors>
-    explicit FramebufferDescription(Texture* depth, Colors... colors) : depthTarget(depth), colorTargets{colors...}
+    template<std::same_as<TextureView*>... Colors>
+    explicit FramebufferDescription(TextureView* depth, Colors... colors) : depthTarget(depth), colorTargets{colors...}
     {
 
     }

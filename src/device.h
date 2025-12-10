@@ -8,10 +8,12 @@
 #include "descriptions/graphicsPipelineDescription.h"
 
 #include "buffer.h"
+#include "swapchain.h"
 #include "texture.h"
 #include "descriptions/computePipelineDescription.h"
+#include "descriptions/framebufferDescription.h"
 #include "descriptions/samplerDescription.h"
-#include "util/memory.h"
+#include "descriptions/swapchainDescription.h"
 #include "descriptions/textureDescription.h"
 #include "descriptions/textureViewDescription.h"
 #include "enums/shaderType.h"
@@ -26,11 +28,15 @@ public:
     virtual Pipeline* createPipeline(const GraphicsPipelineDescription& description) = 0;
     virtual Pipeline* createPipeline(const ComputePipelineDescription& description) = 0;
 
+    virtual Swapchain* createSwapchain(const SwapchainDescription& description) = 0;
+
     virtual CommandList* createCommandList() = 0;
 
     virtual Texture* createTexture(const TextureDescription& description) = 0;
     virtual Sampler* createSampler(const SamplerDescription& description) = 0;
     virtual TextureView* createTextureView(const TextureViewDescription& description) = 0;
+
+    virtual Framebuffer* createFramebuffer(const FramebufferDescription& description) = 0;
 
     Shader* createShaderFromSource(const std::string &source, const std::string &filepath = "");
 
@@ -39,10 +45,6 @@ public:
     virtual Buffer* createVertexBuffer() = 0;
 
     virtual void submit(CommandList* commandList) = 0;
-
-    virtual void swapBuffers() = 0;
-
-    virtual Framebuffer* getSwapChainFramebuffer() = 0;
 protected:
     virtual Shader* createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> spirv) = 0;
 };

@@ -14,8 +14,8 @@ public:
     [[nodiscard]] virtual uint32_t getHeight() const = 0;
     [[nodiscard]] virtual uint32_t getDepth() const = 0;
 
-    virtual uint32_t getMipLevels() = 0;
-    virtual uint32_t getArrayLayers() = 0;
-    virtual PixelFormat getFormat() = 0;
+    [[nodiscard]] virtual uint32_t getMipLevels() const = 0;
+    [[nodiscard]] virtual uint32_t getArrayLayers() const = 0;
+    [[nodiscard]] virtual PixelFormat getFormat() const = 0;
 };
 }

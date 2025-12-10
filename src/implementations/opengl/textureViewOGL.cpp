@@ -5,7 +5,13 @@
 
 namespace Neon::RHI
 {
-    TextureViewOGL::TextureViewOGL(const TextureViewDescription &description)
+    TextureViewOGL::TextureViewOGL(const TextureViewDescription &description) :
+        width(description.target->getWidth()),
+        height(description.target->getHeight()),
+        depth(description.target->getDepth()),
+        mipLevels(description.mipLevels),
+        arrayLayers(description.arrayLayers),
+        format(description.format)
     {
         const auto tex = dynamic_cast<TextureOGL*>(description.target);
         glGenTextures(1, &handle);
@@ -23,5 +29,40 @@ namespace Neon::RHI
     void TextureViewOGL::bind(const uint32_t binding) const
     {
         glBindTextureUnit(binding, handle);
+    }
+
+    uint32_t TextureViewOGL::getWidth() const
+    {
+        return width;
+    }
+
+    uint32_t TextureViewOGL::getHeight() const
+    {
+        return height;
+    }
+
+    uint32_t TextureViewOGL::getDepth() const
+    {
+        return depth;
+    }
+
+    uint32_t TextureViewOGL::getMipLevels() const
+    {
+        return mipLevels;
+    }
+
+    uint32_t TextureViewOGL::getArrayLayers() const
+    {
+        return arrayLayers;
+    }
+
+    PixelFormat TextureViewOGL::getFormat() const
+    {
+        return format;
+    }
+
+    GLuint TextureViewOGL::getHandle() const
+    {
+        return handle;
     }
 }

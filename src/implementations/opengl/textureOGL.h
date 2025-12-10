@@ -17,9 +17,9 @@ public:
     [[nodiscard]] uint32_t getHeight() const override;
     [[nodiscard]] uint32_t getDepth() const override;
 
-    uint32_t getMipLevels() override;
-    uint32_t getArrayLayers() override;
-    PixelFormat getFormat() override;
+    [[nodiscard]] uint32_t getMipLevels() const override;
+    [[nodiscard]] uint32_t getArrayLayers() const override;
+    [[nodiscard]] PixelFormat getFormat() const override;
 
     [[nodiscard]] GLenum getType() const;
     [[nodiscard]] GLuint getHandle() const;

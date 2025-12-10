@@ -9,13 +9,13 @@ namespace Neon::RHI
 class FramebufferOGL final : public Framebuffer
 {
 public:
-    explicit FramebufferOGL();
     explicit FramebufferOGL(const FramebufferDescription& description);
 
     [[nodiscard]] uint32_t getWidth() const override;
     [[nodiscard]] uint32_t getHeight() const override;
 
-    void bind() const;
+    void bind(GLenum target = GL_FRAMEBUFFER) const;
+    [[nodiscard]] GLuint getHandle() const;
 private:
     GLuint handle{};
     uint32_t width{};

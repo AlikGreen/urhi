@@ -82,7 +82,7 @@ namespace Neon::RHI
 
     Device* WindowOGL::createDevice()
     {
-        return new DeviceOGL(this);
+        return new DeviceOGL();
     }
 
     void WindowOGL::run()
@@ -138,7 +138,7 @@ namespace Neon::RHI
     void WindowOGL::close()
     {
         if(handle)
-            {
+        {
             glfwDestroyWindow(handle);
             handle = nullptr;
         }
@@ -194,11 +194,6 @@ namespace Neon::RHI
         glfwSetWindowTitle(handle, title.c_str());
     }
 
-    void WindowOGL::swapBuffers() const
-    {
-        glfwSwapBuffers(handle);
-    }
-
     void WindowOGL::setCursorLocked(const bool locked)
     {
         cursorLocked = locked;
@@ -209,6 +204,11 @@ namespace Neon::RHI
     {
         cursorVisible = visible;
         updateCursorState();
+    }
+
+    void WindowOGL::swapBuffers()
+    {
+        glfwSwapBuffers(handle);
     }
 
     void WindowOGL::updateCursorState() const

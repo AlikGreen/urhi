@@ -14,7 +14,7 @@ struct TextureDescription
     uint32_t arrayLayers = 1;
 
     PixelFormat format = PixelFormat::Invalid;
-    TextureUsage usage = TextureUsage::Sampler;
+    TextureUsage usage = TextureUsage::Sampled;
     TextureType type = TextureType::Texture2D;
 
     uint32_t numMipmaps{};
@@ -22,7 +22,7 @@ struct TextureDescription
     static TextureDescription Texture1D(
         const uint32_t width,
         const PixelFormat format,
-        const TextureUsage usage = TextureUsage::Sampler,
+        const TextureUsage usage = TextureUsage::Sampled,
         const uint32_t numMipmaps = 1,
         const uint32_t arrayLayers = 1)
     {
@@ -40,7 +40,7 @@ struct TextureDescription
         const uint32_t width,
         const uint32_t height,
         const PixelFormat format,
-        const TextureUsage usage = TextureUsage::Sampler,
+        const TextureUsage usage = TextureUsage::Sampled,
         const uint32_t numMipmaps = 1,
         const uint32_t arrayLayers = 1)
     {
@@ -59,7 +59,7 @@ struct TextureDescription
         const uint32_t height,
         const uint32_t depth,
         const PixelFormat format,
-        const TextureUsage usage = TextureUsage::Sampler,
+        const TextureUsage usage = TextureUsage::Sampled,
         const uint32_t numMipmaps = 1,
         const uint32_t arrayLayers = 1)
     {

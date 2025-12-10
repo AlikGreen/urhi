@@ -27,10 +27,10 @@ public:
     std::string getTitle() override;
     void setTitle(std::string title) override;
 
-    void swapBuffers() const;
-
     void setCursorLocked(bool locked) override;
     void setCursorVisible(bool visible) override;
+
+    void swapBuffers() override;
 private:
     WindowCreationOptions creationOptions;
     GLFWwindow* handle{};

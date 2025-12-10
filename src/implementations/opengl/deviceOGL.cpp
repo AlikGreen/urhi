@@ -7,17 +7,12 @@
 #include "pipelineOGL.h"
 #include "samplerOGL.h"
 #include "shaderOGL.h"
+#include "swapchainOGL.h"
 #include "textureOGL.h"
 #include "textureViewOGL.h"
-#include "windowOGL.h"
 
 namespace Neon::RHI
 {
-    DeviceOGL::DeviceOGL(WindowOGL *window) : window(window)
-    {
-
-    }
-
     Pipeline* DeviceOGL::createPipeline(const GraphicsPipelineDescription& description)
     {
         return new PipelineOGL(description);
@@ -31,6 +26,11 @@ namespace Neon::RHI
     CommandList* DeviceOGL::createCommandList()
     {
         return new CommandListOGL();
+    }
+
+    Swapchain * DeviceOGL::createSwapchain(const SwapchainDescription &description)
+    {
+        return new SwapchainOGL(description);
     }
 
     Buffer* DeviceOGL::createIndexBuffer()
@@ -63,21 +63,15 @@ namespace Neon::RHI
         return new TextureViewOGL(description);
     }
 
+    Framebuffer * DeviceOGL::createFramebuffer(const FramebufferDescription &description)
+    {
+        return new FramebufferOGL(description);
+    }
+
     void DeviceOGL::submit(CommandList* commandList)
     {
         dynamic_cast<CommandListOGL*>(commandList)->executeCommands();
     }
-
-    void DeviceOGL::swapBuffers()
-    {
-        window->swapBuffers();
-    }
-
-    Framebuffer* DeviceOGL::getSwapChainFramebuffer()
-    {
-        return new FramebufferOGL();
-    }
-
 
     Shader* DeviceOGL::createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> shadersSpirv)
     {
