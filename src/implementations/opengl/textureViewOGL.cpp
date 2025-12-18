@@ -13,7 +13,8 @@ namespace Neon::RHI
         arrayLayers(description.arrayLayers),
         format(description.format)
     {
-        const auto tex = dynamic_cast<TextureOGL*>(description.target);
+        const auto& tex = std::dynamic_pointer_cast<TextureOGL>(description.target);
+
         glGenTextures(1, &handle);
 
         glTextureView(handle,

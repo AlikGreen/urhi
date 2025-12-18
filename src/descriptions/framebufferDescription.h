@@ -1,5 +1,7 @@
 #pragma once
+#include <utility>
 #include <vector>
+#include <neonCore/neonCore.h>
 
 #include "textureView.h"
 
@@ -7,11 +9,13 @@ namespace Neon::RHI
 {
 struct FramebufferDescription
 {
-    TextureView* depthTarget{};
-    std::vector<TextureView*> colorTargets{};
+    Rc<TextureView> depthTarget{};
+    std::vector<Rc<TextureView>> colorTargets{};
 
-    template<std::same_as<TextureView*>... Colors>
-    explicit FramebufferDescription(TextureView* depth, Colors... colors) : depthTarget(depth), colorTargets{colors...}
+    FramebufferDescription() = default;
+
+    template<std::same_as<Rc<TextureView>>... Colors>
+    explicit FramebufferDescription(Rc<TextureView> depth, Colors... colors) : depthTarget(std::move(depth)), colorTargets{colors...}
     {
 
     }

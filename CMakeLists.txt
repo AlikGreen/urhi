@@ -28,7 +28,7 @@ target_compile_definitions(neonRHI PRIVATE GLFW_INCLUDE_NONE)
 
 target_include_directories(neonRHI PUBLIC src/)
 target_include_directories(neonRHI PUBLIC include/)
-target_link_libraries(neonRHI PUBLIC glfw glm::glm glslang spirv-cross-c glad neonLog)
+target_link_libraries(neonRHI PUBLIC glfw glm::glm glslang spirv-cross-c glad neonLog neonCore)
 
 
 ### IMGUI LIB

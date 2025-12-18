@@ -10,9 +10,9 @@ namespace Neon::RHI
 {
     TextureOGL::TextureOGL(const TextureDescription &description)
     {
-        width = description.dimensions.x;
-        height = description.dimensions.y;
-        depth = description.dimensions.z;
+        width = description.width;
+        height = description.height;
+        depth = description.depth;
 
         format = description.format;
 

@@ -25,14 +25,14 @@ public:
     [[nodiscard]] std::vector<VertexAttributeOGL> getVertexAttributes() const;
 
     void bind() const;
-    [[nodiscard]] ShaderOGL* getShader() const;
+    [[nodiscard]] Rc<ShaderOGL> getShader() const;
 
     GLuint vao{};
 private:
     bool isComputePipeline = false;
     glm::ivec3 theadGroupSize{};
     std::vector<VertexAttributeOGL> vertexAttributesOGL;
-    ShaderOGL* shader;
+    Rc<ShaderOGL> shader;
     GraphicsPipelineDescription description;
 };
 }

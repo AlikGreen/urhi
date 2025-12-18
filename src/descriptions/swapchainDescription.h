@@ -6,6 +6,6 @@ namespace Neon::RHI
 
     struct SwapchainDescription
     {
-        Window* window;
+        Rc<Window> window;
     };
 }

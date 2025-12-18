@@ -11,12 +11,12 @@ namespace Neon::RHI
         m_framebuffer = initInfo.framebuffer;
         m_window = initInfo.window;
 
-        m_projUniformBuffer = Box<Buffer>(m_device->createUniformBuffer());
+        m_projUniformBuffer = m_device->createUniformBuffer();
 
-        CommandList* commandList = m_device->createCommandList();
+        const Rc<CommandList> commandList = m_device->createCommandList();
 
         commandList->begin();
-        commandList->reserveBuffer(m_projUniformBuffer.get(), sizeof(glm::mat4));
+        commandList->reserveBuffer(m_projUniformBuffer, sizeof(glm::mat4));
         m_device->submit(commandList);
 
         ImGuiIO &io = ImGui::GetIO();
@@ -55,7 +55,7 @@ namespace Neon::RHI
 
         updateTextures(m_drawData);
 
-        const Box<CommandList> cmdList(m_device->createCommandList());
+        const Rc<CommandList> cmdList = m_device->createCommandList();
 
         cmdList->begin();
 
@@ -88,13 +88,27 @@ namespace Neon::RHI
             indexOffset  += cmdListImGui->IdxBuffer.Size;
         }
 
-        cmdList->updateBuffer(m_vertexBuffer.get(), vertices);
-        cmdList->updateBuffer(m_indexBuffer.get(), indices);
+        cmdList->updateBuffer(m_vertexBuffer, vertices);
+        cmdList->updateBuffer(m_indexBuffer, indices);
 
-        cmdList->setPipeline(m_pipeline.get());
+        cmdList->setPipeline(m_pipeline);
         cmdList->setFramebuffer(m_framebuffer);
-        cmdList->setVertexBuffer(0, m_vertexBuffer.get());
-        cmdList->setIndexBuffer(m_indexBuffer.get(), IndexFormat::UInt32);
+
+        const uint32_t fbWidth  = m_window->getWidth();
+        const uint32_t fbHeight = m_window->getHeight();
+
+        ScissorRect fullScissor{};
+        fullScissor.x = 0;
+        fullScissor.y = 0;
+        fullScissor.width  = fbWidth;
+        fullScissor.height = fbHeight;
+
+        cmdList->setScissor(fullScissor);
+
+        cmdList->setVertexBuffer(0, m_vertexBuffer);
+        cmdList->setIndexBuffer(m_indexBuffer, IndexFormat::UInt32);
+
+        cmdList->clearColorTarget(0, { 0.0f, 0.0f, 0.0f, 0.0f });
 
         updateProjection(m_drawData, cmdList);
 
@@ -110,11 +124,11 @@ namespace Neon::RHI
                 const ScissorRect scissor = calculateScissorRect(pcmd);
                 cmdList->setScissor(scissor);
 
-                ImGuiImage* image = pcmd.GetTexID();
+                const ImGuiImage* image = pcmd.GetTexID();
 
                 if(image == nullptr || image->view == nullptr) continue; // buh
 
-                Sampler* sampler = image->sampler;
+                Rc<Sampler> sampler = image->sampler;
 
                 if(sampler == nullptr)
                 {
@@ -129,7 +143,7 @@ namespace Neon::RHI
             }
         }
 
-        m_device->submit(cmdList.get());
+        m_device->submit(cmdList);
 
         ImGui::EndFrame();
     }
@@ -191,7 +205,7 @@ namespace Neon::RHI
         }
     }
 
-    void ImGuiController::setFramebuffer(Framebuffer *newFramebuffer)
+    void ImGuiController::setFramebuffer(const Rc<Framebuffer>& newFramebuffer)
     {
         m_framebuffer = newFramebuffer;
     }
@@ -246,13 +260,13 @@ namespace Neon::RHI
         const int height = texData->Height;
 
         TextureDescription texDesc{};
-        texDesc.dimensions.x = width;
-        texDesc.dimensions.y = height;
+        texDesc.width = width;
+        texDesc.height = height;
         texDesc.numMipmaps = 1;
         texDesc.format = PixelFormat::R8G8B8A8Unorm;
-        texDesc.usage = TextureUsage::Sampler;
+        texDesc.usage = TextureUsage::Sampled;
 
-        Texture* fontTexture = m_device->createTexture(texDesc);
+        const Rc<Texture> fontTexture = m_device->createTexture(texDesc);
         TextureUploadDescription uploadDesc{};
 
         uploadDesc.data = pixels;
@@ -262,7 +276,7 @@ namespace Neon::RHI
         uploadDesc.pixelType = PixelType::UnsignedByte;
 
         // Upload pixels to the texture with a command list or staging buffer
-        CommandList* cmdList = m_device->createCommandList();
+        const Rc<CommandList>& cmdList = m_device->createCommandList();
 
         cmdList->begin();
         cmdList->updateTexture(fontTexture, uploadDesc);
@@ -271,7 +285,7 @@ namespace Neon::RHI
         TextureViewDescription viewDesc;
         viewDesc.target = fontTexture;
 
-        TextureView* fontTextureView = m_device->createTextureView(viewDesc);
+        const Rc<TextureView>& fontTextureView = m_device->createTextureView(viewDesc);
 
         SamplerDescription samplerDesc{};
         samplerDesc.minFilter = TextureFilter::Linear;
@@ -281,7 +295,7 @@ namespace Neon::RHI
         samplerDesc.wrapMode.y = TextureWrap::ClampToEdge;
         samplerDesc.wrapMode.z = TextureWrap::ClampToEdge;
 
-        Sampler* fontSampler = m_device->createSampler(samplerDesc);
+        const Rc<Sampler>& fontSampler = m_device->createSampler(samplerDesc);
 
         return new ImGuiImage{ fontTextureView, fontSampler };
     }
@@ -328,30 +342,30 @@ namespace Neon::RHI
         pipelineDescription.rasterizerState    = rasterState;
         pipelineDescription.blendState         = blendState;
 
-        m_pipeline = Box<Pipeline>(m_device->createPipeline(pipelineDescription));
+        m_pipeline = m_device->createPipeline(pipelineDescription);
     }
 
-    void ImGuiController::updateBuffers(const Box<CommandList> &cmdList)
+    void ImGuiController::updateBuffers(const Rc<CommandList> &cmdList)
     {
         const size_t vertexDataSize = m_drawData->TotalVtxCount * sizeof(ImDrawVert);
         const size_t indexDataSize = m_drawData->TotalIdxCount * sizeof(uint32_t);
 
         if(m_vertexBuffer == nullptr ||  m_vertexBufferSize < vertexDataSize)
         {
-            m_vertexBuffer  = Box<Buffer>(m_device->createVertexBuffer());
-            cmdList->reserveBuffer(m_vertexBuffer.get(), vertexDataSize);
+            m_vertexBuffer  = m_device->createVertexBuffer();
+            cmdList->reserveBuffer(m_vertexBuffer, vertexDataSize);
             m_vertexBufferSize = vertexDataSize;
         }
 
         if(m_indexBuffer == nullptr ||  m_indexBufferSize < indexDataSize)
         {
-            m_indexBuffer  = Box<Buffer>(m_device->createIndexBuffer());
-            cmdList->reserveBuffer(m_indexBuffer.get(), indexDataSize);
+            m_indexBuffer  = m_device->createIndexBuffer();
+            cmdList->reserveBuffer(m_indexBuffer, indexDataSize);
             m_indexBufferSize = indexDataSize;
         }
     }
 
-    void ImGuiController::updateProjection(const ImDrawData *drawData, const Box<CommandList> &cmdList) const
+    void ImGuiController::updateProjection(const ImDrawData *drawData, const Rc<CommandList> &cmdList) const
     {
         const ImVec2 displayPos    = drawData->DisplayPos;
         const ImVec2 displaySize   = drawData->DisplaySize;
@@ -365,8 +379,8 @@ namespace Neon::RHI
         // Note: bottom = B, top = T → inverts Y so that ImGui's top-left coords work.
         glm::mat4 projMatrix = glm::ortho(L, R, B, T, -1.0f, 1.0f);
 
-        cmdList->updateBuffer(m_projUniformBuffer.get(), projMatrix);
-        cmdList->setUniformBuffer("ImGuiProjection", m_projUniformBuffer.get());
+        cmdList->updateBuffer(m_projUniformBuffer, projMatrix);
+        cmdList->setUniformBuffer("ImGuiProjection", m_projUniformBuffer);
     }
 
     ScissorRect ImGuiController::calculateScissorRect(const ImDrawCmd &drawCmd) const

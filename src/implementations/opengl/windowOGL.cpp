@@ -80,9 +80,9 @@ namespace Neon::RHI
 
     WindowOGL::WindowOGL(const WindowCreationOptions &creationOptions) : creationOptions(creationOptions) { }
 
-    Device* WindowOGL::createDevice()
+    Rc<Device> WindowOGL::createDevice()
     {
-        return new DeviceOGL();
+        return makeRc<DeviceOGL>();
     }
 
     void WindowOGL::run()

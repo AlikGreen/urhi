@@ -1,4 +1,5 @@
 #pragma once
+#include <neonCore/neonCore.h>
 
 namespace Neon::RHI
 {
@@ -7,8 +8,8 @@ namespace Neon::RHI
 
     struct ImGuiImage
     {
-        TextureView *view;
-        Sampler *sampler;
+        Rc<TextureView> view;
+        Rc<Sampler> sampler;
     };
 }
 

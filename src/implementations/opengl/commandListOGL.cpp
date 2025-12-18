@@ -27,66 +27,66 @@ namespace Neon::RHI
         commands.clear();
     }
 
-    void CommandListOGL::setUniformBuffer(const std::string& name, Buffer* buffer)
+    void CommandListOGL::setUniformBuffer(const std::string& name, const Rc<Buffer>& buffer)
     {
         commands.emplace_back([buffer, name, this]
         {
             const uint32_t binding = getPipeline()->getShader()->getUBOLocation(name);
-            const auto* uniformBufferOGL = dynamic_cast<BufferOGL*>(buffer);
+            const auto* uniformBufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
             Debug::ensure(uniformBufferOGL->getTarget() == GL_UNIFORM_BUFFER, "Buffer being set as Uniform Buffer was not created as a Uniform Buffer");
             uniformBufferOGL->bindBase(binding);
         });
     }
 
-    void CommandListOGL::setTexture(const std::string& name, TextureView* texture)
+    void CommandListOGL::setTexture(const std::string& name, const Rc<TextureView>& texture)
     {
         commands.emplace_back([name, texture, this]
         {
             const uint32_t binding = getPipeline()->getShader()->getSamplerLocation(name);
-            dynamic_cast<TextureViewOGL*>(texture)->bind(binding);
+            dynamic_cast<const TextureViewOGL*>(texture.get())->bind(binding);
         });
     }
 
-    void CommandListOGL::setSampler(const std::string& name, Sampler* sampler)
+    void CommandListOGL::setSampler(const std::string& name, const Rc<Sampler>& sampler)
     {
         commands.emplace_back([name, sampler, this]
         {
             const uint32_t binding = getPipeline()->getShader()->getSamplerLocation(name);
-            dynamic_cast<SamplerOGL*>(sampler)->bind(binding);
+            dynamic_cast<const SamplerOGL*>(sampler.get())->bind(binding);
         });
     }
 
-    void CommandListOGL::generateMipmaps(Texture *texture)
+    void CommandListOGL::generateMipmaps(const Rc<Texture>& texture)
     {
         commands.emplace_back([texture]
         {
-            dynamic_cast<TextureOGL*>(texture)->generateMipmaps();
+            dynamic_cast<TextureOGL*>(texture.get())->generateMipmaps();
         });
     }
 
-    void CommandListOGL::setPipeline(Pipeline* pipeline)
+    void CommandListOGL::setPipeline(const Rc<Pipeline>& pipeline)
     {
         commands.emplace_back([this, pipeline]
         {
-            this->pipeline = dynamic_cast<PipelineOGL*>(pipeline);
+            this->pipeline = std::dynamic_pointer_cast<PipelineOGL>(pipeline);
             this->pipeline->bind();
         });
     }
 
-    void CommandListOGL::setFramebuffer(Framebuffer* frameBuffer)
+    void CommandListOGL::setFramebuffer(const Rc<Framebuffer>& frameBuffer)
     {
         commands.emplace_back([frameBuffer, this]
         {
-            framebuffer = dynamic_cast<FramebufferOGL*>(frameBuffer);
+            framebuffer = std::dynamic_pointer_cast<FramebufferOGL>(frameBuffer);
             framebuffer->bind();
         });
     }
 
-    void CommandListOGL::setVertexBuffer(const uint32_t index, Buffer* vertexBuffer)
+    void CommandListOGL::setVertexBuffer(const uint32_t index, const Rc<Buffer>& vertexBuffer)
     {
         commands.emplace_back([this, vertexBuffer]
         {
-            const auto* oglVertexBuffer = dynamic_cast<BufferOGL*>(vertexBuffer);
+            const auto* oglVertexBuffer = dynamic_cast<BufferOGL*>(vertexBuffer.get());
             Debug::ensure(oglVertexBuffer->getTarget() == GL_ARRAY_BUFFER, "Buffer being set as Vertex Buffer was not created as a Vertex Buffer");
             oglVertexBuffer->bind();
 
@@ -105,12 +105,12 @@ namespace Neon::RHI
         });
     }
 
-    void CommandListOGL::setIndexBuffer(Buffer* indexBuffer, const IndexFormat indexFormat)
+    void CommandListOGL::setIndexBuffer(const Rc<Buffer>& indexBuffer, const IndexFormat indexFormat)
     {
         commands.emplace_back([indexBuffer, indexFormat, this]
         {
             this->indexFormat = indexFormat;
-            const auto* indexBufferOGL = dynamic_cast<BufferOGL*>(indexBuffer);
+            const auto* indexBufferOGL = dynamic_cast<BufferOGL*>(indexBuffer.get());
             Debug::ensure(indexBufferOGL->getTarget() == GL_ELEMENT_ARRAY_BUFFER, "Buffer being set as Index Buffer was not created as an Index Buffer");
             indexBufferOGL->bind();
         });
@@ -121,7 +121,6 @@ namespace Neon::RHI
     {
         commands.emplace_back([target, color]
         {
-            glClearColor(color.x, color.y, color.z, color.w);
             const float clearColor[4] = {color.r, color.g, color.b, color.a};
             glClearBufferfv(GL_COLOR, static_cast<int>(target), clearColor);
         });
@@ -150,20 +149,20 @@ namespace Neon::RHI
         });
     }
 
-    void CommandListOGL::updateTexture(Texture* texture, TextureUploadDescription uploadDescription)
+    void CommandListOGL::updateTexture(const Rc<Texture>& texture, TextureUploadDescription uploadDescription)
     {
         commands.emplace_back([texture, uploadDescription]
         {
-            const auto* textureOGL = dynamic_cast<TextureOGL*>(texture);
+            const auto* textureOGL = dynamic_cast<TextureOGL*>(texture.get());
             textureOGL->setData(uploadDescription);
         });
     }
 
-    void CommandListOGL::reserveBuffer(Buffer* buffer, size_t size)
+    void CommandListOGL::reserveBuffer(const Rc<Buffer>& buffer, size_t size)
     {
         commands.emplace_back([buffer, size]
         {
-            auto* bufferOGL = dynamic_cast<BufferOGL*>(buffer);
+            auto* bufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
             bufferOGL->reserveSpace(size);
         });
     }
@@ -191,23 +190,23 @@ namespace Neon::RHI
         commands.emplace_back([indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, this]
         {
             const GLenum indexType = ConvertOGL::indexFormatToGL(indexFormat);
-            uint32_t indexSize = ConvertOGL::indexFormatToSize(indexFormat);
+            const uint32_t indexSize = ConvertOGL::indexFormatToSize(indexFormat);
             glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, static_cast<int>(indexCount), indexType, reinterpret_cast<void *>(firstIndex * indexSize), static_cast<int>(instanceCount), vertexOffset, firstInstance);
         });
     }
 
-    void CommandListOGL::updateBufferImpl(Buffer* buffer, void *data, uint32_t size)
+    void CommandListOGL::updateBufferImpl(const Rc<Buffer>& buffer, void *data, uint32_t size)
     {
         std::vector dataCopy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + size);
 
         commands.emplace_back([buffer, dataCopy = std::move(dataCopy), size]
         {
-            const auto* bufferOGL = dynamic_cast<BufferOGL*>(buffer);
+            const auto* bufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
             bufferOGL->uploadData(dataCopy.data(), size);
         });
     }
 
-    PipelineOGL* CommandListOGL::getPipeline() const
+    const Rc<PipelineOGL>& CommandListOGL::getPipeline() const
     {
         Debug::ensure(pipeline != nullptr, "Pipeline has not been set");
         return pipeline;

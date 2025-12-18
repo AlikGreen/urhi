@@ -8,6 +8,7 @@
 #include "descriptions/graphicsPipelineDescription.h"
 
 #include "buffer.h"
+#include "sampler.h"
 #include "swapchain.h"
 #include "texture.h"
 #include "descriptions/computePipelineDescription.h"
@@ -17,6 +18,7 @@
 #include "descriptions/textureDescription.h"
 #include "descriptions/textureViewDescription.h"
 #include "enums/shaderType.h"
+#include "neonCore/neonCore.h"
 
 namespace Neon::RHI
 {
@@ -25,27 +27,27 @@ class Device
 public:
     virtual ~Device() = default;
 
-    virtual Pipeline* createPipeline(const GraphicsPipelineDescription& description) = 0;
-    virtual Pipeline* createPipeline(const ComputePipelineDescription& description) = 0;
+    virtual Rc<Pipeline> createPipeline(const GraphicsPipelineDescription& description) = 0;
+    virtual Rc<Pipeline> createPipeline(const ComputePipelineDescription& description) = 0;
 
-    virtual Swapchain* createSwapchain(const SwapchainDescription& description) = 0;
+    virtual Rc<Swapchain> createSwapchain(const SwapchainDescription& description) = 0;
 
-    virtual CommandList* createCommandList() = 0;
+    virtual Rc<CommandList> createCommandList() = 0;
 
-    virtual Texture* createTexture(const TextureDescription& description) = 0;
-    virtual Sampler* createSampler(const SamplerDescription& description) = 0;
-    virtual TextureView* createTextureView(const TextureViewDescription& description) = 0;
+    virtual Rc<Texture> createTexture(const TextureDescription& description) = 0;
+    virtual Rc<Sampler> createSampler(const SamplerDescription& description) = 0;
+    virtual Rc<TextureView> createTextureView(const TextureViewDescription& description) = 0;
 
-    virtual Framebuffer* createFramebuffer(const FramebufferDescription& description) = 0;
+    virtual Rc<Framebuffer> createFramebuffer(const FramebufferDescription& description) = 0;
 
-    Shader* createShaderFromSource(const std::string &source, const std::string &filepath = "");
+    Rc<Shader> createShaderFromSource(const std::string &source, const std::string &filepath = "");
 
-    virtual Buffer* createIndexBuffer() = 0;
-    virtual Buffer* createUniformBuffer() = 0;
-    virtual Buffer* createVertexBuffer() = 0;
+    virtual Rc<Buffer> createIndexBuffer() = 0;
+    virtual Rc<Buffer> createUniformBuffer() = 0;
+    virtual Rc<Buffer> createVertexBuffer() = 0;
 
-    virtual void submit(CommandList* commandList) = 0;
+    virtual void submit(const Rc<CommandList>& commandList) = 0;
 protected:
-    virtual Shader* createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> spirv) = 0;
+    virtual Rc<Shader> createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> spirv) = 0;
 };
 }

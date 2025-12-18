@@ -16,7 +16,6 @@
 #include "../src/descriptions/renderTargetsDescription.h"
 #include "../src/descriptions/textureDescription.h"
 #include "../src/descriptions/vertexAttribute.h"
-#include "../src/descriptions/vertexBufferBinding.h"
 #include "../src/descriptions/vertexBufferDescription.h"
 #include "../src/descriptions/inputLayout.h"
 #include "../src/descriptions/windowCreationOptions.h"

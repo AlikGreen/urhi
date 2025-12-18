@@ -11,9 +11,9 @@ class ImGuiController
 public:
     struct InitInfo
     {
-        Device *device;
-        Framebuffer *framebuffer; // or swapchain format / render pass info
-        Window *window;
+        Rc<Device> device;
+        Rc<Framebuffer> framebuffer; // or swapchain format / render pass info
+        Rc<Window> window;
     };
 
     explicit ImGuiController(const InitInfo &initInfo);
@@ -24,32 +24,31 @@ public:
 
     static void processEvent(const Event &e);
 
-    void setFramebuffer(Framebuffer *newFramebuffer);
-
-    void updateTextures(const ImDrawData *drawData) const;
+    void setFramebuffer(const Rc<Framebuffer>& newFramebuffer);
+    void updateTextures(const ImDrawData* drawData) const;
 private:
-    ImTextureID createTexture(ImTextureData *texData) const;
-    void destroyTexture(const ImTextureData *texData) const;
+    ImTextureID createTexture(ImTextureData* texData) const;
+    void destroyTexture(const ImTextureData* texData) const;
 
     void createPipeline();
 
-    void updateBuffers(const Box<CommandList> &cmdList);
-    void updateProjection(const ImDrawData *drawData, const Box<CommandList> &cmdList) const;
+    void updateBuffers(const Rc<CommandList> &cmdList);
+    void updateProjection(const ImDrawData *drawData, const Rc<CommandList> &cmdList) const;
     [[nodiscard]] ScissorRect calculateScissorRect(const ImDrawCmd &drawCmd) const;
 
     static int toImGuiMouseButton(MouseButton button);
     static ImGuiKey toImGuiKey(KeyCode key);
     static ImGuiKeyChord toImGuiMods(KeyMod mod);
 
-    Device* m_device;
-    Framebuffer* m_framebuffer;
-    Window* m_window;
+    Rc<Device> m_device;
+    Rc<Framebuffer> m_framebuffer;
+    Rc<Window> m_window;
     ImDrawData* m_drawData{};
 
-    Box<Pipeline> m_pipeline;
-    Box<Buffer> m_vertexBuffer;
-    Box<Buffer> m_indexBuffer;
-    Box<Buffer> m_projUniformBuffer;
+    Rc<Pipeline> m_pipeline;
+    Rc<Buffer> m_vertexBuffer;
+    Rc<Buffer> m_indexBuffer;
+    Rc<Buffer> m_projUniformBuffer;
 
     size_t m_vertexBufferSize{};
     size_t m_indexBufferSize{};

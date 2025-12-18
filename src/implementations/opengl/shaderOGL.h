@@ -26,7 +26,6 @@ public:
     uint32_t getSSBOLocation(   const std::string &name) const;
     uint32_t getSamplerLocation(const std::string &name) const;
     uint32_t getImageLocation(  const std::string &name) const;
-
 private:
     struct ShaderStage
     {

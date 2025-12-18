@@ -1,12 +1,12 @@
 #pragma once
 #include "texture.h"
-#include "textureDescription.h"
+#include <neonCore/neonCore.h>
 
 namespace Neon::RHI
 {
 struct TextureViewDescription
 {
-    Texture* target = nullptr;
+    Rc<Texture> target = nullptr;
 
     uint32_t baseMipLevel = 0;
     uint32_t mipLevels = 1;
@@ -17,7 +17,7 @@ struct TextureViewDescription
 
     TextureViewDescription() = default;
 
-    explicit TextureViewDescription(Texture* target)
+    explicit TextureViewDescription(const Rc<Texture>& target)
     {
         this->target = target;
         baseMipLevel = 0;
@@ -27,7 +27,7 @@ struct TextureViewDescription
         format = target->getFormat();
     }
 
-    TextureViewDescription(Texture* target, const PixelFormat format)
+    TextureViewDescription(const Rc<Texture>& target, const PixelFormat format)
     {
         this->target = target;
         baseMipLevel = 0;
@@ -37,7 +37,7 @@ struct TextureViewDescription
         this->format = format;
     }
 
-    TextureViewDescription(Texture* target, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
+    TextureViewDescription(const Rc<Texture>& target, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
     {
         this->target = target;
         this->baseMipLevel = baseMipLevel;
@@ -46,7 +46,8 @@ struct TextureViewDescription
         this->arrayLayers = arrayLayers;
         format = target->getFormat();
     }
-    TextureViewDescription(Texture* target, const PixelFormat format, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
+
+    TextureViewDescription(const Rc<Texture>& target, const PixelFormat format, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
     {
         this->target = target;
         this->baseMipLevel = baseMipLevel;

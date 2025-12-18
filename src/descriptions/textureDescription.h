@@ -9,7 +9,9 @@ namespace Neon::RHI
 {
 struct TextureDescription
 {
-    glm::uvec3 dimensions{};
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t depth = 0;
 
     uint32_t arrayLayers = 1;
 
@@ -28,7 +30,7 @@ struct TextureDescription
     {
         TextureDescription desc;
         desc.type = TextureType::Texture1D;
-        desc.dimensions = glm::uvec3(width, 1, 1);
+        desc.width = width;
         desc.arrayLayers = arrayLayers;
         desc.format = format;
         desc.usage = usage;
@@ -46,7 +48,8 @@ struct TextureDescription
     {
         TextureDescription desc;
         desc.type = TextureType::Texture2D;
-        desc.dimensions = glm::uvec3(width, height, 1);
+        desc.width = width;
+        desc.height = height;
         desc.arrayLayers = arrayLayers;
         desc.format = format;
         desc.usage = usage;
@@ -65,7 +68,9 @@ struct TextureDescription
     {
         TextureDescription desc;
         desc.type = TextureType::Texture3D;
-        desc.dimensions = glm::uvec3(width, height, depth);
+        desc.width = width;
+        desc.height = height;
+        desc.depth = depth;
         desc.arrayLayers = arrayLayers;
         desc.format = format;
         desc.usage = usage;

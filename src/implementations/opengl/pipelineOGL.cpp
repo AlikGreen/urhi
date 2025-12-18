@@ -8,7 +8,7 @@ namespace Neon::RHI
 {
     PipelineOGL::PipelineOGL(const GraphicsPipelineDescription &description) : description(description)
     {
-        shader = dynamic_cast<ShaderOGL*>(description.shader);
+        shader = std::dynamic_pointer_cast<ShaderOGL>(description.shader);
 
         uint32_t offset = 0;
         for (const auto& attr : description.inputLayout.getVertexAttributes())
@@ -33,7 +33,7 @@ namespace Neon::RHI
     PipelineOGL::PipelineOGL(const ComputePipelineDescription &description)
     {
         isComputePipeline = true;
-        shader = dynamic_cast<ShaderOGL*>(description.shader);
+        shader = std::dynamic_pointer_cast<ShaderOGL>(description.shader);
         theadGroupSize = description.threadGroupSize;
     }
 
@@ -51,6 +51,11 @@ namespace Neon::RHI
             glEnable(GL_DEPTH_TEST);
         else
             glDisable(GL_DEPTH_TEST);
+
+        if(description.depthState.enableDepthWrite)
+            glDepthMask(GL_TRUE);
+        else
+            glDepthMask(GL_FALSE);
 
         if(description.rasterizerState.enableScissorTest)
             glEnable(GL_SCISSOR_TEST);
@@ -79,7 +84,7 @@ namespace Neon::RHI
         }
     }
 
-    ShaderOGL* PipelineOGL::getShader() const
+    Rc<ShaderOGL> PipelineOGL::getShader() const
     {
         return shader;
     }

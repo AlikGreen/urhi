@@ -1,15 +1,82 @@
 #include "swapchainOGL.h"
 
+#include <fstream>
+
+#include "blitShader.h"
+#include "debug.h"
+#include "deviceOGL.h"
+#include "framebufferOGL.h"
 #include "window.h"
 #include "glad/glad.h"
 
 namespace Neon::RHI
 {
-    SwapchainOGL::SwapchainOGL(const SwapchainDescription &desc)
+    SwapchainOGL::SwapchainOGL(const SwapchainDescription &desc, DeviceOGL* device)
     {
+        std::vector<glm::vec2> quadPositions =
+        {
+            {-1, -1 },
+            { 1, -1 },
+            { 1,  1 },
+            {-1,  1 }
+        };
+
+        std::vector<uint32_t> quadIndices =
+        {
+            0, 1, 2,
+            0, 2, 3
+        };
+
+        this->device = device;
         window = desc.window;
         width = window->getWidth();
         height = window->getHeight();
+
+        Rc<Shader> shader = device->createShaderFromSource(blitShaderSource);
+        shader->compile();
+
+        InputLayout vertexInputState{};
+        vertexInputState.addVertexBuffer<glm::vec2>(0);
+        vertexInputState.addVertexAttribute<glm::vec2>(0, 0);
+
+        DepthState depthState{};
+        depthState.hasDepthTarget  = false;
+        depthState.enableDepthTest = false;
+
+        RasterizerState rasterizerState{};
+        rasterizerState.cullMode = CullMode::None;
+
+        const RenderTargetsDescription targetsDesc{};
+
+        BlendState blendState{};
+        blendState.enableBlend = false;
+
+        GraphicsPipelineDescription pipelineDescription{};
+        pipelineDescription.shader             = shader;
+        pipelineDescription.inputLayout		   = vertexInputState;
+        pipelineDescription.targetsDescription = targetsDesc;
+        pipelineDescription.depthState         = depthState;
+        pipelineDescription.rasterizerState    = rasterizerState;
+        pipelineDescription.blendState         = blendState;
+
+        pipeline = device->createPipeline(pipelineDescription);
+
+        resize(width, height);
+
+        vertexBuffer = device->createVertexBuffer();
+        indexBuffer = device->createIndexBuffer();
+
+        Rc<CommandList> cl = device->createCommandList();
+
+        cl->begin();
+
+        cl->reserveBuffer(vertexBuffer, quadPositions.size() * sizeof(glm::vec2));
+        cl->updateBuffer(vertexBuffer, quadPositions);
+
+        cl->reserveBuffer(indexBuffer, quadIndices.size() * sizeof(uint32_t));
+        cl->updateBuffer(indexBuffer, quadIndices);
+
+        device->submit(cl);
     }
 
     uint32_t SwapchainOGL::acquireNextImage()
@@ -19,32 +86,60 @@ namespace Neon::RHI
 
     void SwapchainOGL::present(const uint32_t imageIndex)
     {
-        const FramebufferOGL framebuffer = framebuffers[imageIndex];
+        Debug::ensure(imageIndex < textures.size(), "SwapchainOGL::present(): image index out of range");
+        const Rc<TextureView>& texture = textureViews[imageIndex];
+        const Rc<Sampler>& sampler = samplers[imageIndex];
 
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.getHandle());
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        const Rc<CommandList> commandList = device->createCommandList();
 
-        glBlitFramebuffer(
-            0, 0,
-            static_cast<int>(width),
-            static_cast<int>(height),
-            0, 0,
-            static_cast<int>(width),
-            static_cast<int>(height),
-            GL_COLOR_BUFFER_BIT,
-            GL_NEAREST
-        );
+        commandList->begin();
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        commandList->setPipeline(pipeline);
+        commandList->setFramebuffer(makeRc<FramebufferOGL>());
+
+        commandList->setIndexBuffer(indexBuffer, IndexFormat::UInt32);
+        commandList->setVertexBuffer(0, vertexBuffer);
+
+        commandList->setTexture("blitTexture", texture);
+        commandList->setSampler("blitTexture", sampler);
+
+        commandList->clearColorTarget(0, {0, 0, 0, 1});
+
+        commandList->drawIndexed(6);
+
+        device->submit(commandList);
 
         window->swapBuffers();
 
         // Maybe fence things
     }
 
+    const std::vector<Rc<Texture>> & SwapchainOGL::getTextures() const
+    {
+        return textures;
+    }
+
     void SwapchainOGL::resize(const uint32_t width, const uint32_t height)
     {
         this->width = width;
         this->height = height;
+
+        const TextureDescription colDesc = TextureDescription::Texture2D(
+                window->getWidth(),
+                window->getHeight(),
+                PixelFormat::R8G8B8A8Unorm,
+                TextureUsage::DepthStencilTarget);
+
+        const Rc<Texture> colTex = device->createTexture(colDesc);
+        textures.clear();
+        textures.push_back(colTex);
+
+        textureViews.clear();
+        const TextureViewDescription viewDesc(colTex);
+        textureViews.push_back(device->createTextureView(viewDesc));
+
+        samplers.clear();
+        constexpr SamplerDescription samplerDesc{};
+        samplers.push_back(device->createSampler(samplerDesc));
     }
 }

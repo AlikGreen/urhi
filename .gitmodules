@@ -22,3 +22,6 @@
 [submodule "dependencies/neonCore"]
 	path = dependencies/neonCore
 	url = https://github.com/AlikGreen/NeonCore.git
+[submodule "neonCore"]
+	path = neonCore
+	url = https://github.com/AlikGreen/NeonCore.git

@@ -179,7 +179,7 @@ namespace Neon::RHI
         return spirv;
     }
 
-    Shader* Device::createShaderFromSource(const std::string &source, const std::string &filepath)
+    Rc<Shader> Device::createShaderFromSource(const std::string &source, const std::string &filepath)
     {
         std::unordered_map<ShaderType, std::string> shaderSources;
         std::string common;

@@ -10,6 +10,8 @@ class FramebufferOGL final : public Framebuffer
 {
 public:
     explicit FramebufferOGL(const FramebufferDescription& description);
+    FramebufferOGL();
+    ~FramebufferOGL() override;
 
     [[nodiscard]] uint32_t getWidth() const override;
     [[nodiscard]] uint32_t getHeight() const override;

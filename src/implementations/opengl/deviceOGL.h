@@ -1,32 +1,33 @@
 #pragma once
+
 #include "device.h"
 #include "descriptions/samplerDescription.h"
 
 namespace Neon::RHI
 {
-class WindowOGL;
-class DeviceOGL final : public Device
-{
-public:
-    Pipeline* createPipeline(const GraphicsPipelineDescription& description) override;
-    Pipeline* createPipeline(const ComputePipelineDescription& description) override;
+    class WindowOGL;
+    class DeviceOGL final : public Device
+    {
+    public:
+        Rc<Pipeline> createPipeline(const GraphicsPipelineDescription& description) override;
+        Rc<Pipeline> createPipeline(const ComputePipelineDescription& description) override;
 
-    CommandList* createCommandList() override;
+        Rc<CommandList> createCommandList() override;
 
-    Swapchain* createSwapchain(const SwapchainDescription &description) override;
+        Rc<Swapchain> createSwapchain(const SwapchainDescription &description) override;
 
-    Buffer* createIndexBuffer() override;
-    Buffer* createUniformBuffer() override;
-    Buffer* createVertexBuffer() override;
+        Rc<Buffer> createIndexBuffer() override;
+        Rc<Buffer> createUniformBuffer() override;
+        Rc<Buffer> createVertexBuffer() override;
 
-    Texture* createTexture(const TextureDescription& description) override;
-    Sampler* createSampler(const SamplerDescription& description) override;
-    TextureView* createTextureView(const TextureViewDescription& description) override;
+        Rc<Texture> createTexture(const TextureDescription& description) override;
+        Rc<Sampler> createSampler(const SamplerDescription& description) override;
+        Rc<TextureView> createTextureView(const TextureViewDescription& description) override;
 
-    Framebuffer* createFramebuffer(const FramebufferDescription &description) override;
+        Rc<Framebuffer> createFramebuffer(const FramebufferDescription &description) override;
 
-    void submit(CommandList* commandList) override;
-protected:
-    Shader* createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> shadersSpirv) override;
-};
+        void submit(const Rc<CommandList>& commandList) override;
+    protected:
+        Rc<Shader> createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> shadersSpirv) override;
+    };
 }

@@ -14,7 +14,7 @@ public:
 
   static Window* createWindow(const WindowCreationOptions& creationOptions, BackendAPI backendApi = BackendAPI::OpenGL);
 
-  virtual Device* createDevice() = 0;
+  virtual Rc<Device> createDevice() = 0;
 
   virtual void run() = 0;
   virtual void close() = 0;
