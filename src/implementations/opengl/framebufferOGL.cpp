@@ -6,6 +6,8 @@
 namespace Neon::RHI
 {
     FramebufferOGL::FramebufferOGL(const FramebufferDescription &description)
+        : colorTextures(description.colorTargets),
+            depthTexture(description.depthTarget)
     {
         glGenFramebuffers(1, &handle);
         glBindFramebuffer(GL_FRAMEBUFFER, handle);

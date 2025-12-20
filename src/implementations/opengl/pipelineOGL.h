@@ -21,6 +21,7 @@ class PipelineOGL final : public Pipeline
 public:
     explicit PipelineOGL(const GraphicsPipelineDescription &description);
     explicit PipelineOGL(const ComputePipelineDescription &description);
+    ~PipelineOGL() override;
 
     [[nodiscard]] std::vector<VertexAttributeOGL> getVertexAttributes() const;
 

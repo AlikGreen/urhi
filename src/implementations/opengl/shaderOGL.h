@@ -14,6 +14,7 @@ class ShaderOGL final : public Shader
 {
 public:
     explicit ShaderOGL(const std::unordered_map<ShaderType, std::vector<uint32_t>> &shadersSpirv);
+    ~ShaderOGL() override;
 
     void compile() override;
     void dispose() override;

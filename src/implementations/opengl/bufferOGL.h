@@ -9,6 +9,8 @@ class BufferOGL final : public Buffer
 {
 public:
     explicit BufferOGL(GLenum target);
+    ~BufferOGL();
+
     void bind() const;
     void unbind() const;
     void reserveSpace(size_t size);

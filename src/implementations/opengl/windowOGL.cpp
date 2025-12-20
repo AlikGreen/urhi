@@ -88,7 +88,7 @@ namespace Neon::RHI
         window->events.emplace_back(event);
     }
 
-    void WindowOGL::scrollCallback(GLFWwindow * windowGLFW, double xOffset, double yOffset)
+    void WindowOGL::scrollCallback(GLFWwindow * windowGLFW, const double xOffset, const double yOffset)
     {
         const auto window = static_cast<WindowOGL*>(glfwGetWindowUserPointer(windowGLFW));
 

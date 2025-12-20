@@ -2,6 +2,7 @@
 #include "frameBuffer.h"
 #include <glad/glad.h>
 
+#include "texture.h"
 #include "descriptions/framebufferDescription.h"
 
 namespace Neon::RHI
@@ -22,5 +23,8 @@ private:
     GLuint handle{};
     uint32_t width{};
     uint32_t height{};
+
+    std::vector<Rc<TextureView>> colorTextures;
+    Rc<TextureView> depthTexture;
 };
 }

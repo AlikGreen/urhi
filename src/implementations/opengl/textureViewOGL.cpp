@@ -11,7 +11,8 @@ namespace Neon::RHI
         depth(description.target->getDepth()),
         mipLevels(description.mipLevels),
         arrayLayers(description.arrayLayers),
-        format(description.format)
+        format(description.format),
+        target(description.target)
     {
         const auto& tex = std::dynamic_pointer_cast<TextureOGL>(description.target);
 
@@ -25,6 +26,11 @@ namespace Neon::RHI
                       description.mipLevels,
                       description.baseArrayLayer,
                       description.arrayLayers);
+    }
+
+    TextureViewOGL::~TextureViewOGL()
+    {
+        glDeleteTextures(1, &handle);
     }
 
     void TextureViewOGL::bind(const uint32_t binding) const

@@ -9,6 +9,7 @@ class TextureViewOGL final : public TextureView
 {
 public:
     explicit TextureViewOGL(const TextureViewDescription& description);
+    ~TextureViewOGL() override;
 
     void bind(uint32_t binding) const;
 
@@ -30,6 +31,6 @@ private:
     uint32_t mipLevels;
     uint32_t arrayLayers;
     PixelFormat format;
-
+    Rc<Texture> target;
 };
 }

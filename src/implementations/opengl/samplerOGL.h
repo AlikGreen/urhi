@@ -11,6 +11,7 @@ class SamplerOGL final : public Sampler
 {
 public:
     explicit SamplerOGL(const SamplerDescription &description);
+    ~SamplerOGL();
 
     void bind(uint32_t binding) const;
 private:

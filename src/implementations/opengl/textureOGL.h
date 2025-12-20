@@ -10,6 +10,7 @@ class TextureOGL final : public Texture
 {
 public:
     explicit TextureOGL(const TextureDescription &description);
+    ~TextureOGL() override;
 
     void bind(uint32_t binding) const;
 

@@ -11,6 +11,11 @@ namespace Neon::RHI
 {
     ShaderOGL::ShaderOGL(const std::unordered_map<ShaderType, std::vector<uint32_t>> &shadersSpirv) : shadersSpirv(shadersSpirv) {  }
 
+    ShaderOGL::~ShaderOGL()
+    {
+        glDeleteProgram(handle);
+    }
+
     std::string ShaderOGL::spirvToGlsl(const std::vector<uint32_t> &spirv, ShaderBindingReflection& reflection)
     {
         spirv_cross::CompilerGLSL compiler(spirv);

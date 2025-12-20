@@ -47,6 +47,11 @@ namespace Neon::RHI
         }
     }
 
+    TextureOGL::~TextureOGL()
+    {
+        glDeleteTextures(1, &handle);
+    }
+
     void TextureOGL::bind(const uint32_t binding) const
     {
         glBindTextureUnit(binding, handle);

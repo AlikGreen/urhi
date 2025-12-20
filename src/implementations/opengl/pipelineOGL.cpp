@@ -37,6 +37,14 @@ namespace Neon::RHI
         theadGroupSize = description.threadGroupSize;
     }
 
+    PipelineOGL::~PipelineOGL()
+    {
+        if (!isComputePipeline)
+        {
+            glDeleteVertexArrays(1, &vao);
+        }
+    }
+
     std::vector<VertexAttributeOGL> PipelineOGL::getVertexAttributes() const
     {
         return vertexAttributesOGL;

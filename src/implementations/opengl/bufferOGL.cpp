@@ -12,6 +12,11 @@ namespace Neon::RHI
         glGenBuffers(1, &handle);
     }
 
+    BufferOGL::~BufferOGL()
+    {
+        glDeleteBuffers(1, &handle);
+    }
+
     void BufferOGL::bind() const
     {
         glBindBuffer(target, handle);

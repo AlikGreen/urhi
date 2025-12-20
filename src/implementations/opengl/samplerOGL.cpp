@@ -18,6 +18,11 @@ namespace Neon::RHI
         glSamplerParameteri(handle, GL_TEXTURE_COMPARE_MODE, GL_NONE);
     }
 
+    SamplerOGL::~SamplerOGL()
+    {
+        glDeleteSamplers(1, &handle);
+    }
+
     void SamplerOGL::bind(const uint32_t binding) const
     {
         glBindSampler(binding, handle);
