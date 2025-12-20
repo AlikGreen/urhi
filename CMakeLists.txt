@@ -12,6 +12,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glfw)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glad)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonLog)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonCore)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/rapidyaml)
 
 ### NEON RHI
 
@@ -38,6 +39,7 @@ set(IMGUI_SOURCES
         dependencies/imgui/imgui_draw.cpp
         dependencies/imgui/imgui_tables.cpp
         dependencies/imgui/imgui_widgets.cpp
+        dependencies/imgui/misc/cpp/imgui_stdlib.cpp
 )
 
 add_library(imgui_static STATIC ${IMGUI_SOURCES})
@@ -51,10 +53,11 @@ add_library(neonRHI_imgui STATIC
         backends/imgui/imGuiController.cpp
         backends/imgui/imGuiController.h
         backends/imgui/imGuiConfig.h
-        backends/imgui/imGuiExtensions.h)
+        backends/imgui/imGuiExtensions.h
+        backends/imgui/imGuiExtensions.cpp)
 
 target_include_directories(neonRHI_imgui PUBLIC backends/)
-target_link_libraries(neonRHI_imgui PUBLIC neonRHI imgui_static neonCore)
+target_link_libraries(neonRHI_imgui PUBLIC neonRHI imgui_static neonCore ryml::ryml c4core::c4core)
 
 target_compile_definitions(neonRHI_imgui PRIVATE
         IMGUI_USER_CONFIG="imgui/imGuiConfig.h"

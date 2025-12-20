@@ -78,12 +78,34 @@ namespace Neon::RHI
         window->events.emplace_back(event);
     }
 
+    void WindowOGL::charCallback(GLFWwindow* windowGLFW, const unsigned int codepoint)
+    {
+        const auto window = static_cast<WindowOGL*>(glfwGetWindowUserPointer(windowGLFW));
+
+        auto event = Event();
+        event.type = Event::Type::TextInput;
+        event.text.codepoint = static_cast<uint32_t>(codepoint);
+        window->events.emplace_back(event);
+    }
+
+    void WindowOGL::scrollCallback(GLFWwindow * windowGLFW, double xOffset, double yOffset)
+    {
+        const auto window = static_cast<WindowOGL*>(glfwGetWindowUserPointer(windowGLFW));
+
+        auto event = Event();
+        event.type = Event::Type::MouseWheel;
+        event.wheel.x = static_cast<int>(xOffset);
+        event.wheel.y = static_cast<int>(yOffset);
+        window->events.emplace_back(event);
+    }
+
     WindowOGL::WindowOGL(const WindowCreationOptions &creationOptions) : creationOptions(creationOptions) { }
 
     Rc<Device> WindowOGL::createDevice()
     {
         return makeRc<DeviceOGL>();
     }
+
 
     void WindowOGL::run()
     {
@@ -119,9 +141,11 @@ namespace Neon::RHI
 
         glfwSetKeyCallback(handle, keyCallback);
         glfwSetMouseButtonCallback(handle, mouseButtonCallback);
+        glfwSetScrollCallback(handle, scrollCallback);
         glfwSetCursorPosCallback(handle, cursorPosCallback);
         glfwSetWindowSizeCallback(handle, windowSizeCallback);
         glfwSetWindowCloseCallback(handle, windowCloseCallback);
+        glfwSetCharCallback(handle, charCallback);
 
         glfwMakeContextCurrent(handle);
 

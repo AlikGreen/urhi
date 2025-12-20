@@ -25,3 +25,9 @@
 [submodule "neonCore"]
 	path = neonCore
 	url = https://github.com/AlikGreen/NeonCore.git
+[submodule "dependencies/yamlcpp"]
+	path = dependencies/yamlcpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "dependencies/rapidyaml"]
+	path = dependencies/rapidyaml
+	url = https://github.com/biojppm/rapidyaml.git

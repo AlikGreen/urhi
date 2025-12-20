@@ -49,7 +49,7 @@ namespace Neon::RHI
 
         struct TextInputEvent
         {
-            char text[32];
+            uint32_t codepoint;
         };
 
         Type type;

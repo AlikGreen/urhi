@@ -197,7 +197,7 @@ namespace Neon::RHI
             }
             case Event::Type::TextInput:
             {
-                io.AddInputCharactersUTF8(e.text.text);
+                io.AddInputCharacter(e.text.codepoint);
                 break;
             }
             default:
