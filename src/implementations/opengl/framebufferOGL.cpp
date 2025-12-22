@@ -2,6 +2,7 @@
 
 #include "textureOGL.h"
 #include "textureViewOGL.h"
+#include "window.h"
 
 namespace Neon::RHI
 {
@@ -28,8 +29,10 @@ namespace Neon::RHI
         }
     }
 
-    FramebufferOGL::FramebufferOGL()
+    FramebufferOGL::FramebufferOGL(const Rc<Window> &window)
     {
+        width = window->getWidth();
+        height = window->getHeight();
         handle = 0;
     }
 

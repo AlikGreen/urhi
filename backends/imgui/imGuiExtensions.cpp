@@ -7,6 +7,8 @@
 #include <ryml.hpp>
 #include <c4/std/string.hpp>
 
+#include "debug.h"
+
 static std::unordered_map<size_t, Neon::RHI::ImGuiImage*> imguiImageMap{};
 
 std::size_t hashTwoPointers(void const* a, void const* b) noexcept
@@ -19,9 +21,19 @@ std::size_t hashTwoPointers(void const* a, void const* b) noexcept
 
 namespace NeonGui
 {
+    void ClearTextureCache()
+    {
+        for (auto &entry : imguiImageMap)
+        {
+            delete entry.second;
+        }
+        imguiImageMap.clear();
+    }
+
     void Image(const Neon::Rc<Neon::RHI::TextureView>& textureView, const ImVec2 size, const ImVec2 uv0 , const ImVec2 uv1)
     {
         const size_t hash = hashTwoPointers(textureView.get(), nullptr);
+
         if(imguiImageMap.contains(hash))
         {
             ImGui::Image(imguiImageMap.at(hash), size, uv0, uv1);
@@ -54,6 +66,45 @@ namespace NeonGui
         imguiImageMap.emplace(hash, image);
 
         ImGui::Image(image, size, uv0, uv1);
+    }
+
+    bool Checkbox(const char* label, bool& value)
+    {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine(0.0f, 0.4f);
+
+        ImGui::PushID(label);
+        const bool changed = ImGui::Checkbox("##chk", &value);
+        ImGui::PopID();
+
+        return changed;
+    }
+
+    bool ColorEdit3(const char* label, glm::vec3& color, ImGuiColorEditFlags flags)
+    {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine(0.0f, 0.4f);
+
+        ImGui::PushID(label);
+        const bool changed = ImGui::ColorEdit3("##col3", &color.x, flags);
+        ImGui::PopID();
+
+        return changed;
+    }
+
+    bool ColorEdit4(const char* label, glm::vec4& color, ImGuiColorEditFlags flags)
+    {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine(0.0f, 0.4f);
+
+        ImGui::PushID(label);
+        const bool changed = ImGui::ColorEdit4("##col4", &color.x, flags);
+        ImGui::PopID();
+
+        return changed;
     }
 
     bool InputText(const char* label, std::string& input, const ImGuiInputTextFlags flags, const ImGuiInputTextCallback callback, void* userData)
@@ -565,17 +616,17 @@ namespace NeonGui
         return true;
     }
 
-    bool SaveStyle(const char* filePath, const ImGuiStyle& style)
+    bool SaveStyle(const std::string &filepath, const ImGuiStyle& style)
     {
         try
         {
-            ryml::Tree tree = StyleToTree(style);
+            const ryml::Tree tree = StyleToTree(style);
 
             std::string out;
             out.reserve(64 * 1024);
             ryml::emitrs_yaml(tree, &out);
 
-            std::ofstream file(filePath, std::ios::out | std::ios::binary);
+            std::ofstream file(filepath, std::ios::out | std::ios::binary);
             if (!file.is_open())
             {
                 return false;
@@ -590,11 +641,11 @@ namespace NeonGui
         }
     }
 
-    bool LoadStyle(const char* filePath, ImGuiStyle& style)
+    bool LoadStyle(const std::string &filepath, ImGuiStyle& style)
     {
         try
         {
-            std::ifstream file(filePath, std::ios::in | std::ios::binary);
+            std::ifstream file(filepath, std::ios::in | std::ios::binary);
             if (!file.is_open())
             {
                 return false;

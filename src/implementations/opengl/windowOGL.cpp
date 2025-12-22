@@ -99,6 +99,20 @@ namespace Neon::RHI
         window->events.emplace_back(event);
     }
 
+    void WindowOGL::dropCallback(GLFWwindow* windowGLFW, int pathCount, const char** paths)
+    {
+        const auto window = static_cast<WindowOGL*>(glfwGetWindowUserPointer(windowGLFW));
+        for (int i = 0; i < pathCount; ++i)
+        {
+            const char* path = paths[i];
+
+            auto event = Event();
+            event.type = Event::Type::DropFile;
+            event.drop.path = path;
+            window->events.emplace_back(event);
+        }
+    }
+
     WindowOGL::WindowOGL(const WindowCreationOptions &creationOptions) : creationOptions(creationOptions) { }
 
     Rc<Device> WindowOGL::createDevice()

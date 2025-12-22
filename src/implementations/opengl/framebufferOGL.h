@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 
 #include "texture.h"
+#include "window.h"
 #include "descriptions/framebufferDescription.h"
 
 namespace Neon::RHI
@@ -11,7 +12,7 @@ class FramebufferOGL final : public Framebuffer
 {
 public:
     explicit FramebufferOGL(const FramebufferDescription& description);
-    FramebufferOGL();
+    explicit FramebufferOGL(const Rc<Window> &window);
     ~FramebufferOGL() override;
 
     [[nodiscard]] uint32_t getWidth() const override;

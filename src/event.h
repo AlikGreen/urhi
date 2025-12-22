@@ -16,7 +16,8 @@ namespace Neon::RHI
             MouseMotion,
             MouseWheel,
             WindowResize,
-            TextInput
+            TextInput,
+            DropFile
         };
 
         struct KeyEvent
@@ -52,6 +53,11 @@ namespace Neon::RHI
             uint32_t codepoint;
         };
 
+        struct DropFileEvent
+        {
+            const char* path;
+        };
+
         Type type;
 
         union
@@ -62,6 +68,7 @@ namespace Neon::RHI
             MouseWheelEvent wheel;
             WindowResizeEvent window;
             TextInputEvent text;
+            DropFileEvent drop;
         };
     };
 }

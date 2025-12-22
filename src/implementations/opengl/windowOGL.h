@@ -41,12 +41,13 @@ private:
 
     void updateCursorState() const;
 
-    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-    static void cursorPosCallback(GLFWwindow* window, double xPos, double yPos);
-    static void windowSizeCallback(GLFWwindow* window, int width, int height);
-    static void windowCloseCallback(GLFWwindow* window);
+    static void keyCallback(GLFWwindow* windowGLFW, int key, int scancode, int action, int mods);
+    static void mouseButtonCallback(GLFWwindow* windowGLFW, int button, int action, int mods);
+    static void cursorPosCallback(GLFWwindow* windowGLFW, double xPos, double yPos);
+    static void windowSizeCallback(GLFWwindow* windowGLFW, int width, int height);
+    static void windowCloseCallback(GLFWwindow* windowGLFW);
     static void charCallback(GLFWwindow* windowGLFW, unsigned int codepoint);
     static void scrollCallback(GLFWwindow *windowGLFW, double xOffset, double yOffset);
+    static void dropCallback(GLFWwindow *windowGLFW, int pathCount, const char **paths);
 };
 }

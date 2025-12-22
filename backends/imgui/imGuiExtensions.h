@@ -3,12 +3,19 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <neonCore/neonCore.h>
 
-#include "textureView.h"
+#include <neonRHI/neonRHI.h>
 
 namespace NeonGui
 {
+    void ClearTextureCache();
+
     void Image(const Neon::Rc<Neon::RHI::TextureView>& textureView, ImVec2 size, ImVec2 uv0 = ImVec2(0, 0), ImVec2 uv1 = ImVec2(1, 1));
     void Image(const Neon::Rc<Neon::RHI::TextureView>& textureView, const Neon::Rc<Neon::RHI::Sampler>& sampler, ImVec2 size, ImVec2 uv0 = ImVec2(0, 0), ImVec2 uv1 = ImVec2(1, 1));
+
+    bool Checkbox(const char* label, bool& value);
+
+    bool ColorEdit3(const char* label, glm::vec3& color, ImGuiColorEditFlags flags = 0);
+    bool ColorEdit4(const char* label, glm::vec4& color, ImGuiColorEditFlags flags = 0);
 
     bool InputText(const char* label, std::string& input, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* userData = nullptr);
 
@@ -32,6 +39,6 @@ namespace NeonGui
     bool DragFloat3(const char* label, glm::vec3& input, float speed = 1.0f, float minValue = 0.0f, float maxValue = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0);
     bool DragFloat4(const char* label, glm::vec4& input, float speed = 1.0f, float minValue = 0.0f, float maxValue = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0);
 
-    bool SaveStyle(const char* filePath, const ImGuiStyle& style);
-    bool LoadStyle(const char* filePath, ImGuiStyle& style);
+    bool SaveStyle(const std::string &filepath, const ImGuiStyle& style);
+    bool LoadStyle(const std::string &filepath, ImGuiStyle& style);
 }

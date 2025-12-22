@@ -1,4 +1,7 @@
 #include "imGuiController.h"
+
+#include "debug.h"
+#include "imGuiExtensions.h"
 #include "imguiShader.h"
 #include "glm/glm.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
@@ -42,6 +45,7 @@ namespace Neon::RHI
         m_mouseWheel = 0.0f;
 
         ImGui::NewFrame();
+        NeonGui::ClearTextureCache();
     }
 
 
@@ -124,20 +128,22 @@ namespace Neon::RHI
                 const ScissorRect scissor = calculateScissorRect(pcmd);
                 cmdList->setScissor(scissor);
 
-                const ImGuiImage* image = pcmd.GetTexID();
+                ImGuiImage* image = pcmd.GetTexID();
 
-                if(image == nullptr || image->view == nullptr) continue; // buh
+                Debug::ensure(image != nullptr, "Image is null");
 
-                Rc<Sampler> sampler = image->sampler;
+                if(image->view == nullptr) continue;
 
-                if(sampler == nullptr)
+                Debug::ensure(image->view != nullptr, "Texture View is null");
+
+                if(image->sampler == nullptr)
                 {
                     SamplerDescription samplerDesc {};
-                    sampler = m_device->createSampler(samplerDesc);
+                    image->sampler = m_device->createSampler(samplerDesc);
                 }
 
                 cmdList->setTexture("ImGuiTexture", image->view);
-                cmdList->setSampler("ImGuiTexture", sampler);
+                cmdList->setSampler("ImGuiTexture", image->sampler);
 
                 cmdList->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
             }

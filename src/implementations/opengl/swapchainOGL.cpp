@@ -95,7 +95,7 @@ namespace Neon::RHI
         commandList->begin();
 
         commandList->setPipeline(pipeline);
-        commandList->setFramebuffer(makeRc<FramebufferOGL>());
+        commandList->setFramebuffer(makeRc<FramebufferOGL>(window));
 
         commandList->setIndexBuffer(indexBuffer, IndexFormat::UInt32);
         commandList->setVertexBuffer(0, vertexBuffer);

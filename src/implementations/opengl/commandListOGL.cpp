@@ -77,6 +77,8 @@ namespace Neon::RHI
     {
         commands.emplace_back([frameBuffer, this]
         {
+            glViewport(0, 0, static_cast<int>(frameBuffer->getWidth()), static_cast<int>(frameBuffer->getHeight()));
+
             framebuffer = std::dynamic_pointer_cast<FramebufferOGL>(frameBuffer);
             framebuffer->bind();
         });
