@@ -1,5 +1,7 @@
 #pragma once
 #include "input/keyCodes.h"
+#include <string>
+#include <variant>
 
 namespace Neon::RHI
 {
@@ -20,55 +22,26 @@ namespace Neon::RHI
             DropFile
         };
 
-        struct KeyEvent
-        {
-            KeyCode key;
-            bool repeat;
-        };
+        struct KeyEvent { KeyCode key; bool repeat; };
+        struct MouseButtonEvent { MouseButton button; int x, y; int clicks; };
+        struct MouseMotionEvent { float x, y; };
+        struct MouseWheelEvent { int x, y; };
+        struct WindowResizeEvent { int width, height; };
+        struct TextInputEvent { uint32_t codepoint; };
+        struct DropFileEvent { std::string path; };
 
-        struct MouseButtonEvent
-        {
-            MouseButton button;
-            int x, y;
-            int clicks;
-        };
+        using Data = std::variant<
+            std::monostate,
+            KeyEvent,
+            MouseButtonEvent,
+            MouseMotionEvent,
+            MouseWheelEvent,
+            WindowResizeEvent,
+            TextInputEvent,
+            DropFileEvent
+        >;
 
-        struct MouseMotionEvent
-        {
-            float x, y;
-        };
-
-        struct MouseWheelEvent
-        {
-            int x, y;
-        };
-
-        struct WindowResizeEvent
-        {
-            int width, height;
-        };
-
-        struct TextInputEvent
-        {
-            uint32_t codepoint;
-        };
-
-        struct DropFileEvent
-        {
-            const char* path;
-        };
-
-        Type type;
-
-        union
-        {
-            KeyEvent key;
-            MouseButtonEvent button;
-            MouseMotionEvent motion;
-            MouseWheelEvent wheel;
-            WindowResizeEvent window;
-            TextInputEvent text;
-            DropFileEvent drop;
-        };
+        Type type = Quit;
+        Data data;
     };
 }

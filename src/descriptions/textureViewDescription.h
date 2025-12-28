@@ -13,7 +13,7 @@ struct TextureViewDescription
     uint32_t baseArrayLayer = 0;
     uint32_t arrayLayers = 1;
 
-    PixelFormat format = PixelFormat::R8G8B8A8Unorm;
+    PixelFormat format = PixelFormat::Invalid;
 
     TextureViewDescription() = default;
 

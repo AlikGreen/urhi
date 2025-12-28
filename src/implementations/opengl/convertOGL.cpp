@@ -565,6 +565,12 @@ namespace Neon::RHI
                 return GL_TEXTURE_2D;
             case TextureType::Texture3D:
                 return GL_TEXTURE_3D;
+            case TextureType::Texture2DArray:
+                return GL_TEXTURE_2D_ARRAY;
+            case TextureType::TextureCube:
+                return GL_TEXTURE_CUBE_MAP;
+            case TextureType::TextureCubeArray:
+                return GL_TEXTURE_CUBE_MAP_ARRAY;
         }
         return GL_NONE;
     }
@@ -619,5 +625,17 @@ namespace Neon::RHI
         }
 
         return 0;
+    }
+
+    GLenum ConvertOGL::imageAccessToGL(const ImageAccess access)
+    {
+        switch (access)
+        {
+            case ImageAccess::ReadOnly:  return GL_READ_ONLY;
+            case ImageAccess::WriteOnly: return GL_WRITE_ONLY;
+            case ImageAccess::ReadWrite: return GL_READ_WRITE;
+        }
+
+        return GL_WRITE_ONLY;
     }
 }

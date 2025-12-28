@@ -1,6 +1,7 @@
 #pragma once
 #include "textureView.h"
 #include "descriptions/textureViewDescription.h"
+#include "enums/imageAccess.h"
 #include "glad/glad.h"
 
 namespace Neon::RHI
@@ -12,6 +13,7 @@ public:
     ~TextureViewOGL() override;
 
     void bind(uint32_t binding) const;
+    void bindImage(uint32_t binding, ImageAccess access) const;
 
     [[nodiscard]] uint32_t getWidth() const override;
     [[nodiscard]] uint32_t getHeight() const override;
@@ -28,6 +30,7 @@ private:
     uint32_t width;
     uint32_t height;
     uint32_t depth;
+    uint32_t baseMipLevel;
     uint32_t mipLevels;
     uint32_t arrayLayers;
     PixelFormat format;

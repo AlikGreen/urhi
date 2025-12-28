@@ -21,6 +21,8 @@ namespace Neon::RHI
 
         void setTexture(const std::string& name, const Rc<TextureView>& texture) override;
         void setSampler(const std::string& name, const Rc<Sampler>& sampler) override;
+        void setImage(const std::string &name, const Rc<TextureView> &texture, ImageAccess access) override;
+
         void generateMipmaps(const Rc<Texture>& texture) override;
 
         void setPipeline(const Rc<Pipeline>& pipeline) override;
@@ -34,10 +36,12 @@ namespace Neon::RHI
 
         void setScissor(ScissorRect rect) override;
 
-        void updateTexture(const Rc<Texture>& texture, TextureUploadDescription uploadDescription) override;
+        void updateTexture(const Rc<Texture>& texture, const TextureUploadDescription& uploadDescription) override;
         void reserveBuffer(const Rc<Buffer>& buffer, size_t size) override;
 
         void dispatch(const glm::ivec3& numGroups) override;
+
+        void resourceBarrier(const Rc<Texture> &texture, ImageAccess nextAccess) override;
 
         void executeCommands();
     protected:

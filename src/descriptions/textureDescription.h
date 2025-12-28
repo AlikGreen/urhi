@@ -77,5 +77,62 @@ struct TextureDescription
         desc.numMipmaps = numMipmaps;
         return desc;
     }
+
+    static TextureDescription Texture2DArray(
+    const uint32_t width,
+    const uint32_t height,
+    const uint32_t arrayLayers,
+    const PixelFormat format,
+    const TextureUsage usage = TextureUsage::Sampled,
+    const uint32_t numMipmaps = 1)
+    {
+        TextureDescription desc;
+        desc.type = TextureType::Texture2DArray;
+        desc.width = width;
+        desc.height = height;
+        desc.depth = 1;
+        desc.arrayLayers = arrayLayers;
+        desc.format = format;
+        desc.usage = usage;
+        desc.numMipmaps = numMipmaps;
+        return desc;
+    }
+
+    static TextureDescription TextureCube(
+    const uint32_t size,
+    const PixelFormat format,
+    const TextureUsage usage = TextureUsage::Sampled,
+    const uint32_t numMipmaps = 1)
+    {
+        TextureDescription desc;
+        desc.type = TextureType::TextureCube;
+        desc.width = size;
+        desc.height = size;
+        desc.depth = 1;
+        desc.arrayLayers = 6;
+        desc.format = format;
+        desc.usage = usage;
+        desc.numMipmaps = numMipmaps;
+        return desc;
+    }
+
+    static TextureDescription TextureCubeArray(
+        const uint32_t size,
+        const uint32_t cubeCount,
+        const PixelFormat format,
+        const TextureUsage usage = TextureUsage::Sampled,
+        const uint32_t numMipmaps = 1)
+    {
+        TextureDescription desc;
+        desc.type = TextureType::TextureCubeArray;
+        desc.width = size;
+        desc.height = size;
+        desc.depth = 1;
+        desc.arrayLayers = 6 * cubeCount;
+        desc.format = format;
+        desc.usage = usage;
+        desc.numMipmaps = numMipmaps;
+        return desc;
+    }
 };
 }

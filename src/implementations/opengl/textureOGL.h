@@ -21,18 +21,20 @@ public:
     [[nodiscard]] uint32_t getMipLevels() const override;
     [[nodiscard]] uint32_t getArrayLayers() const override;
     [[nodiscard]] PixelFormat getFormat() const override;
+    [[nodiscard]] TextureType getType() const override;
 
-    [[nodiscard]] GLenum getType() const;
+    [[nodiscard]] GLenum getGLType() const;
     [[nodiscard]] GLuint getHandle() const;
 
     void generateMipmaps() const;
     void setData(const TextureUploadDescription &uploadDescription) const;
+
 private:
     uint32_t width{}, height{}, depth{};
     uint32_t numMipmaps{}, arrayLayers{};
     PixelFormat format{};
+    TextureType type{};
 
-    GLenum type{};
     GLuint handle{};
 };
 }

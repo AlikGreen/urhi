@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 
 #include "shader.h"
+#include "spirv_common.hpp"
 #include "enums/shaderType.h"
 
 namespace Neon::RHI
@@ -21,7 +22,7 @@ public:
 
     void bind() const;
 
-    ShaderReflection getShaderReflection() override; // TODO: implement
+    ShaderReflection getShaderReflection() override;
 
     uint32_t getUBOLocation(    const std::string &name) const;
     uint32_t getSSBOLocation(   const std::string &name) const;
@@ -44,9 +45,11 @@ private:
         std::unordered_map<std::string, GLuint> imageUnit{};
     };
 
-    static std::string spirvToGlsl(const std::vector<uint32_t> &spirv, ShaderBindingReflection& reflection);
+    std::string spirvToGlsl(const std::vector<uint32_t> &spirv);
+    static ShaderBaseType toType(const spirv_cross::SPIRType& typeId);
 
-    ShaderBindingReflection reflection{};
+    ShaderBindingReflection internalReflection{};
+    ShaderReflection reflection{};
     std::unordered_map<ShaderType, std::vector<uint32_t>> shadersSpirv;
     std::vector<GLuint> shaderHandles;
     GLuint handle{};

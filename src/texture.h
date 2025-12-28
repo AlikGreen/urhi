@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "enums/pixelFormat.h"
+#include "enums/textureType.h"
 
 namespace Neon::RHI
 {
@@ -17,5 +18,6 @@ public:
     [[nodiscard]] virtual uint32_t getMipLevels() const = 0;
     [[nodiscard]] virtual uint32_t getArrayLayers() const = 0;
     [[nodiscard]] virtual PixelFormat getFormat() const = 0;
+    [[nodiscard]] virtual TextureType getType() const = 0;
 };
 }

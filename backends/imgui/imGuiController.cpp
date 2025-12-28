@@ -154,60 +154,62 @@ namespace Neon::RHI
         ImGui::EndFrame();
     }
 
-    void ImGuiController::processEvent(const Event &e)
+    void ImGuiController::processEvent(const Event& e)
     {
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
 
-
-        switch(e.type)
+        switch (e.type)
         {
             case Event::Type::MouseMotion:
             {
-                io.AddMousePosEvent(
-                    e.motion.x,
-                    e.motion.y
-                );
+                const auto& motion = std::get<Event::MouseMotionEvent>(e.data);
+                io.AddMousePosEvent(motion.x, motion.y);
                 break;
             }
             case Event::Type::MouseButtonDown:
             {
-                int button = toImGuiMouseButton(e.button.button);
+                const auto& buttonEvent = std::get<Event::MouseButtonEvent>(e.data);
+                const int button = toImGuiMouseButton(buttonEvent.button);
                 io.AddMouseButtonEvent(button, true);
                 break;
             }
             case Event::Type::MouseButtonUp:
             {
-                const int button = toImGuiMouseButton(e.button.button);
+                const auto& buttonEvent = std::get<Event::MouseButtonEvent>(e.data);
+                const int button = toImGuiMouseButton(buttonEvent.button);
                 io.AddMouseButtonEvent(button, false);
                 break;
             }
             case Event::Type::MouseWheel:
             {
-                io.AddMouseWheelEvent(
-                    static_cast<float>(e.wheel.x),
-                    static_cast<float>(e.wheel.y)
-                );
+                const auto& wheel = std::get<Event::MouseWheelEvent>(e.data);
+                io.AddMouseWheelEvent(static_cast<float>(wheel.x), static_cast<float>(wheel.y));
                 break;
             }
             case Event::Type::KeyDown:
             {
-                const ImGuiKey key = toImGuiKey(e.key.key);
+                const auto& keyEvent = std::get<Event::KeyEvent>(e.data);
+                const ImGuiKey key = toImGuiKey(keyEvent.key);
                 io.AddKeyEvent(key, true);
                 break;
             }
             case Event::Type::KeyUp:
             {
-                const ImGuiKey key = toImGuiKey(e.key.key);
+                const auto& keyEvent = std::get<Event::KeyEvent>(e.data);
+                const ImGuiKey key = toImGuiKey(keyEvent.key);
                 io.AddKeyEvent(key, false);
                 break;
             }
             case Event::Type::TextInput:
             {
-                io.AddInputCharacter(e.text.codepoint);
+                const auto& text = std::get<Event::TextInputEvent>(e.data);
+                io.AddInputCharacter(text.codepoint);
                 break;
             }
             default:
+            {
                 break;
+            }
         }
     }
 
@@ -276,8 +278,8 @@ namespace Neon::RHI
         TextureUploadDescription uploadDesc{};
 
         uploadDesc.data = pixels;
-        uploadDesc.size.x = width;
-        uploadDesc.size.y = height;
+        uploadDesc.width = width;
+        uploadDesc.height = height;
         uploadDesc.pixelLayout = PixelLayout::RGBA;
         uploadDesc.pixelType = PixelType::UnsignedByte;
 

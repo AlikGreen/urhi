@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 
 #include "convertOGL.h"
+#include "debug.h"
 #include "descriptions/textureUploadDescription.h"
 
 namespace Neon::RHI
@@ -23,27 +24,34 @@ namespace Neon::RHI
 
         arrayLayers = description.arrayLayers;
 
-        type = ConvertOGL::textureTypeToGL(description.type);
+        type = description.type;
 
-        glCreateTextures(type, 1, &handle);
+        glCreateTextures(getGLType(), 1, &handle);
         glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, static_cast<int>(numMipmaps) - 1);
 
-        if (type == GL_TEXTURE_1D)
+        if (type == TextureType::Texture1D)
         {
             glTextureStorage1D(handle, static_cast<int>(numMipmaps),
-                               ConvertOGL::pixelFormatToGL(description.format),
+                               ConvertOGL::pixelFormatToGL(format),
                                static_cast<int>(width));
         }
-        else if (type == GL_TEXTURE_2D)
+        else if (type == TextureType::Texture2D || type == TextureType::TextureCube)
         {
             glTextureStorage2D(handle, static_cast<int>(numMipmaps),
-                               ConvertOGL::pixelFormatToGL(description.format),
+                               ConvertOGL::pixelFormatToGL(format),
                                static_cast<int>(width), static_cast<int>(height));
-        } else if (type == GL_TEXTURE_2D_ARRAY || type == GL_TEXTURE_3D)
+        }
+        else if (type == TextureType::Texture3D)
         {
             glTextureStorage3D(handle, static_cast<int>(numMipmaps),
-                               ConvertOGL::pixelFormatToGL(description.format),
-                               static_cast<int>(width), static_cast<int>(height), static_cast<int>(depth));
+                ConvertOGL::pixelFormatToGL(format),
+                static_cast<int>(width), static_cast<int>(height), static_cast<int>(depth));
+        }
+        else if (type == TextureType::Texture2DArray || type == TextureType::TextureCubeArray)
+        {
+            glTextureStorage3D(handle, static_cast<int>(numMipmaps),
+                ConvertOGL::pixelFormatToGL(format),
+                static_cast<int>(width), static_cast<int>(height), static_cast<int>(arrayLayers));
         }
     }
 
@@ -88,9 +96,14 @@ namespace Neon::RHI
         return format;
     }
 
-    GLenum TextureOGL::getType() const
+    TextureType TextureOGL::getType() const
     {
         return type;
+    }
+
+    GLenum TextureOGL::getGLType() const
+    {
+        return ConvertOGL::textureTypeToGL(type);
     }
 
     GLuint TextureOGL::getHandle() const
@@ -108,28 +121,52 @@ namespace Neon::RHI
         const GLenum uploadType = ConvertOGL::pixelTypeToGL(uploadDescription.pixelType);
         const GLenum uploadFormat = ConvertOGL::pixelLayoutToGL(uploadDescription.pixelLayout);
 
-        if (type == GL_TEXTURE_2D)
+        if (type == TextureType::Texture2D)
         {
             glTextureSubImage2D(handle,
-                static_cast<int>(uploadDescription.mipLevel),
-                static_cast<int>(uploadDescription.offset.x),
-                static_cast<int>(uploadDescription.offset.y),
-                static_cast<int>(uploadDescription.size.x),
-                static_cast<int>(uploadDescription.size.y),
-                uploadFormat, uploadType,
+                static_cast<GLint>(uploadDescription.mipLevel),
+                static_cast<GLint>(uploadDescription.x),
+                static_cast<GLint>(uploadDescription.y),
+                static_cast<GLsizei>(uploadDescription.width),
+                static_cast<GLsizei>(uploadDescription.height),
+                uploadFormat,
+                uploadType,
                 uploadDescription.data);
-        } else
+            return;
+        }
+
+        if (type == TextureType::Texture3D)
         {
             glTextureSubImage3D(handle,
-                static_cast<int>(uploadDescription.mipLevel),
-                static_cast<int>(uploadDescription.offset.x),
-                static_cast<int>(uploadDescription.offset.y),
-                static_cast<int>(uploadDescription.offset.z),
-                static_cast<int>(uploadDescription.size.x),
-                static_cast<int>(uploadDescription.size.y),
-                static_cast<int>(uploadDescription.size.z),
-                uploadFormat, uploadType,
+                static_cast<GLint>(uploadDescription.mipLevel),
+                static_cast<GLint>(uploadDescription.x),
+                static_cast<GLint>(uploadDescription.y),
+                static_cast<GLint>(uploadDescription.z),
+                static_cast<GLsizei>(uploadDescription.width),
+                static_cast<GLsizei>(uploadDescription.height),
+                static_cast<GLsizei>(uploadDescription.depth),
+                uploadFormat,
+                uploadType,
                 uploadDescription.data);
+            return;
         }
+
+        if (type == TextureType::TextureCube || type == TextureType::TextureCubeArray || type == TextureType::Texture2DArray)
+        {
+            glTextureSubImage3D(handle,
+                static_cast<GLint>(uploadDescription.mipLevel),
+                static_cast<GLint>(uploadDescription.x),
+                static_cast<GLint>(uploadDescription.y),
+                static_cast<GLint>(uploadDescription.baseLayer),
+                static_cast<GLsizei>(uploadDescription.width),
+                static_cast<GLsizei>(uploadDescription.height),
+                static_cast<GLsizei>(uploadDescription.layerCount),
+                uploadFormat,
+                uploadType,
+                uploadDescription.data);
+            return;
+        }
+
+        Debug::ensure(false, "Texture type unknown");
     }
 }

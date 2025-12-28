@@ -16,19 +16,16 @@ namespace Neon::RHI
         {
             auto event = Event();
             event.type = Event::Type::KeyDown;
-            event.key.key = ConvertOGL::keyCodeFromGLFW(key);
-            event.key.repeat = action == GLFW_REPEAT;
+            event.data = Event::KeyEvent{ ConvertOGL::keyCodeFromGLFW(key), action == GLFW_REPEAT };
             window->events.emplace_back(event);
         }
         else if (action == GLFW_RELEASE)
         {
             auto event = Event();
             event.type = Event::Type::KeyUp;
-            event.key.key = ConvertOGL::keyCodeFromGLFW(key);
-            event.key.repeat = false;
+            event.data = Event::KeyEvent{ ConvertOGL::keyCodeFromGLFW(key), false };
             window->events.emplace_back(event);
         }
-
     }
 
     void WindowOGL::mouseButtonCallback(GLFWwindow* windowGLFW, int button, int action, int mods)
@@ -38,14 +35,14 @@ namespace Neon::RHI
         {
             auto event = Event();
             event.type = Event::Type::MouseButtonDown;
-            event.button.button = ConvertOGL::mouseButtonFromGLFW(button);
+            event.data = Event::MouseButtonEvent{ ConvertOGL::mouseButtonFromGLFW(button), 0, 0, 0 };
             window->events.emplace_back(event);
         }
         else if (action == GLFW_RELEASE)
         {
             auto event = Event();
             event.type = Event::Type::MouseButtonUp;
-            event.button.button = ConvertOGL::mouseButtonFromGLFW(button);
+            event.data = Event::MouseButtonEvent{ ConvertOGL::mouseButtonFromGLFW(button), 0, 0, 0 };
             window->events.emplace_back(event);
         }
     }
@@ -55,8 +52,7 @@ namespace Neon::RHI
         const auto window = static_cast<WindowOGL*>(glfwGetWindowUserPointer(windowGLFW));
         auto event = Event();
         event.type = Event::Type::MouseMotion;
-        event.motion.x = static_cast<float>(xPos);
-        event.motion.y = static_cast<float>(yPos);
+        event.data = Event::MouseMotionEvent{ static_cast<float>(xPos), static_cast<float>(yPos) };
         window->events.emplace_back(event);
     }
 
@@ -65,8 +61,7 @@ namespace Neon::RHI
         const auto window = static_cast<WindowOGL*>(glfwGetWindowUserPointer(windowGLFW));
         auto event = Event();
         event.type = Event::Type::WindowResize;
-        event.window.width = width;
-        event.window.height = height;
+        event.data = Event::WindowResizeEvent{ width, height };
         window->events.emplace_back(event);
     }
 
@@ -75,6 +70,7 @@ namespace Neon::RHI
         const auto window = static_cast<WindowOGL*>(glfwGetWindowUserPointer(windowGLFW));
         auto event = Event();
         event.type = Event::Type::Quit;
+        event.data = std::monostate{};
         window->events.emplace_back(event);
     }
 
@@ -84,18 +80,17 @@ namespace Neon::RHI
 
         auto event = Event();
         event.type = Event::Type::TextInput;
-        event.text.codepoint = static_cast<uint32_t>(codepoint);
+        event.data = Event::TextInputEvent{ static_cast<uint32_t>(codepoint) };
         window->events.emplace_back(event);
     }
 
-    void WindowOGL::scrollCallback(GLFWwindow * windowGLFW, const double xOffset, const double yOffset)
+    void WindowOGL::scrollCallback(GLFWwindow* windowGLFW, const double xOffset, const double yOffset)
     {
         const auto window = static_cast<WindowOGL*>(glfwGetWindowUserPointer(windowGLFW));
 
         auto event = Event();
         event.type = Event::Type::MouseWheel;
-        event.wheel.x = static_cast<int>(xOffset);
-        event.wheel.y = static_cast<int>(yOffset);
+        event.data = Event::MouseWheelEvent{ static_cast<int>(xOffset), static_cast<int>(yOffset) };
         window->events.emplace_back(event);
     }
 
@@ -108,7 +103,7 @@ namespace Neon::RHI
 
             auto event = Event();
             event.type = Event::Type::DropFile;
-            event.drop.path = path;
+            event.data = Event::DropFileEvent{ std::string(path) };
             window->events.emplace_back(event);
         }
     }
@@ -160,6 +155,7 @@ namespace Neon::RHI
         glfwSetWindowSizeCallback(handle, windowSizeCallback);
         glfwSetWindowCloseCallback(handle, windowCloseCallback);
         glfwSetCharCallback(handle, charCallback);
+        glfwSetDropCallback(handle, dropCallback);
 
         glfwMakeContextCurrent(handle);
 

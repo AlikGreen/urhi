@@ -56,6 +56,15 @@ namespace Neon::RHI
         });
     }
 
+    void CommandListOGL::setImage(const std::string &name, const Rc<TextureView> &texture, ImageAccess access)
+    {
+        commands.emplace_back([name, texture, this, access]
+        {
+            const uint32_t binding = getPipeline()->getShader()->getImageLocation(name);
+            dynamic_cast<const TextureViewOGL*>(texture.get())->bindImage(binding, access);
+        });
+    }
+
     void CommandListOGL::generateMipmaps(const Rc<Texture>& texture)
     {
         commands.emplace_back([texture]
@@ -151,7 +160,7 @@ namespace Neon::RHI
         });
     }
 
-    void CommandListOGL::updateTexture(const Rc<Texture>& texture, TextureUploadDescription uploadDescription)
+    void CommandListOGL::updateTexture(const Rc<Texture>& texture, const TextureUploadDescription& uploadDescription)
     {
         commands.emplace_back([texture, uploadDescription]
         {
@@ -174,6 +183,14 @@ namespace Neon::RHI
         commands.emplace_back([numGroups]
         {
             glDispatchCompute(numGroups.x, numGroups.y, numGroups.z);
+        });
+    }
+
+    void CommandListOGL::resourceBarrier(const Rc<Texture> &texture, ImageAccess nextAccess)
+    {
+        commands.emplace_back([]
+        {
+            glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         });
     }
 

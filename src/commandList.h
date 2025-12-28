@@ -7,6 +7,7 @@
 #include "textureView.h"
 #include "sampler.h"
 #include "descriptions/textureUploadDescription.h"
+#include "enums/imageAccess.h"
 #include "enums/indexFormat.h"
 #include "glm/glm.hpp"
 #include <string>
@@ -27,6 +28,7 @@ public:
 
     virtual void setTexture(const std::string& name, const Rc<TextureView>& texture) = 0;
     virtual void setSampler(const std::string& name, const Rc<Sampler>& sampler) = 0;
+    virtual void setImage(const std::string& name, const Rc<TextureView>& texture, ImageAccess access) = 0;
 
     virtual void setPipeline(const Rc<Pipeline>& pipeline) = 0;
     virtual void setFramebuffer(const Rc<Framebuffer>& frameBuffer) = 0;
@@ -38,45 +40,27 @@ public:
     virtual void clearDepthStencil(float value) = 0;
 
     virtual void setScissor(ScissorRect rect) = 0;
-    void setScissor(const int x, const int y, const int width, const int height)
-    {
-        setScissor(ScissorRect{ x, y, width, height });
-    }
+    void setScissor(const int x, const int y, const int width, const int height) { setScissor(ScissorRect{ x, y, width, height }); }
 
-    virtual void updateTexture(const Rc<Texture>& texture, TextureUploadDescription uploadDescription) = 0;
+    virtual void updateTexture(const Rc<Texture>& texture, const TextureUploadDescription& uploadDescription) = 0;
     virtual void generateMipmaps(const Rc<Texture>& texture) = 0;
 
     virtual void reserveBuffer(const Rc<Buffer>& buffer, size_t size) = 0;
 
     virtual void dispatch(const glm::ivec3& numGroups) = 0;
 
-    template<typename T>
-    void updateBuffer(const Rc<Buffer>& buffer, T& data)
-    {
-        updateBufferImpl(buffer, &data, sizeof(T));
-    }
+    virtual void resourceBarrier(const Rc<Texture>& texture, ImageAccess nextAccess) = 0;
+    void resourceBarrier(const Rc<Texture>& texture) { resourceBarrier(texture, ImageAccess::ReadWrite); }
 
     template<typename T>
-    void updateBuffer(const Rc<Buffer>& buffer, std::vector<T> data)
-    {
-        updateBufferImpl(buffer, data.data(), sizeof(T)*data.size());
-    }
-
+    void updateBuffer(const Rc<Buffer>& buffer, T& data) { updateBufferImpl(buffer, &data, sizeof(T)); }
     template<typename T>
-    void updateBuffer(const Rc<Buffer>& buffer, T* data)
-    {
-        updateBufferImpl(buffer, data, sizeof(T));
-    }
+    void updateBuffer(const Rc<Buffer>& buffer, std::vector<T> data) { updateBufferImpl(buffer, data.data(), sizeof(T)*data.size()); }
+    template<typename T>
+    void updateBuffer(const Rc<Buffer>& buffer, T* data) { updateBufferImpl(buffer, data, sizeof(T)); }
 
-    void draw(const uint32_t vertexCount, const uint32_t instanceCount = 1, const uint32_t firstVertex = 0, const uint32_t firstInstance = 0)
-    {
-        drawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
-    };
-
-    void drawIndexed(const uint32_t indexCount, const uint32_t instanceCount = 1, const uint32_t firstIndex = 0, const int vertexOffset = 0, const uint32_t firstInstance = 0)
-    {
-        drawIndexedImpl(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
-    };
+    void draw(const uint32_t vertexCount, const uint32_t instanceCount = 1, const uint32_t firstVertex = 0, const uint32_t firstInstance = 0) { drawImpl(vertexCount, instanceCount, firstVertex, firstInstance); };
+    void drawIndexed(const uint32_t indexCount, const uint32_t instanceCount = 1, const uint32_t firstIndex = 0, const int vertexOffset = 0, const uint32_t firstInstance = 0) { drawIndexedImpl(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance); };
 protected:
     virtual void drawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
     virtual void drawIndexedImpl(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int vertexOffset, uint32_t firstInstance) = 0;

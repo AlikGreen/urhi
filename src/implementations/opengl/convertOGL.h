@@ -12,6 +12,7 @@
 #include "enums/textureWrap.h"
 #include "enums/blendFactor.h"
 #include "enums/blendOp.h"
+#include "enums/imageAccess.h"
 #include "enums/indexFormat.h"
 #include "input/keyCodes.h"
 
@@ -37,5 +38,6 @@ public:
     static GLenum blendOpToGL(BlendOp op);
     static GLenum indexFormatToGL(IndexFormat format);
     static uint32_t indexFormatToSize(IndexFormat format);
+    static GLenum imageAccessToGL(ImageAccess access);
 };
 }

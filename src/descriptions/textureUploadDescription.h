@@ -6,15 +6,23 @@
 
 namespace Neon::RHI
 {
-struct TextureUploadDescription
-{
-    const void* data{};
-    PixelType pixelType = PixelType::UnsignedByte;
-    PixelLayout pixelLayout = PixelLayout::RGBA;
+    struct TextureUploadDescription
+    {
+        const void* data = nullptr;
 
-    uint32_t mipLevel = 0;
+        PixelType pixelType = PixelType::UnsignedByte;
+        PixelLayout pixelLayout = PixelLayout::RGBA;
 
-    glm::uvec3 offset{};
-    glm::uvec3 size{};
-};
+        uint32_t mipLevel = 0;
+
+        uint32_t x = 0;
+        uint32_t y = 0;
+        uint32_t z = 0;
+        uint32_t width  = 0;
+        uint32_t height = 0;
+        uint32_t depth  = 0;
+
+        uint32_t baseLayer  = 0;
+        uint32_t layerCount = 1;
+    };
 }
