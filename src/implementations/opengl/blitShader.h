@@ -3,8 +3,6 @@
 namespace Neon::RHI
 {
     inline auto blitShaderSource = R"(
-#version 460 core
-
 #type vertex
 layout(location = 0) in vec2 inPosition;
 layout(location = 0) out vec2 vUV;

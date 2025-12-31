@@ -1,4 +1,5 @@
 #pragma once
+
 #include "texture.h"
 #include "descriptions/textureDescription.h"
 #include "descriptions/textureUploadDescription.h"

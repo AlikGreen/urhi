@@ -479,7 +479,7 @@ namespace Neon::RHI
         }
     }
 
-    GLenum ConvertOGL::textureFilterCombineToGL(const TextureFilter filter, const MipmapFilter mipmapFilter)
+    GLenum ConvertOGL::minFilterToGL(const TextureFilter filter, const MipmapFilter mipmapFilter)
     {
         if (mipmapFilter == MipmapFilter::None)
         {
@@ -507,6 +507,7 @@ namespace Neon::RHI
             }
         }
 
+        // filter == TextureFilter::Linear
         switch(mipmapFilter)
         {
             case MipmapFilter::Nearest:
@@ -518,10 +519,24 @@ namespace Neon::RHI
         }
     }
 
+    GLenum ConvertOGL::magFilterToGL(const TextureFilter filter)
+    {
+        switch(filter)
+        {
+            case TextureFilter::Nearest:
+                return GL_NEAREST;
+            case TextureFilter::Linear:
+                return GL_LINEAR;
+            default:
+                return GL_NONE;
+        }
+    }
+
     GLenum ConvertOGL::pixelLayoutToGL(const PixelLayout layout)
     {
         switch (layout)
         {
+            // --- Standard (Float/Normalized) ---
             case PixelLayout::R:              return GL_RED;
             case PixelLayout::RG:             return GL_RG;
             case PixelLayout::RGB:            return GL_RGB;
@@ -531,6 +546,14 @@ namespace Neon::RHI
             case PixelLayout::Depth:          return GL_DEPTH_COMPONENT;
             case PixelLayout::Stencil:        return GL_STENCIL_INDEX;
             case PixelLayout::DepthStencil:   return GL_DEPTH_STENCIL;
+
+            // --- Integer (Raw Bits) ---
+            case PixelLayout::RInt:      return GL_RED_INTEGER;
+            case PixelLayout::RGInt:     return GL_RG_INTEGER;
+            case PixelLayout::RGBInt:    return GL_RGB_INTEGER;
+            case PixelLayout::RGBAInt:   return GL_RGBA_INTEGER;
+            case PixelLayout::BGRInt:    return GL_BGR_INTEGER;
+            case PixelLayout::BGRAInt:   return GL_BGRA_INTEGER;
         }
         return GL_INVALID_ENUM;
     }

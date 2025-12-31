@@ -22,6 +22,7 @@ public:
     [[nodiscard]] uint32_t getMipLevels() const override;
     [[nodiscard]] uint32_t getArrayLayers() const override;
     [[nodiscard]] PixelFormat getFormat() const override;
+    [[nodiscard]] Rc<Texture> getTarget() const override;
 
     [[nodiscard]] GLuint getHandle() const;
 private:

@@ -1,8 +1,6 @@
 #pragma once
 
 inline auto vertexShaderSource = R"(
-#version 460 core
-
 #type vertex
 layout(location = 0) in vec2 inPosition;
 layout(location = 1) in vec2 inUV;

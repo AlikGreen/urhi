@@ -12,6 +12,13 @@ enum class PixelLayout
     BGRA,
     Depth,
     Stencil,
-    DepthStencil
+    DepthStencil,
+
+    RInt,
+    RGInt,
+    RGBInt,
+    RGBAInt,
+    BGRInt,
+    BGRAInt
 };
 }

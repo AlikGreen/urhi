@@ -4,12 +4,12 @@
 
 namespace Neon::RHI
 {
-    Window* Window::createWindow(const WindowCreationOptions& creationOptions, const BackendAPI backendApi)
+    Rc<Window> Window::createWindow(const WindowCreationOptions& creationOptions, const BackendAPI backendApi)
     {
         switch (backendApi)
         {
             case BackendAPI::OpenGL:
-                return new WindowOGL(creationOptions);
+                return makeRc<WindowOGL>(creationOptions);
         }
 
         return nullptr;

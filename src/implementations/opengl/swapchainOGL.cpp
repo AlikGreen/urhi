@@ -44,7 +44,7 @@ namespace Neon::RHI
         depthState.enableDepthTest = false;
 
         RasterizerState rasterizerState{};
-        rasterizerState.cullMode = CullMode::None;
+        rasterizerState.cullMode = CullMode::Back;
 
         const RenderTargetsDescription targetsDesc{};
 
@@ -128,7 +128,7 @@ namespace Neon::RHI
                 window->getWidth(),
                 window->getHeight(),
                 PixelFormat::R8G8B8A8Unorm,
-                TextureUsage::DepthStencilTarget);
+                TextureUsage::ColorTarget);
 
         const Rc<Texture> colTex = device->createTexture(colDesc);
         textures.clear();
@@ -139,7 +139,7 @@ namespace Neon::RHI
         textureViews.push_back(device->createTextureView(viewDesc));
 
         samplers.clear();
-        constexpr SamplerDescription samplerDesc{};
+        SamplerDescription samplerDesc{};
         samplers.push_back(device->createSampler(samplerDesc));
     }
 }

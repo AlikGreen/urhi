@@ -12,7 +12,7 @@ class Window
 public:
   virtual ~Window() = default;
 
-  static Window* createWindow(const WindowCreationOptions& creationOptions, BackendAPI backendApi = BackendAPI::OpenGL);
+  static Rc<Window> createWindow(const WindowCreationOptions& creationOptions, BackendAPI backendApi = BackendAPI::OpenGL);
 
   virtual Rc<Device> createDevice() = 0;
 

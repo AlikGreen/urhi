@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+#include <neonCore/neonCore.h>
+#include "texture.h"
 
 #include "enums/pixelFormat.h"
 
@@ -17,5 +19,7 @@ public:
     [[nodiscard]] virtual uint32_t getMipLevels() const = 0;
     [[nodiscard]] virtual uint32_t getArrayLayers() const = 0;
     [[nodiscard]] virtual PixelFormat getFormat() const = 0;
+
+    [[nodiscard]] virtual Rc<Texture> getTarget() const = 0;
 };
 }

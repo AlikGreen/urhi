@@ -11,10 +11,11 @@ namespace Neon::RHI
     ImGuiController::ImGuiController(const InitInfo &initInfo)
     {
         m_device = initInfo.device;
-        m_framebuffer = initInfo.framebuffer;
         m_window = initInfo.window;
 
         m_projUniformBuffer = m_device->createUniformBuffer();
+
+        resizeFramebuffer(m_window->getWidth(), m_window->getHeight());
 
         const Rc<CommandList> commandList = m_device->createCommandList();
 
@@ -35,10 +36,10 @@ namespace Neon::RHI
     void ImGuiController::newFrame()
     {
         ImGuiIO& io = ImGui::GetIO();
-        io.DisplaySize = ImVec2(
-            static_cast<float>(m_window->getWidth()),
-            static_cast<float>(m_window->getHeight())
-        );
+        // io.DisplaySize = ImVec2(
+        //     static_cast<float>(m_window->getWidth()),
+        //     static_cast<float>(m_window->getHeight())
+        // );
 
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
         io.MouseWheel = m_mouseWheel;
@@ -53,6 +54,7 @@ namespace Neon::RHI
     {
         ImGui::Render();
         m_drawData = ImGui::GetDrawData();
+        const auto &io = ImGui::GetIO();
 
         if(m_drawData == nullptr || m_drawData->TotalVtxCount == 0)
             return;
@@ -98,14 +100,16 @@ namespace Neon::RHI
         cmdList->setPipeline(m_pipeline);
         cmdList->setFramebuffer(m_framebuffer);
 
-        const uint32_t fbWidth  = m_window->getWidth();
-        const uint32_t fbHeight = m_window->getHeight();
+        const auto fbWidth  = static_cast<uint32_t>(io.DisplaySize.x);
+        const auto fbHeight = static_cast<uint32_t>(io.DisplaySize.y);
+
+        resizeFramebuffer(fbWidth, fbHeight);
 
         ScissorRect fullScissor{};
         fullScissor.x = 0;
         fullScissor.y = 0;
-        fullScissor.width  = fbWidth;
-        fullScissor.height = fbHeight;
+        fullScissor.width  = static_cast<int>(fbWidth);
+        fullScissor.height = static_cast<int>(fbHeight);
 
         cmdList->setScissor(fullScissor);
 
@@ -213,11 +217,6 @@ namespace Neon::RHI
         }
     }
 
-    void ImGuiController::setFramebuffer(const Rc<Framebuffer>& newFramebuffer)
-    {
-        m_framebuffer = newFramebuffer;
-    }
-
     void ImGuiController::updateTextures(const ImDrawData* drawData) const
     {
         if(drawData == nullptr || drawData->Textures == nullptr)
@@ -259,6 +258,11 @@ namespace Neon::RHI
                     break;
             }
         }
+    }
+
+    Rc<Texture> ImGuiController::getFramebufferTexture() const
+    {
+        return m_framebufferTexture;
     }
 
     ImTextureID ImGuiController::createTexture(ImTextureData *texData) const
@@ -351,6 +355,28 @@ namespace Neon::RHI
         pipelineDescription.blendState         = blendState;
 
         m_pipeline = m_device->createPipeline(pipelineDescription);
+    }
+
+    void ImGuiController::resizeFramebuffer(const uint32_t width, const uint32_t height)
+    {
+        if(m_framebuffer != nullptr && m_framebuffer->getWidth() == width && m_framebuffer->getHeight() == height)
+            return;
+        TextureDescription fbTexDesc{};
+        fbTexDesc.width = width;
+        fbTexDesc.height = height;
+        fbTexDesc.numMipmaps = 1;
+        fbTexDesc.type = TextureType::Texture2D;
+        fbTexDesc.usage = TextureUsage::ColorTarget;
+        fbTexDesc.format = PixelFormat::R8G8B8A8Unorm;
+
+        m_framebufferTexture = m_device->createTexture(fbTexDesc);
+
+        const auto fbTexViewDesc = TextureViewDescription(m_framebufferTexture);
+        const Rc<TextureView> fbTexView = m_device->createTextureView(fbTexViewDesc);
+
+        FramebufferDescription fbDesc;
+        fbDesc.colorTargets.push_back(fbTexView);
+        m_framebuffer = m_device->createFramebuffer(fbDesc);
     }
 
     void ImGuiController::updateBuffers(const Rc<CommandList> &cmdList)

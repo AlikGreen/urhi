@@ -26,31 +26,34 @@ namespace Neon::RHI
 
         type = description.type;
 
+        const GLenum internalFormat = ConvertOGL::pixelFormatToGL(format);
+
         glCreateTextures(getGLType(), 1, &handle);
+
         glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, static_cast<int>(numMipmaps) - 1);
 
         if (type == TextureType::Texture1D)
         {
             glTextureStorage1D(handle, static_cast<int>(numMipmaps),
-                               ConvertOGL::pixelFormatToGL(format),
+                               internalFormat,
                                static_cast<int>(width));
         }
         else if (type == TextureType::Texture2D || type == TextureType::TextureCube)
         {
             glTextureStorage2D(handle, static_cast<int>(numMipmaps),
-                               ConvertOGL::pixelFormatToGL(format),
+                               internalFormat,
                                static_cast<int>(width), static_cast<int>(height));
         }
         else if (type == TextureType::Texture3D)
         {
             glTextureStorage3D(handle, static_cast<int>(numMipmaps),
-                ConvertOGL::pixelFormatToGL(format),
-                static_cast<int>(width), static_cast<int>(height), static_cast<int>(depth));
+                               internalFormat,
+                               static_cast<int>(width), static_cast<int>(height), static_cast<int>(depth));
         }
         else if (type == TextureType::Texture2DArray || type == TextureType::TextureCubeArray)
         {
             glTextureStorage3D(handle, static_cast<int>(numMipmaps),
-                ConvertOGL::pixelFormatToGL(format),
+                internalFormat,
                 static_cast<int>(width), static_cast<int>(height), static_cast<int>(arrayLayers));
         }
     }
@@ -148,6 +151,7 @@ namespace Neon::RHI
                 uploadFormat,
                 uploadType,
                 uploadDescription.data);
+
             return;
         }
 

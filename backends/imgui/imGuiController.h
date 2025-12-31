@@ -12,7 +12,6 @@ public:
     struct InitInfo
     {
         Rc<Device> device;
-        Rc<Framebuffer> framebuffer; // or swapchain format / render pass info
         Rc<Window> window;
     };
 
@@ -24,14 +23,16 @@ public:
 
     static void processEvent(const Event &e);
 
-    void setFramebuffer(const Rc<Framebuffer>& newFramebuffer);
     void updateTextures(const ImDrawData* drawData) const;
+
+    [[nodiscard]] Rc<Texture> getFramebufferTexture() const;
 private:
     ImTextureID createTexture(ImTextureData* texData) const;
     void destroyTexture(const ImTextureData* texData) const;
 
     void createPipeline();
 
+    void resizeFramebuffer(uint32_t width, uint32_t height);
     void updateBuffers(const Rc<CommandList> &cmdList);
     void updateProjection(const ImDrawData *drawData, const Rc<CommandList> &cmdList) const;
     [[nodiscard]] ScissorRect calculateScissorRect(const ImDrawCmd &drawCmd) const;
@@ -42,6 +43,7 @@ private:
 
     Rc<Device> m_device;
     Rc<Framebuffer> m_framebuffer;
+    Rc<Texture> m_framebufferTexture;
     Rc<Window> m_window;
     ImDrawData* m_drawData{};
 

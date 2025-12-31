@@ -3,6 +3,8 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <filesystem>
+#include <utility>
 
 #include "glslang/Public/ShaderLang.h"
 #include "glslang/Public/ResourceLimits.h"
@@ -112,9 +114,63 @@ TBuiltInResource DefaultTBuiltInResource()
     return R;
 }
 
+namespace fs = std::filesystem;
+
+class FileIncluder final : public glslang::TShader::Includer {
+private:
+    fs::path rootDirectory; // Where the main shader lives
+public:
+    // Constructor takes the directory of the main shader file
+    explicit FileIncluder(fs::path  rootDir) : rootDirectory(std::move(rootDir)) {}
+
+    IncludeResult* includeLocal(const char* headerName, const char* includerName, size_t inclusionDepth) override
+    {
+        fs::path directory;
+
+        if (inclusionDepth == 1)
+        {
+            directory = rootDirectory;
+        } else
+        {
+            directory = fs::path(includerName).parent_path();
+        }
+
+        fs::path fullPath = directory / headerName;
+
+        return readInclude(fullPath.string());
+    }
+
+    IncludeResult* includeSystem(const char* headerName, const char* includerName, size_t inclusionDepth) override
+    {
+        return includeLocal(headerName, includerName, inclusionDepth);
+    }
+
+    void releaseInclude(IncludeResult* result) override {
+        if (result) {
+            delete[] result->headerData;
+            delete result;
+        }
+    }
+
+private:
+    static IncludeResult* readInclude(const std::string& filepath)
+    {
+        std::ifstream file(filepath, std::ios::ate | std::ios::binary);
+        if (!file.is_open()) return nullptr;
+
+        const size_t fileSize = file.tellg();
+        const auto content = new char[fileSize + 1];
+        file.seekg(0);
+        file.read(content, fileSize);
+        content[fileSize] = '\0';
+
+        return new IncludeResult(filepath, content, fileSize, content);
+    }
+};
+
 namespace Neon::RHI
 {
-    std::vector<uint32_t> compileToSpirv(const std::string& source_name,
+    std::vector<uint32_t> compileToSpirv(const std::string& sourcePath,
                                     const ShaderType type,
                                     const std::string& source,
                                     const bool optimize = false)
@@ -134,18 +190,19 @@ namespace Neon::RHI
         // Create shader object
         glslang::TShader shader(stage);
         const char* sourcePtr = source.c_str();
-        const char* namePtr = source_name.c_str();
         shader.setStrings(&sourcePtr, 1);
         shader.setSourceEntryPoint("main");
         shader.setEntryPoint("main");
 
         // Set up resources (using default limits)
         const TBuiltInResource resources = DefaultTBuiltInResource();
+        std::filesystem::path shaderDir = std::filesystem::path(sourcePath).parent_path();
+        FileIncluder includer(shaderDir);
 
         // Parse the shader
         constexpr auto messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
-        if (const bool parseResult = shader.parse(&resources, 100, false, messages); !parseResult)
+        if (const bool parseResult = shader.parse(&resources, 100, false, messages, includer); !parseResult)
         {
             std::printf("Shader parsing failed:\n%s\n%s\n", shader.getInfoLog(), shader.getInfoDebugLog());
             return {};
@@ -182,7 +239,8 @@ namespace Neon::RHI
     Rc<Shader> Device::createShaderFromSource(const std::string &source, const std::string &filepath)
     {
         std::unordered_map<ShaderType, std::string> shaderSources;
-        std::string common;
+        std::string common = "#version 460\n";
+        common += "#extension GL_GOOGLE_include_directive : require\n";
 
         std::istringstream stream(source);
         std::string line;

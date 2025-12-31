@@ -30,7 +30,8 @@ public:
     static KeyMod keyModFromGLFW(int mod);
     static MouseButton mouseButtonFromGLFW(int button);
     static GLenum textureWrapToGL(TextureWrap wrap);
-    static GLenum textureFilterCombineToGL(TextureFilter filter, MipmapFilter mipmapFilter);
+    static GLenum minFilterToGL(TextureFilter filter, MipmapFilter mipmapFilter);
+    static GLenum magFilterToGL(TextureFilter filter);
     static GLenum pixelTypeToGL(PixelType type);
     static GLenum pixelLayoutToGL(PixelLayout layout);
     static GLenum textureTypeToGL(TextureType type);

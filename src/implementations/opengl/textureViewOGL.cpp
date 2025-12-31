@@ -43,13 +43,6 @@ namespace Neon::RHI
 
         glTextureParameteri(handle, GL_TEXTURE_BASE_LEVEL, 0);
         glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, static_cast<int>(mipLevels) - 1);
-
-        glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, mipLevels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-        glTextureParameteri(handle, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        glTextureParameteri(handle, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(handle, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(handle, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     }
 
     TextureViewOGL::~TextureViewOGL()
@@ -124,6 +117,11 @@ namespace Neon::RHI
     {
         Debug::ensure(handle != 0, "getFormat called on invalid texture view");
         return format;
+    }
+
+    Rc<Texture> TextureViewOGL::getTarget() const
+    {
+        return target;
     }
 
     GLuint TextureViewOGL::getHandle() const
