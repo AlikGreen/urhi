@@ -173,6 +173,7 @@ namespace Neon::RHI
         commands.emplace_back([value]
         {
             glClearDepth(value);
+            glDepthMask(GL_TRUE);
             glClear(GL_DEPTH_BUFFER_BIT);
         });
     }

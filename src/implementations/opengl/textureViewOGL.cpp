@@ -29,7 +29,6 @@ namespace Neon::RHI
         Debug::ensure(format != PixelFormat::Invalid, "Texture view has invalid pixel format after resolution");
 
         glGenTextures(1, &handle);
-        Debug::ensure(handle != 0, "Failed to generate OpenGL texture view object");
 
         glTextureView(handle,
                       tex->getGLType(),

@@ -15,6 +15,10 @@ namespace Neon::RHI
         height = description.height;
         depth = description.depth;
 
+        Debug::ensure(width > 0, "Texture width must be greater than 0");
+        Debug::ensure(height > 0, "Texture height must be greater than 0");
+        Debug::ensure(depth > 0, "Texture depth must be greater than 0");
+
         format = description.format;
 
         if(description.numMipmaps > 0)
@@ -29,6 +33,7 @@ namespace Neon::RHI
         const GLenum internalFormat = ConvertOGL::pixelFormatToGL(format);
 
         glCreateTextures(getGLType(), 1, &handle);
+
 
         glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, static_cast<int>(numMipmaps) - 1);
 

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 #include <utility>
 
 #include "glslang/Public/ShaderLang.h"

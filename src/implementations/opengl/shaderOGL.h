@@ -53,5 +53,6 @@ private:
     std::unordered_map<ShaderType, std::vector<uint32_t>> shadersSpirv;
     std::vector<GLuint> shaderHandles;
     GLuint handle{};
+    bool compiled = false;
 };
 }

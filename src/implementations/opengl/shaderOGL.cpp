@@ -110,6 +110,9 @@ namespace Neon::RHI
 
     void ShaderOGL::compile()
     {
+        Debug::ensure(!compiled, "Shader already compiled");
+        compiled = true;
+
         for (const auto& [type, shader]: shadersSpirv)
         {
             GLuint shaderHandle = glCreateShader(ConvertOGL::shaderTypeToGL(type));

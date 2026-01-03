@@ -9,9 +9,9 @@ namespace Neon::RHI
 {
 struct TextureDescription
 {
-    uint32_t width = 0;
-    uint32_t height = 0;
-    uint32_t depth = 0;
+    uint32_t width = 1;
+    uint32_t height = 1;
+    uint32_t depth = 1;
 
     uint32_t arrayLayers = 1;
 

@@ -42,10 +42,17 @@ set(IMGUI_SOURCES
         dependencies/imgui/misc/cpp/imgui_stdlib.cpp
 )
 
+# add all ImGuizmo sources
+file(GLOB IMGUZMO_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/imguizmo/*.cpp"
+)
+list(APPEND IMGUI_SOURCES ${IMGUZMO_SOURCES})
+
 add_library(imgui_static STATIC ${IMGUI_SOURCES})
 
 target_include_directories(imgui_static PUBLIC
         dependencies/imgui
+        dependencies/imguizmo
 )
 
 ### IMGUI BACKEND

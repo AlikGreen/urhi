@@ -1,5 +1,7 @@
 #include "imGuiController.h"
 
+#include <ImGuizmo.h>
+
 #include "debug.h"
 #include "imGuiExtensions.h"
 #include "imguiShader.h"
@@ -46,6 +48,7 @@ namespace Neon::RHI
         m_mouseWheel = 0.0f;
 
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
         NeonGui::ClearTextureCache();
     }
 
@@ -116,7 +119,7 @@ namespace Neon::RHI
         cmdList->setVertexBuffer(0, m_vertexBuffer);
         cmdList->setIndexBuffer(m_indexBuffer, IndexFormat::UInt32);
 
-        cmdList->clearColorTarget(0, { 0.0f, 0.0f, 0.0f, 0.0f });
+        cmdList->clearColorTarget(0, { 0.0f, 0.0f, 0.0f, 1.0f });
 
         updateProjection(m_drawData, cmdList);
 
@@ -134,11 +137,8 @@ namespace Neon::RHI
 
                 ImGuiImage* image = pcmd.GetTexID();
 
-                Debug::ensure(image != nullptr, "Image is null");
-
-                if(image->view == nullptr) continue;
-
-                Debug::ensure(image->view != nullptr, "Texture View is null");
+                Debug::ensure(image != nullptr, "ImGui - Image is null");
+                Debug::ensure(image->view != nullptr, "ImGui - Texture View to render is null");
 
                 if(image->sampler == nullptr)
                 {
