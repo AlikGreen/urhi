@@ -17,7 +17,6 @@
 #include "descriptions/swapchainDescription.h"
 #include "descriptions/textureDescription.h"
 #include "descriptions/textureViewDescription.h"
-#include "enums/shaderType.h"
 #include "neonCore/neonCore.h"
 
 namespace Neon::RHI
@@ -40,14 +39,12 @@ public:
 
     virtual Rc<Framebuffer> createFramebuffer(const FramebufferDescription& description) = 0;
 
-    Rc<Shader> createShaderFromSource(const std::string &source, const std::string &filepath = "");
+    virtual Rc<Shader> createShaderFromSpirv(std::vector<uint32_t> spirv) = 0;
 
     virtual Rc<Buffer> createIndexBuffer() = 0;
     virtual Rc<Buffer> createUniformBuffer() = 0;
     virtual Rc<Buffer> createVertexBuffer() = 0;
 
     virtual void submit(const Rc<CommandList>& commandList) = 0;
-protected:
-    virtual Rc<Shader> createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> spirv) = 0;
 };
 }

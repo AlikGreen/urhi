@@ -1,6 +1,7 @@
 #include "shaderOGL.h"
 
 #include <ranges>
+#include <utility>
 #include <neonLog/neonLog.h>
 
 #include "convertOGL.h"
@@ -9,47 +10,48 @@
 
 namespace Neon::RHI
 {
-    ShaderOGL::ShaderOGL(const std::unordered_map<ShaderType, std::vector<uint32_t>> &shadersSpirv) : shadersSpirv(shadersSpirv) {  }
+    ShaderOGL::ShaderOGL(const std::vector<uint32_t> &spirv) : m_spirv(spirv)
+    {  }
 
     ShaderOGL::~ShaderOGL()
     {
-        glDeleteProgram(handle);
+        glDeleteProgram(m_handle);
     }
 
 
-    std::string ShaderOGL::spirvToGlsl(const std::vector<uint32_t> &spirv)
+    ShaderReflection ShaderOGL::reflect(const spirv_cross::Compiler& compiler)
     {
-        spirv_cross::CompilerGLSL compiler(spirv);
-        compiler.build_combined_image_samplers();
-
+        ShaderReflection reflection{};
         auto resources = compiler.get_shader_resources();
 
         for (const auto& ub : resources.uniform_buffers)
         {
-            std::string name = compiler.get_name(ub.base_type_id);
-            if (name.empty()) name = ub.name;
+            ShaderReflection::Resource resource{};
+            resource.type = ShaderReflection::ResourceType::ConstantBuffer;
+
+            resource.name = compiler.get_name(ub.base_type_id);
+            if (resource.name.empty()) resource.name = ub.name;
+
             const uint32_t binding = compiler.get_decoration(ub.id, spv::DecorationBinding);
-            internalReflection.uboBinding[name] = binding;
+            m_internalReflection.uboBinding[resource.name] = binding;
 
             const spirv_cross::SPIRType &structType = compiler.get_type(ub.base_type_id);
             const size_t blockSize = compiler.get_declared_struct_size(structType);
 
-            ShaderUniformBlock block;
-            block.name = name;
-            block.size = blockSize;
+            resource.totalSize = blockSize;
 
             for (uint32_t m = 0; m < structType.member_types.size(); ++m)
             {
-                ShaderUniformBlockMember member;
+                ShaderReflection::Member member;
                 member.name          = compiler.get_member_name(ub.base_type_id, m);
                 member.offset        = compiler.get_member_decoration(ub.base_type_id, m, spv::DecorationOffset);
                 member.size          = static_cast<uint32_t>(compiler.get_declared_struct_member_size(structType, m));
                 const spirv_cross::SPIRType& type = compiler.get_type(structType.member_types[m]);
-                member.baseType      = toType(type);
-                block.members.push_back(member);
+                member.type      = spirvTypeToDataType(type);
+                resource.members.push_back(member);
             }
 
-            reflection.uniformBlocks.push_back(block);
+            reflection.resources.push_back(resource);
         }
 
         for (const auto& sb : resources.storage_buffers)
@@ -57,7 +59,7 @@ namespace Neon::RHI
             std::string name = compiler.get_name(sb.id);
             if (name.empty()) name = sb.name;
             const uint32_t binding = compiler.get_decoration(sb.id, spv::DecorationBinding);
-            internalReflection.ssboBinding[name] = binding;
+            m_internalReflection.ssboBinding[name] = binding;
         }
 
         for (const auto& s : resources.sampled_images)
@@ -65,11 +67,12 @@ namespace Neon::RHI
             std::string name = compiler.get_name(s.id);
             if (name.empty()) name = s.name;
             const uint32_t unit = compiler.get_decoration(s.id, spv::DecorationBinding);
-            internalReflection.samplerUnit[name] = unit;
+            m_internalReflection.samplerUnit[name] = unit;
 
-            ShaderSampler sampler;
-            sampler.name = name;
-            reflection.samplers.push_back(sampler);
+            ShaderReflection::Resource resource;
+            resource.type = ShaderReflection::ResourceType::Sampler;
+            resource.name = name;
+            reflection.resources.push_back(resource);
         }
 
         for (const auto& img : resources.storage_images)
@@ -77,48 +80,104 @@ namespace Neon::RHI
             std::string name = compiler.get_name(img.id);
             if (name.empty()) name = img.name;
             const uint32_t unit = compiler.get_decoration(img.id, spv::DecorationBinding);
-            internalReflection.imageUnit[name] = unit;
+            m_internalReflection.imageUnit[name] = unit;
         }
 
-        spirv_cross::CompilerGLSL::Options options;
-        options.version = 460;
-        options.es = false;
-        options.vulkan_semantics = false;
-        options.separate_shader_objects = true;
-
-        compiler.set_common_options(options);
-
-        return compiler.compile();
+        return reflection;
     }
 
-    ShaderBaseType ShaderOGL::toType(const spirv_cross::SPIRType& typeId)
+    GLenum ShaderOGL::executionModelToStage(const spv::ExecutionModel model)
     {
-        switch(typeId.basetype)
+        switch (model)
         {
-            case spirv_cross::SPIRType::Float:
-                return ShaderBaseType::Float;
-            case spirv_cross::SPIRType::Int:
-                return ShaderBaseType::Int;
-            case spirv_cross::SPIRType::UInt:
-                return ShaderBaseType::UInt;
-            case spirv_cross::SPIRType::Boolean:
-                return ShaderBaseType::Bool;
+            case spv::ExecutionModelVertex:
+                return GL_VERTEX_SHADER;
+            case spv::ExecutionModelFragment:
+                return GL_FRAGMENT_SHADER;
+            case spv::ExecutionModelGLCompute:
+                return GL_COMPUTE_SHADER;
             default:
-                return ShaderBaseType::Unknown;
+                return GL_NONE;
         }
+    }
+
+    ShaderReflection::DataType ShaderOGL::spirvTypeToDataType(const spirv_cross::SPIRType& type)
+    {
+        if (type.basetype == spirv_cross::SPIRType::Struct)
+            return ShaderReflection::DataType::Struct;
+
+        const bool isFloat = type.basetype == spirv_cross::SPIRType::Float;
+        const bool isInt = type.basetype == spirv_cross::SPIRType::Int;
+        const bool isUInt = type.basetype == spirv_cross::SPIRType::UInt;
+
+        if (type.columns > 1)
+        {
+            if (type.columns == 3 && type.vecsize == 3)
+                return ShaderReflection::DataType::Mat3;
+            if (type.columns == 4 && type.vecsize == 4)
+                return ShaderReflection::DataType::Mat4;
+        }
+
+        if (isFloat)
+        {
+            switch (type.vecsize)
+            {
+                default: return ShaderReflection::DataType::Float;
+                case 2: return ShaderReflection::DataType::Float2;
+                case 3: return ShaderReflection::DataType::Float3;
+                case 4: return ShaderReflection::DataType::Float4;
+            }
+        }
+        if (isInt)
+        {
+            switch (type.vecsize)
+            {
+                default: return ShaderReflection::DataType::Int;
+                case 2: return ShaderReflection::DataType::Int2;
+                case 3: return ShaderReflection::DataType::Int3;
+                case 4: return ShaderReflection::DataType::Int4;
+            }
+        }
+        if (isUInt)
+        {
+            switch (type.vecsize)
+            {
+                default: return ShaderReflection::DataType::UInt;
+                case 2: return ShaderReflection::DataType::UInt2;
+                case 3: return ShaderReflection::DataType::UInt3;
+                case 4: return ShaderReflection::DataType::UInt4;
+            }
+        }
+
+        return ShaderReflection::DataType::Float;
     }
 
     void ShaderOGL::compile()
     {
-        Debug::ensure(!compiled, "Shader already compiled");
-        compiled = true;
+        Debug::ensure(!m_compiled, "Shader already compiled");
+        m_compiled = true;
+        spirv_cross::CompilerGLSL compiler(m_spirv);
 
-        for (const auto& [type, shader]: shadersSpirv)
+        auto entryPoints = compiler.get_entry_points_and_stages();
+
+        for (auto& entry : entryPoints)
         {
-            GLuint shaderHandle = glCreateShader(ConvertOGL::shaderTypeToGL(type));
-            shaderHandles.push_back(shaderHandle);
-            std::string shaderSource = spirvToGlsl(shader);
-            const char* shaderSourceCStr = shaderSource.c_str();
+            compiler.set_entry_point(entry.name, entry.execution_model);
+
+            spirv_cross::CompilerGLSL::Options options;
+            options.version = 450;
+            options.es = false;
+            options.separate_shader_objects = true;
+            options.enable_420pack_extension = true;
+            compiler.set_common_options(options);
+
+            m_reflection = reflect(compiler);
+
+            std::string glslSource = compiler.compile();
+
+            GLuint shaderHandle = glCreateShader(executionModelToStage(entry.execution_model));
+            m_shaderHandles.push_back(shaderHandle);
+            const char* shaderSourceCStr = glslSource.c_str();
             glShaderSource(shaderHandle, 1, &shaderSourceCStr, nullptr);
             glCompileShader(shaderHandle);
 
@@ -130,15 +189,15 @@ namespace Neon::RHI
             Debug::ensure(success, "Shader compilation error: {}", infoLog);
         }
 
-        handle = glCreateProgram();
-        for (const GLuint shader: shaderHandles)
+        m_handle = glCreateProgram();
+        for (const GLuint shader: m_shaderHandles)
         {
-            glAttachShader(handle, shader);
+            glAttachShader(m_handle, shader);
         }
 
-        glLinkProgram(handle);
+        glLinkProgram(m_handle);
 
-        for (const GLuint shader: shaderHandles)
+        for (const GLuint shader: m_shaderHandles)
         {
             glDeleteShader(shader);
         }
@@ -151,35 +210,35 @@ namespace Neon::RHI
 
     void ShaderOGL::bind() const
     {
-        glUseProgram(handle);
+        glUseProgram(m_handle);
     }
 
     ShaderReflection ShaderOGL::getShaderReflection()
     {
-        return reflection;
+        return m_reflection;
     }
 
     uint32_t ShaderOGL::getUBOLocation(const std::string &name) const
     {
-        Debug::ensure(internalReflection.uboBinding.contains(name), "Shader does not contain a uniform buffer with the name {}", name);
-        return internalReflection.uboBinding.at(name);
+        Debug::ensure(m_internalReflection.uboBinding.contains(name), "Shader does not contain a uniform buffer with the name {}", name);
+        return m_internalReflection.uboBinding.at(name);
     }
 
     uint32_t ShaderOGL::getSSBOLocation(const std::string &name) const
     {
-        Debug::ensure(internalReflection.ssboBinding.contains(name), "Shader does not contain a storage buffer with the name {}", name);
-        return internalReflection.ssboBinding.at(name);
+        Debug::ensure(m_internalReflection.ssboBinding.contains(name), "Shader does not contain a storage buffer with the name {}", name);
+        return m_internalReflection.ssboBinding.at(name);
     }
 
     uint32_t ShaderOGL::getSamplerLocation(const std::string &name) const
     {
-        Debug::ensure(internalReflection.samplerUnit.contains(name), "Shader does not contain a sampler with the name {}", name);
-        return internalReflection.samplerUnit.at(name);
+        Debug::ensure(m_internalReflection.samplerUnit.contains(name), "Shader does not contain a sampler with the name {}", name);
+        return m_internalReflection.samplerUnit.at(name);
     }
 
     uint32_t ShaderOGL::getImageLocation(const std::string &name) const
     {
-        Debug::ensure(internalReflection.imageUnit.contains(name), "Shader does not contain an image with the name {}", name);
-        return internalReflection.imageUnit.at(name);
+        Debug::ensure(m_internalReflection.imageUnit.contains(name), "Shader does not contain an image with the name {}", name);
+        return m_internalReflection.imageUnit.at(name);
     }
 }

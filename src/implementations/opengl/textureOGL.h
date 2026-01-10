@@ -3,7 +3,7 @@
 #include "texture.h"
 #include "descriptions/textureDescription.h"
 #include "descriptions/textureUploadDescription.h"
-#include "glad/glad.h"
+#include "glad/gl.h"
 
 namespace Neon::RHI
 {

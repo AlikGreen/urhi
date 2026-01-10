@@ -2,7 +2,6 @@
 #include <glm/glm.hpp>
 
 #include "enums/pixelLayout.h"
-#include "enums/shaderType.h"
 #include "GLFW/glfw3.h"
 
 namespace Neon::RHI
@@ -54,11 +53,11 @@ namespace Neon::RHI
 
 
 
-    GLenum ConvertOGL::shaderTypeToGL(const ShaderType type)
+    GLenum ConvertOGL::shaderStageToGL(const ShaderStage stage)
     {
-        if(type == ShaderType::Vertex) return GL_VERTEX_SHADER;
-        if(type == ShaderType::Fragment) return GL_FRAGMENT_SHADER;
-        if(type == ShaderType::Compute) return GL_COMPUTE_SHADER;
+        if(stage == ShaderStage::Vertex) return GL_VERTEX_SHADER;
+        if(stage == ShaderStage::Fragment) return GL_FRAGMENT_SHADER;
+        if(stage == ShaderStage::Compute) return GL_COMPUTE_SHADER;
         return GL_INVALID_ENUM;
     }
 

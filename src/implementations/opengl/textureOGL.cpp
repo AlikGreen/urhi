@@ -1,7 +1,7 @@
 #include "textureOGL.h"
 
 #include <format>
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include "convertOGL.h"
 #include "debug.h"

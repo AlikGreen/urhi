@@ -3,19 +3,26 @@ project(neonRHI)
 
 set(CMAKE_CXX_STANDARD 23)
 
+set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
 
 set(ENABLE_OPT OFF CACHE BOOL "" FORCE)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glslang)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glm)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/spirv-cross)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glfw)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/glad)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonLog)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonCore)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/rapidyaml)
+add_subdirectory(${DEPS_DIR}/glm)
+add_subdirectory(${DEPS_DIR}/glfw)
+add_subdirectory(${DEPS_DIR}/glad)
+add_subdirectory(${DEPS_DIR}/spirv-cross)
+add_subdirectory(${DEPS_DIR}/neonLog)
+add_subdirectory(${DEPS_DIR}/neonCore)
+add_subdirectory(${DEPS_DIR}/rapidyaml)
+
+if(WIN32)
+    set(SLANG_LIB_DIR "${DEPS_DIR}/slang/bin/windows-x64")
+#elseif(APPLE)
+#    set(SLANG_LIB_DIR "${DEPS_DIR}/slang/bin/macos")
+#else()
+#    set(SLANG_LIB_DIR "${DEPS_DIR}/slang/bin/linux-x64")
+endif()
 
 ### NEON RHI
-
 file(GLOB_RECURSE
         SRC_FILES
         CONFIGURE_DEPENDS
@@ -28,8 +35,8 @@ add_library(neonRHI STATIC ${SRC_FILES})
 target_compile_definitions(neonRHI PRIVATE GLFW_INCLUDE_NONE)
 
 target_include_directories(neonRHI PUBLIC src/)
-target_include_directories(neonRHI PUBLIC include/)
-target_link_libraries(neonRHI PUBLIC glfw glm::glm glslang spirv-cross-c glad neonLog neonCore)
+target_include_directories(neonRHI PUBLIC include/ "${DEPS_DIR}/slang/include")
+target_link_libraries(neonRHI PUBLIC glfw glm::glm glad neonLog neonCore ${SLANG_LIB_DIR}/slang spirv-cross-c)
 
 
 ### IMGUI LIB

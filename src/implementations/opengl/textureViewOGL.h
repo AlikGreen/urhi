@@ -2,7 +2,7 @@
 #include "textureView.h"
 #include "descriptions/textureViewDescription.h"
 #include "enums/imageAccess.h"
-#include "glad/glad.h"
+#include "glad/gl.h"
 
 namespace Neon::RHI
 {

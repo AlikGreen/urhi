@@ -3,7 +3,7 @@
 #include "descriptions/samplerDescription.h"
 
 #include <cstdint>
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 namespace Neon::RHI
 {

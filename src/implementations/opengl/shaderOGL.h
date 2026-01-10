@@ -3,18 +3,18 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include "shader.h"
 #include "spirv_common.hpp"
-#include "enums/shaderType.h"
+#include "spirv_cross.hpp"
 
 namespace Neon::RHI
 {
 class ShaderOGL final : public Shader
 {
 public:
-    explicit ShaderOGL(const std::unordered_map<ShaderType, std::vector<uint32_t>> &shadersSpirv);
+    explicit ShaderOGL(const std::vector<uint32_t> &spirv);
     ~ShaderOGL() override;
 
     void compile() override;
@@ -45,14 +45,15 @@ private:
         std::unordered_map<std::string, GLuint> imageUnit{};
     };
 
-    std::string spirvToGlsl(const std::vector<uint32_t> &spirv);
-    static ShaderBaseType toType(const spirv_cross::SPIRType& typeId);
+    ShaderReflection reflect(const spirv_cross::Compiler& compiler);
+    static ShaderReflection::DataType spirvTypeToDataType(const spirv_cross::SPIRType& type);
+    static GLenum executionModelToStage(spv::ExecutionModel model);
 
-    ShaderBindingReflection internalReflection{};
-    ShaderReflection reflection{};
-    std::unordered_map<ShaderType, std::vector<uint32_t>> shadersSpirv;
-    std::vector<GLuint> shaderHandles;
-    GLuint handle{};
-    bool compiled = false;
+    ShaderBindingReflection m_internalReflection{};
+    ShaderReflection m_reflection{};
+    std::vector<uint32_t> m_spirv;
+    std::vector<GLuint> m_shaderHandles;
+    GLuint m_handle{};
+    bool m_compiled = false;
 };
 }

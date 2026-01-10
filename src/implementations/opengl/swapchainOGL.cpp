@@ -6,8 +6,9 @@
 #include "debug.h"
 #include "deviceOGL.h"
 #include "framebufferOGL.h"
+#include "shaderCompiler.h"
 #include "window.h"
-#include "glad/glad.h"
+#include "glad/gl.h"
 
 namespace Neon::RHI
 {
@@ -32,7 +33,12 @@ namespace Neon::RHI
         width = window->getWidth();
         height = window->getHeight();
 
-        Rc<Shader> shader = device->createShaderFromSource(blitShaderSource);
+        ShaderCompileDescription compileDesc{};
+        compileDesc.path = "blitShader.slang";
+        compileDesc.source = blitShaderSource;
+
+        std::vector<uint32_t> spriv = ShaderCompiler::compile(compileDesc);
+        Rc<Shader> shader = device->createShaderFromSpirv(spriv);
         shader->compile();
 
         InputLayout vertexInputState{};

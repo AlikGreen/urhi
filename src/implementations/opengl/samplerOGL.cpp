@@ -1,7 +1,7 @@
 #include "samplerOGL.h"
 
 #include <cstdio>
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include "convertOGL.h"
 

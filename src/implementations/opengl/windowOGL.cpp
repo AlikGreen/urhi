@@ -1,11 +1,12 @@
 #include "windowOGL.h"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
 #include "convertOGL.h"
 #include "debug.h"
 #include "deviceOGL.h"
+#include "neonCore/neonCore.h"
 
 namespace Neon::RHI
 {

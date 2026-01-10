@@ -6,9 +6,16 @@
     <mapping directory="$PROJECT_DIR$/dependencies/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/glslang" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/imgui" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/imguizmo" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/neonCore" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/neonLog" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/neonLog/dependencies/spdlog" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/rapidyaml" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/rapidyaml/ext/c4core" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/rapidyaml/ext/c4core/cmake" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/rapidyaml/ext/c4core/src/c4/ext/debugbreak" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/rapidyaml/ext/c4core/src/c4/ext/fast_float" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/slang" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/spirv-cross" vcs="Git" />
   </component>
 </project>

@@ -23,11 +23,10 @@ namespace Neon::RHI
         Rc<Texture> createTexture(const TextureDescription& description) override;
         Rc<Sampler> createSampler(const SamplerDescription& description) override;
         Rc<TextureView> createTextureView(const TextureViewDescription& description) override;
-
         Rc<Framebuffer> createFramebuffer(const FramebufferDescription &description) override;
 
-        void submit(const Rc<CommandList>& commandList) override;
-    protected:
-        Rc<Shader> createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> shadersSpirv) override;
+        Rc<Shader> createShaderFromSpirv(std::vector<uint32_t> spirv) override;
+
+        void submit(const Rc<CommandList>& commandList) override;;
     };
 }

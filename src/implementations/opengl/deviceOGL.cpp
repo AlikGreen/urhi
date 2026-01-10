@@ -1,5 +1,5 @@
 #include "deviceOGL.h"
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include "bufferOGL.h"
 #include "commandListOGL.h"
@@ -68,9 +68,9 @@ namespace Neon::RHI
         return makeRc<FramebufferOGL>(description);
     }
 
-    Rc<Shader> DeviceOGL::createShaderFromSpirvImpl(std::unordered_map<ShaderType, std::vector<uint32_t>> shadersSpirv)
+    Rc<Shader> DeviceOGL::createShaderFromSpirv(std::vector<uint32_t> spirv)
     {
-        return makeRc<ShaderOGL>(shadersSpirv);
+        return makeRc<ShaderOGL>(spirv);
     }
 
     void DeviceOGL::submit(const Rc<CommandList>& commandList)

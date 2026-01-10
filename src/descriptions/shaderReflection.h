@@ -1,57 +1,67 @@
 #pragma once
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace Neon::RHI
 {
-    enum class ShaderBaseType
+struct ShaderReflection
+{
+    enum class ResourceType
     {
-        Unknown,
-        Float,
-        Int,
-        UInt,
-        Bool,
-        Double
+        ConstantBuffer,
+        Sampler,
+        Image,
     };
 
-    struct ShaderUniformBlockMember
+    enum class DataType
+    {
+        Float, Float2, Float3, Float4,
+        Int, Int2, Int3, Int4,
+        UInt, UInt2, UInt3, UInt4,
+        Mat3, Mat4,
+        Struct
+    };
+
+    struct Member
     {
         std::string name;
+        DataType type;
         uint32_t offset;
         uint32_t size;
-        ShaderBaseType baseType;
-        // uint32_t vectorComponentCount;
-        // uint32_t matrixColumnCount;
-        // bool isArray;
-        // uint32_t arraySize;
+        uint32_t arrayCount;
+        std::vector<Member> members;
     };
 
-    struct ShaderUniformBlock
+    struct Resource
     {
         std::string name;
-        uint32_t size;
-        std::vector<ShaderUniformBlockMember> members{};
+        ResourceType type;
+        uint32_t arrayCount;
+
+        std::vector<Member> members;
+        uint32_t totalSize;
     };
 
-    struct ShaderSampler
+    struct VertexAttribute
     {
         std::string name;
+        DataType type;
+        uint32_t location;
+        uint32_t offset;
     };
 
-    struct ShaderImage
+    struct ComputeInfo
     {
-        std::string name;
-        bool writeable;
+        uint32_t workgroupSizeX;
+        uint32_t workgroupSizeY;
+        uint32_t workgroupSizeZ;
     };
 
 
-
-    struct ShaderReflection
-    {
-        std::vector<ShaderUniformBlock> uniformBlocks{};
-        std::vector<ShaderSampler> samplers{};
-        std::vector<ShaderImage> images{};
-    };
-    ;
+    std::vector<Resource> resources;
+    std::vector<VertexAttribute> vertexInputs;
+    std::optional<ComputeInfo> computeInfo;
+};
 }

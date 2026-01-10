@@ -1,7 +1,7 @@
 #pragma once
 #include "commandListOGL.h"
 #include "buffer.h"
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 namespace Neon::RHI
 {
@@ -9,7 +9,7 @@ class BufferOGL final : public Buffer
 {
 public:
     explicit BufferOGL(GLenum target);
-    ~BufferOGL();
+    ~BufferOGL() override;
 
     void bind() const;
     void unbind() const;

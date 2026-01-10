@@ -1,6 +1,6 @@
 #pragma once
 #include "frameBuffer.h"
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include "texture.h"
 #include "window.h"
