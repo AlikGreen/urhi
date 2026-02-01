@@ -28,7 +28,7 @@ VSOutput vertexMain(VSInput input)
 [shader("fragment")]
 float4 fragmentMain(VSOutput input) : SV_Target
 {
-    return blitTexture.Sample(input.uv);
+    return blitTexture.Sample(blitSampler, input.uv);
 }
 
 // Resources

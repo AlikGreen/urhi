@@ -1,6 +1,7 @@
 #pragma once
 #include "textureView.h"
-#include "descriptions/textureViewDescription.h"
+#include "descriptions/textureReadDesc.h"
+#include "descriptions/textureViewDesc.h"
 #include "enums/imageAccess.h"
 #include "glad/gl.h"
 
@@ -9,11 +10,13 @@ namespace Neon::RHI
 class TextureViewOGL final : public TextureView
 {
 public:
-    explicit TextureViewOGL(const TextureViewDescription& description);
+    explicit TextureViewOGL(const TextureViewDesc& description);
     ~TextureViewOGL() override;
 
     void bind(uint32_t binding) const;
     void bindImage(uint32_t binding, ImageAccess access) const;
+
+    void getData(const TextureReadDesc& readDescription, size_t destSize, void *dest) const;
 
     [[nodiscard]] uint32_t getWidth() const override;
     [[nodiscard]] uint32_t getHeight() const override;

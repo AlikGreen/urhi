@@ -3,12 +3,11 @@
 #include <neonCore/neonCore.h>
 
 #include "buffer.h"
-#include "framebuffer.h"
 #include "pipeline.h"
 #include "sampler.h"
 #include "swapchain.h"
 #include "textureView.h"
-#include "descriptions/swapchainDescription.h"
+#include "descriptions/swapchainDesc.h"
 
 namespace Neon::RHI
 {
@@ -17,7 +16,7 @@ class DeviceOGL;
 class SwapchainOGL final : public Swapchain
 {
 public:
-    explicit SwapchainOGL(const SwapchainDescription& desc, DeviceOGL* device);
+    explicit SwapchainOGL(const SwapchainDesc& desc, DeviceOGL* device);
 
     uint32_t acquireNextImage() override;
     void present(uint32_t imageIndex) override;

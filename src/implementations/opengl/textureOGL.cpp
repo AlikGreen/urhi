@@ -5,11 +5,10 @@
 
 #include "convertOGL.h"
 #include "debug.h"
-#include "descriptions/textureUploadDescription.h"
 
 namespace Neon::RHI
 {
-    TextureOGL::TextureOGL(const TextureDescription &description)
+    TextureOGL::TextureOGL(const TextureDesc &description)
     {
         width = description.width;
         height = description.height;
@@ -124,7 +123,7 @@ namespace Neon::RHI
         glGenerateTextureMipmap(handle);
     }
 
-    void TextureOGL::setData(const TextureUploadDescription &uploadDescription) const
+    void TextureOGL::setData(const TextureUploadDesc &uploadDescription) const
     {
         const GLenum uploadType = ConvertOGL::pixelTypeToGL(uploadDescription.pixelType);
         const GLenum uploadFormat = ConvertOGL::pixelLayoutToGL(uploadDescription.pixelLayout);

@@ -10,9 +10,12 @@ struct ShaderReflection
 {
     enum class ResourceType
     {
+        StorageBuffer,
         ConstantBuffer,
+        Texture,
         Sampler,
-        Image,
+        StorageImage,
+        PushConstant,
     };
 
     enum class DataType
@@ -38,6 +41,7 @@ struct ShaderReflection
     {
         std::string name;
         ResourceType type;
+        uint32_t binding;
         uint32_t arrayCount;
 
         std::vector<Member> members;

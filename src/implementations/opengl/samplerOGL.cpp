@@ -7,7 +7,7 @@
 
 namespace Neon::RHI
 {
-    SamplerOGL::SamplerOGL(const SamplerDescription &description)
+    SamplerOGL::SamplerOGL(const SamplerDesc &description)
     {
         glCreateSamplers(1, &handle);
 

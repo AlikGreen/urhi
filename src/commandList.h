@@ -1,19 +1,22 @@
 #pragma once
-#include "frameBuffer.h"
+
+#include <string>
+#include <neonCore/neonCore.h>
+
 #include "pipeline.h"
 #include "buffer.h"
 
 #include "texture.h"
 #include "textureView.h"
 #include "sampler.h"
-#include "descriptions/textureUploadDescription.h"
+#include "descriptions/renderPassDesc.h"
 #include "enums/imageAccess.h"
 #include "enums/indexFormat.h"
 #include "glm/glm.hpp"
-#include <string>
-#include <neonCore/neonCore.h>
 
 #include "descriptions/scissorRect.h"
+#include "descriptions/textureReadDesc.h"
+#include "descriptions/textureUploadDesc.h"
 
 namespace Neon::RHI
 {
@@ -25,24 +28,22 @@ public:
     virtual void begin() = 0;
 
     virtual void setUniformBuffer(const std::string& name, const Rc<Buffer>& buffer) = 0;
-
     virtual void setTexture(const std::string& name, const Rc<TextureView>& texture) = 0;
     virtual void setSampler(const std::string& name, const Rc<Sampler>& sampler) = 0;
     virtual void setImage(const std::string& name, const Rc<TextureView>& texture, ImageAccess access) = 0;
 
     virtual void setPipeline(const Rc<Pipeline>& pipeline) = 0;
-    virtual void setFramebuffer(const Rc<Framebuffer>& frameBuffer) = 0;
+
+    virtual void beginRenderPass(const RenderPassDesc& desc) = 0;
+    virtual void endRenderPass() = 0;
 
     virtual void setVertexBuffer(uint32_t index, const Rc<Buffer>& vertexBuffer) = 0;
     virtual void setIndexBuffer(const Rc<Buffer>& indexBuffer, IndexFormat indexFormat) = 0;
 
-    virtual void clearColorTarget(uint32_t target, glm::vec4 color) = 0;
-    virtual void clearDepthStencil(float value) = 0;
-
     virtual void setScissor(ScissorRect rect) = 0;
     void setScissor(const int x, const int y, const int width, const int height) { setScissor(ScissorRect{ x, y, width, height }); }
 
-    virtual void updateTexture(const Rc<Texture>& texture, const TextureUploadDescription& uploadDescription) = 0;
+    virtual void updateTexture(const Rc<Texture>& texture, const TextureUploadDesc& desc) = 0;
     virtual void generateMipmaps(const Rc<Texture>& texture) = 0;
 
     virtual void reserveBuffer(const Rc<Buffer>& buffer, size_t size) = 0;
@@ -52,6 +53,9 @@ public:
     virtual void resourceBarrier(const Rc<Texture>& texture, ImageAccess nextAccess) = 0;
     void resourceBarrier(const Rc<Texture>& texture) { resourceBarrier(texture, ImageAccess::ReadWrite); }
 
+
+    template<typename T>
+    void readTexture(const Rc<TextureView>& texture, const TextureReadDesc& desc, std::vector<T>& dest) { readTextureImpl(texture, desc, dest.size() * sizeof(T), dest.data()); }
     template<typename T>
     void updateBuffer(const Rc<Buffer>& buffer, T& data) { updateBufferImpl(buffer, &data, sizeof(T)); }
     template<typename T>
@@ -65,5 +69,6 @@ protected:
     virtual void drawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
     virtual void drawIndexedImpl(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int vertexOffset, uint32_t firstInstance) = 0;
     virtual void updateBufferImpl(const Rc<Buffer>& buffer, void* data, uint32_t size) = 0;
+    virtual void readTextureImpl(const Rc<TextureView>& texture, const TextureReadDesc& desc, size_t destSize, void* dest) = 0;
 };
 }

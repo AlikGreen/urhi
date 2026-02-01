@@ -3,10 +3,11 @@
 #include "convertOGL.h"
 #include "textureOGL.h"
 #include "debug.h"
+#include "descriptions/textureReadDesc.h"
 
 namespace Neon::RHI
 {
-    TextureViewOGL::TextureViewOGL(const TextureViewDescription &description)
+    TextureViewOGL::TextureViewOGL(const TextureViewDesc &description)
         : width(description.target->getWidth())
         , height(description.target->getHeight())
         , depth(description.target->getDepth())
@@ -80,6 +81,25 @@ namespace Neon::RHI
             0,
             glAccess,
             glFormat);
+    }
+
+    void TextureViewOGL::getData(const TextureReadDesc& readDescription, size_t destSize, void *dest) const
+    {
+        const GLenum pixelType = ConvertOGL::pixelTypeToGL(readDescription.pixelType);
+        const GLenum pixelFormat = ConvertOGL::pixelLayoutToGL(readDescription.pixelLayout);
+
+        glGetTextureSubImage(handle,
+                static_cast<GLint>(readDescription.mipLevel),
+                static_cast<GLint>(readDescription.x),
+                static_cast<GLint>(readDescription.y),
+                static_cast<GLint>(readDescription.z),
+                static_cast<GLsizei>(readDescription.width),
+                static_cast<GLsizei>(readDescription.height),
+                static_cast<GLsizei>(readDescription.depth),
+                pixelFormat,
+                pixelType,
+                static_cast<GLsizei>(destSize),
+                dest);
     }
 
     uint32_t TextureViewOGL::getWidth() const
