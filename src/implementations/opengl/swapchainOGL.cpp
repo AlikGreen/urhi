@@ -3,16 +3,16 @@
 #include <fstream>
 
 #include "blitShader.h"
+#include "commandListOGL.h"
 #include "debug.h"
 #include "deviceOGL.h"
-#include "framebufferOGL.h"
 #include "shaderCompiler.h"
 #include "window.h"
 #include "glad/gl.h"
 
 namespace Neon::RHI
 {
-    SwapchainOGL::SwapchainOGL(const SwapchainDescription &desc, DeviceOGL* device)
+    SwapchainOGL::SwapchainOGL(const SwapchainDesc &desc, DeviceOGL* device)
     {
         std::vector<glm::vec2> quadPositions =
         {
@@ -37,8 +37,8 @@ namespace Neon::RHI
         compileDesc.path = "blitShader.slang";
         compileDesc.source = blitShaderSource;
 
-        std::vector<uint32_t> spriv = ShaderCompiler::compile(compileDesc);
-        Rc<Shader> shader = device->createShaderFromSpirv(spriv);
+        auto compilation = ShaderCompiler::compile(compileDesc);
+        Rc<Shader> shader = device->createShader(compilation);
         shader->compile();
 
         InputLayout vertexInputState{};
@@ -52,12 +52,12 @@ namespace Neon::RHI
         RasterizerState rasterizerState{};
         rasterizerState.cullMode = CullMode::Back;
 
-        const RenderTargetsDescription targetsDesc{};
+        const RenderTargetsDesc targetsDesc{};
 
         BlendState blendState{};
         blendState.enableBlend = false;
 
-        GraphicsPipelineDescription pipelineDescription{};
+        GraphicsPipelineDesc pipelineDescription{};
         pipelineDescription.shader             = shader;
         pipelineDescription.inputLayout		   = vertexInputState;
         pipelineDescription.targetsDescription = targetsDesc;
@@ -90,32 +90,39 @@ namespace Neon::RHI
         return 0;
     }
 
+
     void SwapchainOGL::present(const uint32_t imageIndex)
     {
         Debug::ensure(imageIndex < textures.size(), "SwapchainOGL::present(): image index out of range");
         const Rc<TextureView>& texture = textureViews[imageIndex];
         const Rc<Sampler>& sampler = samplers[imageIndex];
 
-        const Rc<CommandList> commandList = device->createCommandList();
+        const Rc<CommandListOGL> cmd = std::dynamic_pointer_cast<CommandListOGL>(device->createCommandList());
 
-        commandList->begin();
+        cmd->begin();
 
-        commandList->setPipeline(pipeline);
-        commandList->setFramebuffer(makeRc<FramebufferOGL>(window));
 
-        commandList->setIndexBuffer(indexBuffer, IndexFormat::UInt32);
-        commandList->setVertexBuffer(0, vertexBuffer);
+        cmd->addCustomCommand([]()
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            constexpr glm::vec4 clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+            glClearBufferfv(GL_COLOR, 0, &clearColor.r);
+        });
 
-        commandList->setTexture("blitTexture", texture);
-        commandList->setSampler("blitTexture", sampler);
+        cmd->setPipeline(pipeline);
 
-        commandList->clearColorTarget(0, {0, 0, 0, 1});
+        cmd->setIndexBuffer(indexBuffer, IndexFormat::UInt32);
+        cmd->setVertexBuffer(0, vertexBuffer);
 
-        commandList->drawIndexed(6);
+        cmd->setTexture("blitTexture", texture);
+        cmd->setSampler("blitSampler", sampler);
 
-        device->submit(commandList);
+        cmd->drawIndexed(6);
+
+        device->submit(cmd);
 
         window->swapBuffers();
+        device->endFrame();
 
         // Maybe fence things
     }
@@ -130,7 +137,7 @@ namespace Neon::RHI
         this->width = width;
         this->height = height;
 
-        const TextureDescription colDesc = TextureDescription::Texture2D(
+        const TextureDesc colDesc = TextureDesc::Texture2D(
                 window->getWidth(),
                 window->getHeight(),
                 PixelFormat::R8G8B8A8Unorm,
@@ -141,11 +148,11 @@ namespace Neon::RHI
         textures.push_back(colTex);
 
         textureViews.clear();
-        const TextureViewDescription viewDesc(colTex);
+        const TextureViewDesc viewDesc(colTex);
         textureViews.push_back(device->createTextureView(viewDesc));
 
         samplers.clear();
-        SamplerDescription samplerDesc{};
+        SamplerDesc samplerDesc{};
         samplers.push_back(device->createSampler(samplerDesc));
     }
 }

@@ -6,7 +6,7 @@
 
 namespace Neon::RHI
 {
-    PipelineOGL::PipelineOGL(const GraphicsPipelineDescription &description) : description(description)
+    PipelineOGL::PipelineOGL(const GraphicsPipelineDesc &description) : description(description)
     {
         shader = std::dynamic_pointer_cast<ShaderOGL>(description.shader);
 
@@ -30,7 +30,7 @@ namespace Neon::RHI
         glGenVertexArrays(1, &vao);
     }
 
-    PipelineOGL::PipelineOGL(const ComputePipelineDescription &description)
+    PipelineOGL::PipelineOGL(const ComputePipelineDesc &description)
     {
         isComputePipeline = true;
         shader = std::dynamic_pointer_cast<ShaderOGL>(description.shader);

@@ -32,7 +32,7 @@ private:
 
     void createPipeline();
 
-    void resizeFramebuffer(uint32_t width, uint32_t height);
+    void resizeRenderTexture(uint32_t width, uint32_t height);
     void updateBuffers(const Rc<CommandList> &cmdList);
     void updateProjection(const ImDrawData *drawData, const Rc<CommandList> &cmdList) const;
     [[nodiscard]] ScissorRect calculateScissorRect(const ImDrawCmd &drawCmd) const;
@@ -42,9 +42,9 @@ private:
     static ImGuiKeyChord toImGuiMods(KeyMod mod);
 
     Rc<Device> m_device;
-    Rc<Framebuffer> m_framebuffer;
     Rc<Texture> m_framebufferTexture;
     Rc<Window> m_window;
+    Rc<TextureView> m_renderTexture;
     ImDrawData* m_drawData{};
 
     Rc<Pipeline> m_pipeline;

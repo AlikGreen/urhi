@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "imGuiExtensions.h"
 #include "imguiShader.h"
+#include "shaderCompiler.h"
 #include "glm/glm.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 
@@ -16,8 +17,6 @@ namespace Neon::RHI
         m_window = initInfo.window;
 
         m_projUniformBuffer = m_device->createUniformBuffer();
-
-        resizeFramebuffer(m_window->getWidth(), m_window->getHeight());
 
         const Rc<CommandList> commandList = m_device->createCommandList();
 
@@ -97,29 +96,33 @@ namespace Neon::RHI
             indexOffset  += cmdListImGui->IdxBuffer.Size;
         }
 
+        const auto width = static_cast<uint32_t>(io.DisplaySize.x);
+        const auto height = static_cast<uint32_t>(io.DisplaySize.y);
+        resizeRenderTexture(width, height);
+
         cmdList->updateBuffer(m_vertexBuffer, vertices);
         cmdList->updateBuffer(m_indexBuffer, indices);
 
+        ColorAttachment colorAttachment{};
+        colorAttachment.texture = m_renderTexture;
+
+        RenderPassDesc renderPassDesc{};
+        renderPassDesc.colorAttachments = {colorAttachment};
+        cmdList->beginRenderPass(renderPassDesc);
+
         cmdList->setPipeline(m_pipeline);
-        cmdList->setFramebuffer(m_framebuffer);
 
-        const auto fbWidth  = static_cast<uint32_t>(io.DisplaySize.x);
-        const auto fbHeight = static_cast<uint32_t>(io.DisplaySize.y);
-
-        resizeFramebuffer(fbWidth, fbHeight);
 
         ScissorRect fullScissor{};
         fullScissor.x = 0;
         fullScissor.y = 0;
-        fullScissor.width  = static_cast<int>(fbWidth);
-        fullScissor.height = static_cast<int>(fbHeight);
+        fullScissor.width  = static_cast<int>(width);
+        fullScissor.height = static_cast<int>(height);
 
         cmdList->setScissor(fullScissor);
 
         cmdList->setVertexBuffer(0, m_vertexBuffer);
         cmdList->setIndexBuffer(m_indexBuffer, IndexFormat::UInt32);
-
-        cmdList->clearColorTarget(0, { 0.0f, 0.0f, 0.0f, 1.0f });
 
         updateProjection(m_drawData, cmdList);
 
@@ -142,17 +145,18 @@ namespace Neon::RHI
 
                 if(image->sampler == nullptr)
                 {
-                    SamplerDescription samplerDesc {};
+                    SamplerDesc samplerDesc {};
                     image->sampler = m_device->createSampler(samplerDesc);
                 }
 
                 cmdList->setTexture("ImGuiTexture", image->view);
-                cmdList->setSampler("ImGuiTexture", image->sampler);
+                cmdList->setSampler("ImGuiSampler", image->sampler);
 
                 cmdList->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
             }
         }
 
+        cmdList->endRenderPass();
         m_device->submit(cmdList);
 
         ImGui::EndFrame();
@@ -271,7 +275,7 @@ namespace Neon::RHI
         const int width = texData->Width;
         const int height = texData->Height;
 
-        TextureDescription texDesc{};
+        TextureDesc texDesc{};
         texDesc.width = width;
         texDesc.height = height;
         texDesc.numMipmaps = 1;
@@ -279,7 +283,7 @@ namespace Neon::RHI
         texDesc.usage = TextureUsage::Sampled;
 
         const Rc<Texture> fontTexture = m_device->createTexture(texDesc);
-        TextureUploadDescription uploadDesc{};
+        TextureUploadDesc uploadDesc{};
 
         uploadDesc.data = pixels;
         uploadDesc.width = width;
@@ -294,12 +298,12 @@ namespace Neon::RHI
         cmdList->updateTexture(fontTexture, uploadDesc);
         m_device->submit(cmdList);
 
-        TextureViewDescription viewDesc;
+        TextureViewDesc viewDesc;
         viewDesc.target = fontTexture;
 
         const Rc<TextureView>& fontTextureView = m_device->createTextureView(viewDesc);
 
-        SamplerDescription samplerDesc{};
+        SamplerDesc samplerDesc{};
         samplerDesc.minFilter = TextureFilter::Linear;
         samplerDesc.magFilter = TextureFilter::Linear;
         samplerDesc.mipmapFilter = MipmapFilter::Linear;
@@ -323,7 +327,11 @@ namespace Neon::RHI
 
     void ImGuiController::createPipeline()
     {
-        const auto shader = m_device->createShaderFromSource(vertexShaderSource);
+        ShaderCompileDescription compileDesc{};
+        compileDesc.path = "imGui.slang";
+        compileDesc.source = imGuiShaderSource;
+        auto spirv = ShaderCompiler::compile(compileDesc);
+        const auto shader = m_device->createShader(spirv);
 
         shader->compile();
 
@@ -334,10 +342,8 @@ namespace Neon::RHI
         vertexInputState.addVertexAttribute<uint32_t>(0, 2);
 
         DepthState depthState{};
-        depthState.hasDepthTarget  = false; // or true if your framebuffer has depth, but:
+        depthState.hasDepthTarget  = false;
         depthState.enableDepthTest = false;
-
-        const RenderTargetsDescription targetsDesc{};
 
         RasterizerState rasterState{};
         rasterState.cullMode = CullMode::None;
@@ -346,22 +352,23 @@ namespace Neon::RHI
         BlendState blendState{};
         blendState.enableBlend = true;
 
-        GraphicsPipelineDescription pipelineDescription{};
+        GraphicsPipelineDesc pipelineDescription{};
         pipelineDescription.depthState         = depthState;
         pipelineDescription.shader             = shader;
         pipelineDescription.inputLayout		   = vertexInputState;
-        pipelineDescription.targetsDescription = targetsDesc;
+        pipelineDescription.targetsDescription = {};
         pipelineDescription.rasterizerState    = rasterState;
         pipelineDescription.blendState         = blendState;
 
         m_pipeline = m_device->createPipeline(pipelineDescription);
     }
 
-    void ImGuiController::resizeFramebuffer(const uint32_t width, const uint32_t height)
+    void ImGuiController::resizeRenderTexture(const uint32_t width, const uint32_t height)
     {
-        if(m_framebuffer != nullptr && m_framebuffer->getWidth() == width && m_framebuffer->getHeight() == height)
+        if(m_renderTexture != nullptr && m_renderTexture->getWidth() == width && m_renderTexture->getHeight() == height)
             return;
-        TextureDescription fbTexDesc{};
+
+        TextureDesc fbTexDesc{};
         fbTexDesc.width = width;
         fbTexDesc.height = height;
         fbTexDesc.numMipmaps = 1;
@@ -371,12 +378,8 @@ namespace Neon::RHI
 
         m_framebufferTexture = m_device->createTexture(fbTexDesc);
 
-        const auto fbTexViewDesc = TextureViewDescription(m_framebufferTexture);
-        const Rc<TextureView> fbTexView = m_device->createTextureView(fbTexViewDesc);
-
-        FramebufferDescription fbDesc;
-        fbDesc.colorTargets.push_back(fbTexView);
-        m_framebuffer = m_device->createFramebuffer(fbDesc);
+        const auto fbTexViewDesc = TextureViewDesc(m_framebufferTexture);
+        m_renderTexture = m_device->createTextureView(fbTexViewDesc);
     }
 
     void ImGuiController::updateBuffers(const Rc<CommandList> &cmdList)

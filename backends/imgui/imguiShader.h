@@ -1,37 +1,53 @@
 #pragma once
 
-inline auto vertexShaderSource = R"(
-#type vertex
-layout(location = 0) in vec2 inPosition;
-layout(location = 1) in vec2 inUV;
-layout(location = 2) in uint inColor;
-
-layout(std140, binding = 0) uniform ImGuiProjection
+inline auto imGuiShaderSource = R"(
+struct VertexInput
 {
-    mat4 projMatrix;
-} proj;
+    float2 inPosition;
+    float2 inUV;
+    uint   inColor;
+};
 
-layout(location = 0) out vec2 vUV;
-layout(location = 1) out vec4 vColor;
-
-void main()
+struct VertexOutput
 {
-    vUV    = inUV;
-    vColor = unpackUnorm4x8(inColor); // RGBA in [0,1]
-    gl_Position = proj.projMatrix * vec4(inPosition, 0.0, 1.0);
+    float4 position : SV_Position;
+    float2 vUV;
+    float4 vColor;
+};
+
+cbuffer ImGuiProjection
+{
+    float4x4 projMatrix;
+};
+
+Texture2D<float4> ImGuiTexture;
+SamplerState ImGuiSampler;
+
+float4 unpackUnorm4x8(uint c)
+{
+    float r = (c & 0xFFu) / 255.0f;
+    float g = ((c >> 8) & 0xFFu) / 255.0f;
+    float b = ((c >> 16) & 0xFFu) / 255.0f;
+    float a = ((c >> 24) & 0xFFu) / 255.0f;
+    return float4(r, g, b, a);
 }
 
-#type fragment
-layout(location = 0) out vec4 outColor;
-
-layout(binding = 1) uniform sampler2D ImGuiTexture;
-
-layout(location = 0) in vec2 vUV;
-layout(location = 1) in vec4 vColor;
-
-void main()
+[shader("vertex")]
+VertexOutput vertexMain(VertexInput input)
 {
-    vec4 texColor = texture(ImGuiTexture, vUV);
-    outColor = vColor * texColor;
+    VertexOutput output;
+
+    output.vUV = input.inUV;
+    output.vColor = unpackUnorm4x8(input.inColor);
+    output.position = mul(projMatrix, float4(input.inPosition, 0.0, 1.0));
+
+    return output;
+}
+
+[shader("fragment")]
+float4 fragmentMain(VertexOutput inV)
+{
+    float4 texColor = ImGuiTexture.Sample(ImGuiSampler, inV.vUV);
+    return inV.vColor * texColor;
 }
 )";

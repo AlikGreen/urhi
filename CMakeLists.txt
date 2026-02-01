@@ -15,7 +15,10 @@ add_subdirectory(${DEPS_DIR}/neonCore)
 add_subdirectory(${DEPS_DIR}/rapidyaml)
 
 if(WIN32)
-    set(SLANG_LIB_DIR "${DEPS_DIR}/slang/bin/windows-x64")
+    set(SLANG_BIN_DIR "${DEPS_DIR}/slang/windows-x64/bin")
+    set(SLANG_LIB_DIR "${DEPS_DIR}/slang/windows-x64/lib")
+    set(SLANG_LIBRARY "${SLANG_LIB_DIR}/slang.lib")
+    file(GLOB SLANG_DLLS "${SLANG_BIN_DIR}/*.dll")
 #elseif(APPLE)
 #    set(SLANG_LIB_DIR "${DEPS_DIR}/slang/bin/macos")
 #else()
@@ -36,8 +39,10 @@ target_compile_definitions(neonRHI PRIVATE GLFW_INCLUDE_NONE)
 
 target_include_directories(neonRHI PUBLIC src/)
 target_include_directories(neonRHI PUBLIC include/ "${DEPS_DIR}/slang/include")
-target_link_libraries(neonRHI PUBLIC glfw glm::glm glad neonLog neonCore ${SLANG_LIB_DIR}/slang spirv-cross-c)
+target_link_libraries(neonRHI PUBLIC glfw glm::glm glad neonLog neonCore ${SLANG_LIBRARY} spirv-cross-c)
 
+file(COPY ${SLANG_DLLS}
+        DESTINATION "${CMAKE_BINARY_DIR}")
 
 ### IMGUI LIB
 set(IMGUI_SOURCES
@@ -50,16 +55,14 @@ set(IMGUI_SOURCES
 )
 
 # add all ImGuizmo sources
-file(GLOB IMGUZMO_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/imguizmo/*.cpp"
-)
+file(GLOB IMGUZMO_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/imguizmo/*.cpp")
 list(APPEND IMGUI_SOURCES ${IMGUZMO_SOURCES})
 
 add_library(imgui_static STATIC ${IMGUI_SOURCES})
 
 target_include_directories(imgui_static PUBLIC
-        dependencies/imgui
-        dependencies/imguizmo
+        "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/imgui"
+        "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/imguizmo"
 )
 
 ### IMGUI BACKEND

@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "vertexAttribute.h"
-#include "vertexBufferDescription.h"
+#include "vertexBufferDesc.h"
 
 namespace Neon::RHI
 {
@@ -27,7 +27,7 @@ public:
         return vertexAttributes;
     }
 
-    [[nodiscard]] const std::vector<VertexBufferDescription>& getVertexBuffers() const
+    [[nodiscard]] const std::vector<VertexBufferDesc>& getVertexBuffers() const
     {
         return vertexBuffers;
     }
@@ -39,6 +39,6 @@ public:
 private:
     uint32_t stride{};
     std::vector<VertexAttribute> vertexAttributes;
-    std::vector<VertexBufferDescription> vertexBuffers;
+    std::vector<VertexBufferDesc> vertexBuffers;
 };
 }

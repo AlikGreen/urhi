@@ -1,6 +1,5 @@
 #include "commandListOGL.h"
 
-#include "frameBufferOGL.h"
 #include "pipelineOGL.h"
 
 #include <cstring>
@@ -8,6 +7,7 @@
 #include "bufferOGL.h"
 #include "convertOGL.h"
 #include "debug.h"
+#include "deviceOGL.h"
 #include "samplerOGL.h"
 #include "textureOGL.h"
 #include "textureViewOGL.h"
@@ -16,22 +16,25 @@ namespace Neon::RHI
 {
     void CommandListOGL::executeCommands()
     {
-        for (const auto& command : commands)
+        for (const auto& command : m_commands)
         {
             command();
         }
     }
 
+    CommandListOGL::CommandListOGL(DeviceOGL *device)
+        : m_device(device) {  }
+
     void CommandListOGL::begin()
     {
-        commands.clear();
+        m_commands.clear();
     }
 
     void CommandListOGL::setUniformBuffer(const std::string& name, const Rc<Buffer>& buffer)
     {
         Debug::ensure(buffer != nullptr, "setUniformBuffer: null buffer");
 
-        commands.emplace_back([buffer, name, this]
+        m_commands.emplace_back([buffer, name, this]
         {
             const uint32_t binding = getPipeline()->getShader()->getUBOLocation(name);
             const auto* uniformBufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
@@ -45,9 +48,9 @@ namespace Neon::RHI
     {
         Debug::ensure(texture != nullptr, "setTexture: null texture view");
 
-        commands.emplace_back([name, texture, this]
+        m_commands.emplace_back([name, texture, this]
         {
-            const uint32_t binding = getPipeline()->getShader()->getSamplerLocation(name);
+            const uint32_t binding = getPipeline()->getShader()->getTextureLocation(name);
             const auto* texViewOGL = dynamic_cast<const TextureViewOGL*>(texture.get());
             Debug::ensure(texViewOGL != nullptr, "setTexture: texture view is not TextureViewOGL");
             texViewOGL->bind(binding);
@@ -58,7 +61,7 @@ namespace Neon::RHI
     {
         Debug::ensure(sampler != nullptr, "setSampler: null sampler");
 
-        commands.emplace_back([name, sampler, this]
+        m_commands.emplace_back([name, sampler, this]
         {
             const uint32_t binding = getPipeline()->getShader()->getSamplerLocation(name);
             const auto* samplerOGL = dynamic_cast<const SamplerOGL*>(sampler.get());
@@ -71,7 +74,7 @@ namespace Neon::RHI
     {
         Debug::ensure(texture != nullptr, "setImage: null texture view");
 
-        commands.emplace_back([name, texture, this, access]
+        m_commands.emplace_back([name, texture, this, access]
         {
             const uint32_t binding = getPipeline()->getShader()->getImageLocation(name);
             const auto* texViewOGL = dynamic_cast<const TextureViewOGL*>(texture.get());
@@ -80,11 +83,78 @@ namespace Neon::RHI
         });
     }
 
+    void CommandListOGL::beginRenderPass(const RenderPassDesc &desc)
+    {
+        m_commands.emplace_back([desc, this]
+        {
+            m_renderPassDesc = desc;
+            const GLuint fbo = m_device->getOrCreateFb(desc);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+            for(int i = 0; i < desc.colorAttachments.size(); i++)
+            {
+                const auto& attachment = desc.colorAttachments[i];
+
+                if(i == 0)
+                {
+                    glViewport(0, 0, attachment.texture->getWidth(), attachment.texture->getHeight());
+                }
+
+                if (attachment.loadOp == LoadOp::Clear)
+                {
+                    glClearNamedFramebufferfv(fbo, GL_COLOR, i, &attachment.clearColor.r);
+                }
+            }
+
+            if(desc.depthAttachment.texture != nullptr)
+            {
+                if (desc.depthAttachment.depthLoadOp == LoadOp::Clear)
+                {
+                    glDisable(GL_SCISSOR_TEST);
+                    glDepthMask(GL_TRUE);
+                    glEnable(GL_DEPTH_TEST);
+                    glClearNamedFramebufferfv(fbo, GL_DEPTH, 0, &desc.depthAttachment.clearDepth);
+                }
+            }
+        });
+    }
+
+    void CommandListOGL::endRenderPass()
+    {
+        m_commands.emplace_back([this]
+        {
+            std::vector<GLenum> invalidateAttachments;
+
+            for (size_t i = 0; i < m_renderPassDesc.colorAttachments.size(); i++)
+            {
+                if (m_renderPassDesc.colorAttachments[i].storeOp == StoreOp::DontCare)
+                {
+                    invalidateAttachments.push_back(GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(i));
+                }
+            }
+
+            if (m_renderPassDesc.depthAttachment.texture != nullptr)
+            {
+                if (m_renderPassDesc.depthAttachment.depthStoreOp == StoreOp::DontCare)
+                {
+                    invalidateAttachments.push_back(GL_DEPTH_ATTACHMENT);
+                }
+            }
+
+            if (!invalidateAttachments.empty())
+            {
+                glInvalidateFramebuffer(GL_FRAMEBUFFER,
+                                       static_cast<GLsizei>(invalidateAttachments.size()),
+                                       invalidateAttachments.data());
+            }
+        });
+    }
+
     void CommandListOGL::generateMipmaps(const Rc<Texture>& texture)
     {
         Debug::ensure(texture != nullptr, "generateMipmaps: null texture");
 
-        commands.emplace_back([texture]
+        m_commands.emplace_back([texture]
         {
             const auto* texOGL = dynamic_cast<TextureOGL*>(texture.get());
             Debug::ensure(texOGL != nullptr, "generateMipmaps: texture is not TextureOGL");
@@ -96,25 +166,11 @@ namespace Neon::RHI
     {
         Debug::ensure(pipeline != nullptr, "setPipeline: null pipeline");
 
-        commands.emplace_back([this, pipeline]
+        m_commands.emplace_back([this, pipeline]
         {
-            this->pipeline = std::dynamic_pointer_cast<PipelineOGL>(pipeline);
-            Debug::ensure(this->pipeline != nullptr, "setPipeline: pipeline is not PipelineOGL");
-            this->pipeline->bind();
-        });
-    }
-
-    void CommandListOGL::setFramebuffer(const Rc<Framebuffer>& frameBuffer)
-    {
-        Debug::ensure(frameBuffer != nullptr, "setFramebuffer: null framebuffer");
-
-        commands.emplace_back([frameBuffer, this]
-        {
-            glViewport(0, 0, static_cast<int>(frameBuffer->getWidth()), static_cast<int>(frameBuffer->getHeight()));
-
-            framebuffer = std::dynamic_pointer_cast<FramebufferOGL>(frameBuffer);
-            Debug::ensure(framebuffer != nullptr, "setFramebuffer: framebuffer is not FramebufferOGL");
-            framebuffer->bind();
+            this->m_pipeline = std::dynamic_pointer_cast<PipelineOGL>(pipeline);
+            Debug::ensure(this->m_pipeline != nullptr, "setPipeline: pipeline is not PipelineOGL");
+            this->m_pipeline->bind();
         });
     }
 
@@ -122,14 +178,14 @@ namespace Neon::RHI
     {
         Debug::ensure(vertexBuffer != nullptr, "setVertexBuffer: null vertex buffer");
 
-        commands.emplace_back([this, vertexBuffer]
+        m_commands.emplace_back([this, vertexBuffer]
         {
             const auto* oglVertexBuffer = dynamic_cast<BufferOGL*>(vertexBuffer.get());
             Debug::ensure(oglVertexBuffer != nullptr, "setVertexBuffer: buffer is not BufferOGL");
             Debug::ensure(oglVertexBuffer->getTarget() == GL_ARRAY_BUFFER, "Buffer being set as Vertex Buffer was not created as GL_ARRAY_BUFFER");
             oglVertexBuffer->bind();
 
-            const auto& attributes = pipeline->getVertexAttributes();
+            const auto& attributes = getPipeline()->getVertexAttributes();
             for (const auto& attr : attributes)
             {
                 if (attr.type == GL_INT || attr.type == GL_UNSIGNED_INT)
@@ -149,9 +205,9 @@ namespace Neon::RHI
     {
         Debug::ensure(indexBuffer != nullptr, "setIndexBuffer: null index buffer");
 
-        commands.emplace_back([indexBuffer, indexFormat, this]
+        m_commands.emplace_back([indexBuffer, indexFormat, this]
         {
-            this->indexFormat = indexFormat;
+            this->m_indexFormat = indexFormat;
             const auto* indexBufferOGL = dynamic_cast<BufferOGL*>(indexBuffer.get());
             Debug::ensure(indexBufferOGL != nullptr, "setIndexBuffer: buffer is not BufferOGL");
             Debug::ensure(indexBufferOGL->getTarget() == GL_ELEMENT_ARRAY_BUFFER, "Buffer being set as Index Buffer was not created as GL_ELEMENT_ARRAY_BUFFER");
@@ -159,69 +215,48 @@ namespace Neon::RHI
         });
     }
 
-    void CommandListOGL::clearColorTarget(const uint32_t target, const glm::vec4 color)
-    {
-        commands.emplace_back([target, color]
-        {
-            const float clearColor[4] = { color.r, color.g, color.b, color.a };
-            glClearBufferfv(GL_COLOR, static_cast<int>(target), clearColor);
-        });
-    }
-
-    void CommandListOGL::clearDepthStencil(const float value)
-    {
-        commands.emplace_back([value]
-        {
-            glClearDepth(value);
-            glDepthMask(GL_TRUE);
-            glClear(GL_DEPTH_BUFFER_BIT);
-        });
-    }
-
     void CommandListOGL::setScissor(ScissorRect rect)
     {
-        commands.emplace_back([rect, this]
+        m_commands.emplace_back([rect, this]
         {
-            Debug::ensure(framebuffer != nullptr, "setScissor called without a framebuffer bound");
-
             const int x = rect.x;
-            const int y = static_cast<GLint>(framebuffer->getHeight() - (rect.y + rect.height));
+            const int y = static_cast<GLint>(m_renderPassDesc.colorAttachments[0].texture->getHeight() - (rect.y + rect.height)); // FIXME
             const int w = rect.width;
             const int h = rect.height;
             glScissor(x, y, w, h);
         });
     }
 
-    void CommandListOGL::updateTexture(const Rc<Texture>& texture, const TextureUploadDescription& uploadDescription)
+    void CommandListOGL::updateTexture(const Rc<Texture>& texture, const TextureUploadDesc& desc)
     {
-        Debug::ensure(texture != nullptr, "updateTexture: null texture");
+        Debug::ensure(texture != nullptr, "texture is null");
 
-        commands.emplace_back([texture, uploadDescription]
+        m_commands.emplace_back([texture, desc]
         {
             const auto* textureOGL = dynamic_cast<TextureOGL*>(texture.get());
             Debug::ensure(textureOGL != nullptr, "updateTexture: texture is not TextureOGL");
-            textureOGL->setData(uploadDescription);
+            textureOGL->setData(desc);
         });
     }
 
     void CommandListOGL::reserveBuffer(const Rc<Buffer>& buffer, size_t size)
     {
-        Debug::ensure(buffer != nullptr, "reserveBuffer: null buffer");
-        Debug::ensure(size > 0, "reserveBuffer: size must be > 0");
+        Debug::ensure(buffer != nullptr, "null buffer");
+        Debug::ensure(size > 0, "size must be > 0");
 
-        commands.emplace_back([buffer, size]
+        m_commands.emplace_back([buffer, size]
         {
             auto* bufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
-            Debug::ensure(bufferOGL != nullptr, "reserveBuffer: buffer is not BufferOGL");
+            Debug::ensure(bufferOGL != nullptr, "buffer is not BufferOGL");
             bufferOGL->reserveSpace(size);
         });
     }
 
     void CommandListOGL::dispatch(const glm::ivec3& numGroups)
     {
-        Debug::ensure(numGroups.x > 0 && numGroups.y > 0 && numGroups.z > 0, "dispatch: numGroups must be positive");
+        Debug::ensure(numGroups.x > 0 && numGroups.y > 0 && numGroups.z > 0, "numGroups must be positive");
 
-        commands.emplace_back([numGroups]
+        m_commands.emplace_back([numGroups]
         {
             glDispatchCompute(numGroups.x, numGroups.y, numGroups.z);
         });
@@ -229,18 +264,23 @@ namespace Neon::RHI
 
     void CommandListOGL::resourceBarrier(const Rc<Texture> &texture, ImageAccess nextAccess)
     {
-        commands.emplace_back([]
+        m_commands.emplace_back([]
         {
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         });
     }
 
+    void CommandListOGL::addCustomCommand(const std::function<void()> &command)
+    {
+        m_commands.push_back(command);
+    }
+
     void CommandListOGL::drawImpl(const uint32_t vertexCount, const uint32_t instanceCount, const uint32_t firstVertex,
                                   const uint32_t firstInstance)
     {
-        Debug::ensure(vertexCount > 0, "drawImpl: vertexCount must be > 0");
+        Debug::ensure(vertexCount > 0, "vertexCount must be > 0");
 
-        commands.emplace_back([vertexCount, instanceCount, firstVertex, firstInstance]
+        m_commands.emplace_back([vertexCount, instanceCount, firstVertex, firstInstance]
         {
             glDrawArraysInstancedBaseInstance(GL_TRIANGLES,
                 static_cast<GLint>(firstVertex),
@@ -253,13 +293,13 @@ namespace Neon::RHI
     void CommandListOGL::drawIndexedImpl(const uint32_t indexCount, const uint32_t instanceCount, const uint32_t firstIndex,
                                          const int vertexOffset, const uint32_t firstInstance)
     {
-        Debug::ensure(indexCount > 0, "drawIndexedImpl: indexCount must be > 0");
+        Debug::ensure(indexCount > 0, "indexCount must be > 0");
 
-        commands.emplace_back([indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, this]
+        m_commands.emplace_back([indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, this]
         {
-            const GLenum indexType = ConvertOGL::indexFormatToGL(indexFormat);
-            const uint32_t indexSize = ConvertOGL::indexFormatToSize(indexFormat);
-            Debug::ensure(indexType != 0, "drawIndexedImpl: invalid index format");
+            const GLenum indexType = ConvertOGL::indexFormatToGL(m_indexFormat);
+            const uint32_t indexSize = ConvertOGL::indexFormatToSize(m_indexFormat);
+            Debug::ensure(indexType != 0, "invalid index format");
 
             glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES,
                 static_cast<GLsizei>(indexCount),
@@ -273,23 +313,35 @@ namespace Neon::RHI
 
     void CommandListOGL::updateBufferImpl(const Rc<Buffer>& buffer, void *data, uint32_t size)
     {
-        Debug::ensure(buffer != nullptr, "updateBufferImpl: null buffer");
-        Debug::ensure(data != nullptr, "updateBufferImpl: null data pointer");
-        Debug::ensure(size > 0, "updateBufferImpl: size must be > 0");
+        Debug::ensure(buffer != nullptr, "null buffer");
+        Debug::ensure(data != nullptr, "null data pointer");
+        Debug::ensure(size > 0, "size must be > 0");
 
-        std::vector<uint8_t> dataCopy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + size);
+        std::vector dataCopy(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + size);
 
-        commands.emplace_back([buffer, dataCopy = std::move(dataCopy), size]
+        m_commands.emplace_back([buffer, dataCopy = std::move(dataCopy), size]
         {
             const auto* bufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
-            Debug::ensure(bufferOGL != nullptr, "updateBufferImpl: buffer is not BufferOGL");
+            Debug::ensure(bufferOGL != nullptr, "buffer is not BufferOGL");
             bufferOGL->uploadData(dataCopy.data(), size);
+        });
+    }
+
+    void CommandListOGL::readTextureImpl(const Rc<TextureView> &texture, const TextureReadDesc &desc, size_t destSize, void *dest)
+    {
+        Debug::ensure(texture != nullptr, "texture is null");
+
+        m_commands.emplace_back([texture, desc, dest, destSize]
+        {
+            const auto* textureOGL = dynamic_cast<TextureViewOGL*>(texture.get());
+            Debug::ensure(textureOGL != nullptr, "texture is not TextureOGL");
+            textureOGL->getData(desc, destSize, dest);
         });
     }
 
     const Rc<PipelineOGL>& CommandListOGL::getPipeline() const
     {
-        Debug::ensure(pipeline != nullptr, "getPipeline called but no pipeline is bound");
-        return pipeline;
+        Debug::ensure(m_pipeline != nullptr, "no pipeline is bound");
+        return m_pipeline;
     }
 }

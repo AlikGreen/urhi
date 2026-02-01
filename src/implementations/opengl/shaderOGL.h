@@ -6,6 +6,7 @@
 #include <glad/gl.h>
 
 #include "shader.h"
+#include "shaderCompiler.h"
 #include "spirv_common.hpp"
 #include "spirv_cross.hpp"
 
@@ -14,7 +15,7 @@ namespace Neon::RHI
 class ShaderOGL final : public Shader
 {
 public:
-    explicit ShaderOGL(const std::vector<uint32_t> &spirv);
+    explicit ShaderOGL(const CompiledShader &shader);
     ~ShaderOGL() override;
 
     void compile() override;
@@ -26,6 +27,7 @@ public:
 
     uint32_t getUBOLocation(    const std::string &name) const;
     uint32_t getSSBOLocation(   const std::string &name) const;
+    uint32_t getTextureLocation(const std::string &name) const;
     uint32_t getSamplerLocation(const std::string &name) const;
     uint32_t getImageLocation(  const std::string &name) const;
 private:
@@ -42,16 +44,16 @@ private:
         std::unordered_map<std::string, GLuint> uboBinding{};
         std::unordered_map<std::string, GLuint> ssboBinding{};
         std::unordered_map<std::string, GLuint> samplerUnit{};
+        std::unordered_map<std::string, GLuint> textureUnit{};
         std::unordered_map<std::string, GLuint> imageUnit{};
     };
 
-    ShaderReflection reflect(const spirv_cross::Compiler& compiler);
     static ShaderReflection::DataType spirvTypeToDataType(const spirv_cross::SPIRType& type);
     static GLenum executionModelToStage(spv::ExecutionModel model);
 
     ShaderBindingReflection m_internalReflection{};
     ShaderReflection m_reflection{};
-    std::vector<uint32_t> m_spirv;
+    CompiledShader m_compiledShader;
     std::vector<GLuint> m_shaderHandles;
     GLuint m_handle{};
     bool m_compiled = false;

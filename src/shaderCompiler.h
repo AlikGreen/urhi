@@ -2,21 +2,29 @@
 #include <cstdint>
 #include <slang.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
+#include "descriptions/shaderReflection.h"
 
 namespace Neon::RHI
 {
-struct ShaderCompileDescription
-{
-    std::string source;
-    std::string path;
-    std::vector<std::string> includePaths;
-};
+    struct ShaderCompileDescription
+    {
+        std::string path;
+        std::string source;
+        std::vector<std::string> includePaths;
+    };
 
-class ShaderCompiler
-{
-public:
-    static std::vector<uint32_t> compile(const ShaderCompileDescription& compileDesc);
-};
+    struct CompiledShader
+    {
+        std::vector<uint32_t> spirv;
+        ShaderReflection reflection;
+    };
+
+    class ShaderCompiler
+    {
+    public:
+        static CompiledShader compile(const ShaderCompileDescription& compileDesc);
+    };
 }

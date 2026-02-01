@@ -1,8 +1,8 @@
 #pragma once
 
 #include "texture.h"
-#include "descriptions/textureDescription.h"
-#include "descriptions/textureUploadDescription.h"
+#include "descriptions/textureDesc.h"
+#include "descriptions/textureUploadDesc.h"
 #include "glad/gl.h"
 
 namespace Neon::RHI
@@ -10,7 +10,7 @@ namespace Neon::RHI
 class TextureOGL final : public Texture
 {
 public:
-    explicit TextureOGL(const TextureDescription &description);
+    explicit TextureOGL(const TextureDesc &description);
     ~TextureOGL() override;
 
     void bind(uint32_t binding) const;
@@ -28,7 +28,8 @@ public:
     [[nodiscard]] GLuint getHandle() const;
 
     void generateMipmaps() const;
-    void setData(const TextureUploadDescription &uploadDescription) const;
+    void setData(const TextureUploadDesc& uploadDescription) const;
+
 
 private:
     uint32_t width{}, height{}, depth{};
