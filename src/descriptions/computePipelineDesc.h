@@ -1,14 +1,14 @@
 #pragma once
-#include <neonCore/neonCore.h>
+#include <grl/grl.h>
 
 #include "shader.h"
 #include "glm/glm.hpp"
 
-namespace Neon::RHI
+namespace urhi
 {
 struct ComputePipelineDesc
 {
-    Rc<Shader> shader = nullptr;
+    grl::Rc<Shader> shader = nullptr;
 
     glm::ivec3 threadGroupSize{1};
 };

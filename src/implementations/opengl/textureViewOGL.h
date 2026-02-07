@@ -5,7 +5,7 @@
 #include "enums/imageAccess.h"
 #include "glad/gl.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class TextureViewOGL final : public TextureView
 {
@@ -25,7 +25,7 @@ public:
     [[nodiscard]] uint32_t getMipLevels() const override;
     [[nodiscard]] uint32_t getArrayLayers() const override;
     [[nodiscard]] PixelFormat getFormat() const override;
-    [[nodiscard]] Rc<Texture> getTarget() const override;
+    [[nodiscard]] grl::Rc<Texture> getTarget() const override;
 
     [[nodiscard]] GLuint getHandle() const;
 private:
@@ -38,6 +38,6 @@ private:
     uint32_t mipLevels;
     uint32_t arrayLayers;
     PixelFormat format;
-    Rc<Texture> target;
+    grl::Rc<Texture> target;
 };
 }

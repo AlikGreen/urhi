@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace Neon::RHI
+namespace urhi
 {
     struct VertexBufferDesc
     {

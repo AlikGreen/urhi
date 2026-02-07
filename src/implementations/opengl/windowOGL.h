@@ -4,13 +4,13 @@
 
 #include "GLFW/glfw3.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class WindowOGL final : public Window
 {
 public:
     explicit WindowOGL(const WindowCreationOptions& creationOptions);
-    Rc<Device> createDevice() override;
+    grl::Rc<Device> createDevice() override;
 
     void run() override;
     void close() override;

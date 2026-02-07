@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <typeinfo>
 
-namespace Neon::RHI
+namespace urhi
 {
     struct VertexAttribute
     {

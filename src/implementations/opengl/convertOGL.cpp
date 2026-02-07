@@ -4,7 +4,7 @@
 #include "enums/pixelLayout.h"
 #include "GLFW/glfw3.h"
 
-namespace Neon::RHI
+namespace urhi
 {
     GLenum ConvertOGL::typeinfoToGL(const std::type_info *type)
     {

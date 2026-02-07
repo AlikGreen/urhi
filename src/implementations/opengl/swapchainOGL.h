@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <neonCore/neonCore.h>
+#include <grl/grl.h>
 
 #include "buffer.h"
 #include "pipeline.h"
@@ -9,7 +9,7 @@
 #include "textureView.h"
 #include "descriptions/swapchainDesc.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class DeviceOGL;
 
@@ -20,20 +20,20 @@ public:
 
     uint32_t acquireNextImage() override;
     void present(uint32_t imageIndex) override;
-    [[nodiscard]] const std::vector<Rc<Texture>>& getTextures() const override;
+    [[nodiscard]] const std::vector<grl::Rc<Texture>>& getTextures() const override;
 
     void resize(uint32_t width, uint32_t height) override;
 private:
     DeviceOGL* device;
 
-    Rc<Window> window;
-    Rc<Pipeline> pipeline;
-    Rc<Buffer> vertexBuffer;
-    Rc<Buffer> indexBuffer;
+    grl::Rc<Window> window;
+    grl::Rc<Pipeline> pipeline;
+    grl::Rc<Buffer> vertexBuffer;
+    grl::Rc<Buffer> indexBuffer;
 
-    std::vector<Rc<Texture>> textures{};
-    std::vector<Rc<TextureView>> textureViews{};
-    std::vector<Rc<Sampler>> samplers{};
+    std::vector<grl::Rc<Texture>> textures{};
+    std::vector<grl::Rc<TextureView>> textureViews{};
+    std::vector<grl::Rc<Sampler>> samplers{};
     uint32_t width, height;
 };
 }

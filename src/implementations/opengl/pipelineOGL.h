@@ -5,7 +5,7 @@
 #include "descriptions/graphicsPipelineDesc.h"
 #include "glm/glm.hpp"
 
-namespace Neon::RHI
+namespace urhi
 {
 struct VertexAttributeOGL
 {
@@ -26,14 +26,14 @@ public:
     [[nodiscard]] std::vector<VertexAttributeOGL> getVertexAttributes() const;
 
     void bind() const;
-    [[nodiscard]] Rc<ShaderOGL> getShader() const;
+    [[nodiscard]] grl::Rc<ShaderOGL> getShader() const;
 
     GLuint vao{};
 private:
     bool isComputePipeline = false;
     glm::ivec3 theadGroupSize{};
     std::vector<VertexAttributeOGL> vertexAttributesOGL;
-    Rc<ShaderOGL> shader;
+    grl::Rc<ShaderOGL> shader;
     GraphicsPipelineDesc description;
 };
 }

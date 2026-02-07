@@ -3,9 +3,9 @@
 #include <slang-com-ptr.h>
 #include <slang.h>
 
-#include "debug.h"
+#include <clogr.h>
 
-namespace Neon::RHI
+namespace urhi
 {
     static ShaderReflection::DataType slangTypeToDataType(slang::TypeReflection* type)
     {
@@ -119,7 +119,7 @@ namespace Neon::RHI
         if (diagnostics)
             diagnosticsString = static_cast<const char *>(diagnostics->getBufferPointer());
 
-        Debug::ensure(module, "Slang - Compilation failed: {}", diagnosticsString);
+        clogr::ensure(module, "Slang - Compilation failed: {}", diagnosticsString);
 
         std::vector<slang::IComponentType*> components;
         components.push_back(module);
@@ -146,7 +146,7 @@ namespace Neon::RHI
         if (diagnostics)
             diagnosticsString = static_cast<const char *>(diagnostics->getBufferPointer());
 
-        Debug::ensure(linkedProgram, "Slang - Linking failed: {}", diagnosticsString);
+        clogr::ensure(linkedProgram, "Slang - Linking failed: {}", diagnosticsString);
 
         // Get reflection data from Slang
         slang::ProgramLayout* layout = linkedProgram->getLayout();
@@ -262,7 +262,7 @@ namespace Neon::RHI
         if (diagnostics)
             diagnosticsString = static_cast<const char *>(diagnostics->getBufferPointer());
 
-        Debug::ensure(spirvCode, "Slang - Code generation failed: {}", diagnosticsString);
+        clogr::ensure(spirvCode, "Slang - Code generation failed: {}", diagnosticsString);
 
         const auto* spirvData = static_cast<const uint32_t*>(spirvCode->getBufferPointer());
         const size_t spirvSizeInBytes = spirvCode->getBufferSize();

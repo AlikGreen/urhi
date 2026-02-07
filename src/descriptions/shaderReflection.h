@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace Neon::RHI
+namespace urhi
 {
 struct ShaderReflection
 {

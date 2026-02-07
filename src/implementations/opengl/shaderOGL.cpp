@@ -1,15 +1,16 @@
 #include "shaderOGL.h"
 
-#include <ranges>
-#include <neonLog/neonLog.h>
+#include <clogr.h>
+
+#include <utility>
 
 #include "convertOGL.h"
 #include "spirv_glsl.hpp"
 
 
-namespace Neon::RHI
+namespace urhi
 {
-    ShaderOGL::ShaderOGL(const CompiledShader &shader) : m_compiledShader(shader)
+    ShaderOGL::ShaderOGL(CompiledShader shader) : m_compiledShader(std::move(shader))
     {  }
 
     ShaderOGL::~ShaderOGL()
@@ -105,7 +106,7 @@ namespace Neon::RHI
 
     void ShaderOGL::compile()
     {
-        Debug::ensure(!m_compiled, "Shader already compiled");
+        clogr::ensure(!m_compiled, "Shader already compiled");
         m_compiled = true;
         spirv_cross::CompilerGLSL compiler(m_compiledShader.spirv);
 
@@ -148,7 +149,7 @@ namespace Neon::RHI
             glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &success);
             glGetShaderInfoLog(shaderHandle, 512, nullptr, infoLog);
 
-            Debug::ensure(success, "Shader compilation error: {}", infoLog);
+            clogr::ensure(success, "Shader compilation error: {}", infoLog);
         }
 
         m_handle = glCreateProgram();
@@ -196,31 +197,31 @@ namespace Neon::RHI
 
     uint32_t ShaderOGL::getUBOLocation(const std::string &name) const
     {
-        Debug::ensure(m_internalReflection.uboBinding.contains(name), "Shader does not contain a uniform buffer with the name {}", name);
+        clogr::ensure(m_internalReflection.uboBinding.contains(name), "Shader does not contain a uniform buffer with the name {}", name);
         return m_internalReflection.uboBinding.at(name);
     }
 
     uint32_t ShaderOGL::getSSBOLocation(const std::string &name) const
     {
-        Debug::ensure(m_internalReflection.ssboBinding.contains(name), "Shader does not contain a storage buffer with the name {}", name);
+        clogr::ensure(m_internalReflection.ssboBinding.contains(name), "Shader does not contain a storage buffer with the name {}", name);
         return m_internalReflection.ssboBinding.at(name);
     }
 
     uint32_t ShaderOGL::getTextureLocation(const std::string &name) const
     {
-        Debug::ensure(m_internalReflection.textureUnit.contains(name), "Shader does not contain a texture with the name {}", name);
+        clogr::ensure(m_internalReflection.textureUnit.contains(name), "Shader does not contain a texture with the name {}", name);
         return m_internalReflection.textureUnit.at(name);
     }
 
     uint32_t ShaderOGL::getSamplerLocation(const std::string &name) const
     {
-        Debug::ensure(m_internalReflection.samplerUnit.contains(name), "Shader does not contain a sampler with the name {}", name);
+        clogr::ensure(m_internalReflection.samplerUnit.contains(name), "Shader does not contain a sampler with the name {}", name);
         return m_internalReflection.samplerUnit.at(name);
     }
 
     uint32_t ShaderOGL::getImageLocation(const std::string &name) const
     {
-        Debug::ensure(m_internalReflection.imageUnit.contains(name), "Shader does not contain an image with the name {}", name);
+        clogr::ensure(m_internalReflection.imageUnit.contains(name), "Shader does not contain an image with the name {}", name);
         return m_internalReflection.imageUnit.at(name);
     }
 }

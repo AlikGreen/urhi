@@ -3,34 +3,34 @@
 #include "device.h"
 #include "glad/gl.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class WindowOGL;
 class DeviceOGL final : public Device
 {
 public:
-    Rc<Pipeline> createPipeline(const GraphicsPipelineDesc& desc) override;
-    Rc<Pipeline> createPipeline(const ComputePipelineDesc& desc) override;
+    grl::Rc<Pipeline> createPipeline(const GraphicsPipelineDesc& desc) override;
+    grl::Rc<Pipeline> createPipeline(const ComputePipelineDesc& desc) override;
 
-    Rc<CommandList> createCommandList() override;
+    grl::Rc<CommandList> createCommandList() override;
 
-    Rc<Swapchain> createSwapchain(const SwapchainDesc &desc) override;
+    grl::Rc<Swapchain> createSwapchain(const SwapchainDesc &desc) override;
 
-    Rc<Buffer> createIndexBuffer() override;
-    Rc<Buffer> createUniformBuffer() override;
-    Rc<Buffer> createVertexBuffer() override;
+    grl::Rc<Buffer> createIndexBuffer() override;
+    grl::Rc<Buffer> createUniformBuffer() override;
+    grl::Rc<Buffer> createVertexBuffer() override;
 
-    Rc<Texture> createTexture(const TextureDesc& desc) override;
-    Rc<Sampler> createSampler(const SamplerDesc& desc) override;
-    Rc<TextureView> createTextureView(const TextureViewDesc& desc) override;
+    grl::Rc<Texture> createTexture(const TextureDesc& desc) override;
+    grl::Rc<Sampler> createSampler(const SamplerDesc& desc) override;
+    grl::Rc<TextureView> createTextureView(const TextureViewDesc& desc) override;
 
-    Rc<Shader> createShader(CompiledShader shader) override;
+    grl::Rc<Shader> createShader(CompiledShader shader) override;
 
     void endFrame();
 
     GLuint getOrCreateFb(const RenderPassDesc& desc);
 
-    void submit(const Rc<CommandList>& commandList) override;
+    void submit(const grl::Rc<CommandList>& commandList) override;
 private:
     static size_t hashRenderPass(const RenderPassDesc &desc);
 

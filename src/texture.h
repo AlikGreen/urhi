@@ -4,7 +4,7 @@
 #include "enums/pixelFormat.h"
 #include "enums/textureType.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class Texture
 {

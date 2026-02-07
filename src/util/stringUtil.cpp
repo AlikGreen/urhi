@@ -1,7 +1,7 @@
 #include "stringUtil.h"
 #include <algorithm>
 
-namespace Neon::RHI
+namespace urhi
 {
     std::string String::trim(const std::string& str)
     {

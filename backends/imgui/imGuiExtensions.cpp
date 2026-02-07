@@ -7,9 +7,9 @@
 #include <ryml.hpp>
 #include <c4/std/string.hpp>
 
-#include "debug.h"
+#include <clogr.h>
 
-static std::unordered_map<size_t, Neon::RHI::ImGuiImage*> imguiImageMap{};
+static std::unordered_map<size_t, urhi::ImGuiImage*> imguiImageMap{};
 
 std::size_t hashTwoPointers(void const* a, void const* b) noexcept
 {
@@ -30,7 +30,7 @@ namespace NeonGui
         imguiImageMap.clear();
     }
 
-    void Image(const Neon::Rc<Neon::RHI::TextureView>& textureView, const ImVec2 size, const ImVec2 uv0 , const ImVec2 uv1)
+    void Image(const grl::Rc<urhi::TextureView>& textureView, const ImVec2 size, const ImVec2 uv0 , const ImVec2 uv1)
     {
         const size_t hash = hashTwoPointers(textureView.get(), nullptr);
 
@@ -40,7 +40,7 @@ namespace NeonGui
             return;
         }
 
-        auto* image = new Neon::RHI::ImGuiImage();
+        auto* image = new urhi::ImGuiImage();
         image->view = textureView;
         image->sampler = nullptr;
 
@@ -49,7 +49,7 @@ namespace NeonGui
         ImGui::Image(image, size, uv0, uv1);
     }
 
-    void Image(const Neon::Rc<Neon::RHI::TextureView> &textureView, const Neon::Rc<Neon::RHI::Sampler> &sampler,
+    void Image(const grl::Rc<urhi::TextureView> &textureView, const grl::Rc<urhi::Sampler> &sampler,
                const ImVec2 size, const ImVec2 uv0, const ImVec2 uv1)
     {
         const size_t hash = hashTwoPointers(textureView.get(), sampler.get());
@@ -59,7 +59,7 @@ namespace NeonGui
             return;
         }
 
-        auto* image = new Neon::RHI::ImGuiImage();
+        auto* image = new urhi::ImGuiImage();
         image->view = textureView;
         image->sampler = sampler;
 

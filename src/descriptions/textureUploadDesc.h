@@ -4,7 +4,7 @@
 
 #include "glm/glm.hpp"
 
-namespace Neon::RHI
+namespace urhi
 {
     struct TextureUploadDesc
     {

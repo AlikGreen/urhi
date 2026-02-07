@@ -9,7 +9,7 @@
 #include "shaderCompiler.h"
 #include "swapchain.h"
 #include "texture.h"
-#include "neonCore/neonCore.h"
+#include "grl/grl.h"
 
 #include "descriptions/graphicsPipelineDesc.h"
 #include "descriptions/computePipelineDesc.h"
@@ -18,30 +18,30 @@
 #include "descriptions/textureDesc.h"
 #include "descriptions/textureViewDesc.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class Device
 {
 public:
     virtual ~Device() = default;
 
-    virtual Rc<Pipeline> createPipeline(const GraphicsPipelineDesc& desc) = 0;
-    virtual Rc<Pipeline> createPipeline(const ComputePipelineDesc& desc) = 0;
+    virtual grl::Rc<Pipeline> createPipeline(const GraphicsPipelineDesc& desc) = 0;
+    virtual grl::Rc<Pipeline> createPipeline(const ComputePipelineDesc& desc) = 0;
 
-    virtual Rc<Swapchain> createSwapchain(const SwapchainDesc& desc) = 0;
+    virtual grl::Rc<Swapchain> createSwapchain(const SwapchainDesc& desc) = 0;
 
-    virtual Rc<CommandList> createCommandList() = 0;
+    virtual grl::Rc<CommandList> createCommandList() = 0;
 
-    virtual Rc<Texture> createTexture(const TextureDesc& description) = 0;
-    virtual Rc<Sampler> createSampler(const SamplerDesc& description) = 0;
-    virtual Rc<TextureView> createTextureView(const TextureViewDesc& desc) = 0;
+    virtual grl::Rc<Texture> createTexture(const TextureDesc& description) = 0;
+    virtual grl::Rc<Sampler> createSampler(const SamplerDesc& description) = 0;
+    virtual grl::Rc<TextureView> createTextureView(const TextureViewDesc& desc) = 0;
 
-    virtual Rc<Shader> createShader(CompiledShader shader) = 0;
+    virtual grl::Rc<Shader> createShader(CompiledShader shader) = 0;
 
-    virtual Rc<Buffer> createIndexBuffer() = 0;
-    virtual Rc<Buffer> createUniformBuffer() = 0;
-    virtual Rc<Buffer> createVertexBuffer() = 0;
+    virtual grl::Rc<Buffer> createIndexBuffer() = 0;
+    virtual grl::Rc<Buffer> createUniformBuffer() = 0;
+    virtual grl::Rc<Buffer> createVertexBuffer() = 0;
 
-    virtual void submit(const Rc<CommandList>& commandList) = 0;
+    virtual void submit(const grl::Rc<CommandList>& commandList) = 0;
 };
 }

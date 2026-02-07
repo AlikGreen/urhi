@@ -3,7 +3,7 @@
 #include "buffer.h"
 #include <glad/gl.h>
 
-namespace Neon::RHI
+namespace urhi
 {
 class BufferOGL final : public Buffer
 {

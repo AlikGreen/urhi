@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Neon::RHI
+namespace urhi
 {
 struct DepthState
 {

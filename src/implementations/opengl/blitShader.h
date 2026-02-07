@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Neon::RHI
+namespace urhi
 {
     inline auto blitShaderSource = R"(
 struct VSInput

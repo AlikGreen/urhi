@@ -10,12 +10,12 @@
 #include "spirv_common.hpp"
 #include "spirv_cross.hpp"
 
-namespace Neon::RHI
+namespace urhi
 {
 class ShaderOGL final : public Shader
 {
 public:
-    explicit ShaderOGL(const CompiledShader &shader);
+    explicit ShaderOGL(CompiledShader shader);
     ~ShaderOGL() override;
 
     void compile() override;

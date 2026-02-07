@@ -2,7 +2,7 @@
 
 #include "enums/pixelFormat.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 struct RenderTargetsDesc
 {

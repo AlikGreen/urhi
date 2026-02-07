@@ -1,11 +1,11 @@
 #pragma once
 #include <cstdint>
-#include <neonCore/neonCore.h>
+#include <grl/grl.h>
 #include "texture.h"
 
 #include "enums/pixelFormat.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class TextureView
 {
@@ -20,6 +20,6 @@ public:
     [[nodiscard]] virtual uint32_t getArrayLayers() const = 0;
     [[nodiscard]] virtual PixelFormat getFormat() const = 0;
 
-    [[nodiscard]] virtual Rc<Texture> getTarget() const = 0;
+    [[nodiscard]] virtual grl::Rc<Texture> getTarget() const = 0;
 };
 }

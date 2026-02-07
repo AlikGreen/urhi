@@ -2,7 +2,7 @@
 #include "enums/cullMode.h"
 #include "enums/fillMode.h"
 
-namespace Neon::RHI
+namespace urhi
 {
     struct RasterizerState
     {

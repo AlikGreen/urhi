@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-namespace Neon::RHI
+namespace urhi
 {
     // Alias templates
     template<typename T>

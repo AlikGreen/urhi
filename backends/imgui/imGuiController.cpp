@@ -2,14 +2,14 @@
 
 #include <ImGuizmo.h>
 
-#include "debug.h"
+#include <clogr.h>
 #include "imGuiExtensions.h"
 #include "imguiShader.h"
 #include "shaderCompiler.h"
 #include "glm/glm.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 
-namespace Neon::RHI
+namespace urhi
 {
     ImGuiController::ImGuiController(const InitInfo &initInfo)
     {
@@ -18,7 +18,7 @@ namespace Neon::RHI
 
         m_projUniformBuffer = m_device->createUniformBuffer();
 
-        const Rc<CommandList> commandList = m_device->createCommandList();
+        const grl::Rc<CommandList> commandList = m_device->createCommandList();
 
         commandList->begin();
         commandList->reserveBuffer(m_projUniformBuffer, sizeof(glm::mat4));
@@ -63,7 +63,7 @@ namespace Neon::RHI
 
         updateTextures(m_drawData);
 
-        const Rc<CommandList> cmdList = m_device->createCommandList();
+        const grl::Rc<CommandList> cmdList = m_device->createCommandList();
 
         cmdList->begin();
 
@@ -81,6 +81,7 @@ namespace Neon::RHI
         uint32_t vertexOffset = 0;
         uint32_t indexOffset  = 0;
 
+        // bottom up caller graph shows this taking a bit
         for(int n = 0; n < m_drawData->CmdListsCount; n++)
         {
             const ImDrawList *cmdListImGui = m_drawData->CmdLists[n];
@@ -90,7 +91,7 @@ namespace Neon::RHI
                 vertices.push_back(cmdListImGui->VtxBuffer[v]);
 
             for(int i = 0; i < cmdListImGui->IdxBuffer.Size; i++)
-                indices.push_back(static_cast<uint32_t>(cmdListImGui->IdxBuffer[i]) + vertexOffset);
+                indices.push_back(static_cast<uint32_t>(cmdListImGui->IdxBuffer[i]) + vertexOffset); // specifically this
 
             vertexOffset += cmdListImGui->VtxBuffer.Size;
             indexOffset  += cmdListImGui->IdxBuffer.Size;
@@ -140,8 +141,8 @@ namespace Neon::RHI
 
                 ImGuiImage* image = pcmd.GetTexID();
 
-                Debug::ensure(image != nullptr, "ImGui - Image is null");
-                Debug::ensure(image->view != nullptr, "ImGui - Texture View to render is null");
+                clogr::ensure(image != nullptr, "ImGui - Image is null");
+                clogr::ensure(image->view != nullptr, "ImGui - Texture View to render is null");
 
                 if(image->sampler == nullptr)
                 {
@@ -264,7 +265,7 @@ namespace Neon::RHI
         }
     }
 
-    Rc<Texture> ImGuiController::getFramebufferTexture() const
+    grl::Rc<Texture> ImGuiController::getFramebufferTexture() const
     {
         return m_framebufferTexture;
     }
@@ -282,7 +283,7 @@ namespace Neon::RHI
         texDesc.format = PixelFormat::R8G8B8A8Unorm;
         texDesc.usage = TextureUsage::Sampled;
 
-        const Rc<Texture> fontTexture = m_device->createTexture(texDesc);
+        const grl::Rc<Texture> fontTexture = m_device->createTexture(texDesc);
         TextureUploadDesc uploadDesc{};
 
         uploadDesc.data = pixels;
@@ -292,7 +293,7 @@ namespace Neon::RHI
         uploadDesc.pixelType = PixelType::UnsignedByte;
 
         // Upload pixels to the texture with a command list or staging buffer
-        const Rc<CommandList>& cmdList = m_device->createCommandList();
+        const grl::Rc<CommandList>& cmdList = m_device->createCommandList();
 
         cmdList->begin();
         cmdList->updateTexture(fontTexture, uploadDesc);
@@ -301,7 +302,7 @@ namespace Neon::RHI
         TextureViewDesc viewDesc;
         viewDesc.target = fontTexture;
 
-        const Rc<TextureView>& fontTextureView = m_device->createTextureView(viewDesc);
+        const grl::Rc<TextureView>& fontTextureView = m_device->createTextureView(viewDesc);
 
         SamplerDesc samplerDesc{};
         samplerDesc.minFilter = TextureFilter::Linear;
@@ -311,7 +312,7 @@ namespace Neon::RHI
         samplerDesc.wrapMode.y = TextureWrap::ClampToEdge;
         samplerDesc.wrapMode.z = TextureWrap::ClampToEdge;
 
-        const Rc<Sampler>& fontSampler = m_device->createSampler(samplerDesc);
+        const grl::Rc<Sampler>& fontSampler = m_device->createSampler(samplerDesc);
 
         return new ImGuiImage{ fontTextureView, fontSampler };
     }
@@ -382,7 +383,7 @@ namespace Neon::RHI
         m_renderTexture = m_device->createTextureView(fbTexViewDesc);
     }
 
-    void ImGuiController::updateBuffers(const Rc<CommandList> &cmdList)
+    void ImGuiController::updateBuffers(const grl::Rc<CommandList> &cmdList)
     {
         const size_t vertexDataSize = m_drawData->TotalVtxCount * sizeof(ImDrawVert);
         const size_t indexDataSize = m_drawData->TotalIdxCount * sizeof(uint32_t);
@@ -402,7 +403,7 @@ namespace Neon::RHI
         }
     }
 
-    void ImGuiController::updateProjection(const ImDrawData *drawData, const Rc<CommandList> &cmdList) const
+    void ImGuiController::updateProjection(const ImDrawData *drawData, const grl::Rc<CommandList> &cmdList) const
     {
         const ImVec2 displayPos    = drawData->DisplayPos;
         const ImVec2 displaySize   = drawData->DisplaySize;

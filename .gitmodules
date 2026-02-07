@@ -13,15 +13,9 @@
 [submodule "dependencies/glslang"]
 	path = dependencies/glslang
 	url = https://github.com/KhronosGroup/glslang.git
-[submodule "dependencies/neonLog"]
-	path = dependencies/neonLog
-	url = https://github.com/AlikGreen/NeonLog.git
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
 	url = https://github.com/ocornut/imgui.git
-[submodule "dependencies/neonCore"]
-	path = dependencies/neonCore
-	url = https://github.com/AlikGreen/NeonCore.git
 [submodule "neonCore"]
 	path = neonCore
 	url = https://github.com/AlikGreen/NeonCore.git
@@ -34,3 +28,6 @@
 [submodule "dependencies/imguizmo"]
 	path = dependencies/imguizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "dependencies/clogr"]
+	path = dependencies/clogr
+	url = https://github.com/AlikGreen/clogr.git

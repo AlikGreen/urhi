@@ -4,11 +4,11 @@
 #include <GLFW/glfw3.h>
 
 #include "convertOGL.h"
-#include "debug.h"
+#include <clogr.h>
 #include "deviceOGL.h"
-#include "neonCore/neonCore.h"
+#include "grl/grl.h"
 
-namespace Neon::RHI
+namespace urhi
 {
     void WindowOGL::keyCallback(GLFWwindow* windowGLFW, int key, int scancode, int action, int mods)
     {
@@ -111,15 +111,15 @@ namespace Neon::RHI
 
     WindowOGL::WindowOGL(const WindowCreationOptions &creationOptions) : creationOptions(creationOptions) { }
 
-    Rc<Device> WindowOGL::createDevice()
+    grl::Rc<Device> WindowOGL::createDevice()
     {
-        return makeRc<DeviceOGL>();
+        return grl::makeRc<DeviceOGL>();
     }
 
 
     void WindowOGL::run()
     {
-        Debug::ensure(glfwInit(), "Failed to initialize GLFW");
+        clogr::ensure(glfwInit(), "Failed to initialize GLFW");
         glfwInit();
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -132,10 +132,10 @@ namespace Neon::RHI
         int height = creationOptions.height;
 
         GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-        Debug::ensure(primaryMonitor != nullptr, "Failed to get primary monitor");
+        clogr::ensure(primaryMonitor != nullptr, "Failed to get primary monitor");
 
         const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
-        Debug::ensure(mode != nullptr, "Couldn't get video mode");
+        clogr::ensure(mode != nullptr, "Couldn't get video mode");
 
         if(width <= 0)
             width = static_cast<int>(mode->width * 0.75);
@@ -145,7 +145,7 @@ namespace Neon::RHI
 
         GLFWmonitor* monitor = creationOptions.fullscreen ? primaryMonitor : nullptr;
         handle = glfwCreateWindow(width, height, creationOptions.title, monitor, nullptr);
-        Debug::ensure(handle != nullptr, "Failed to create GLFW window");
+        clogr::ensure(handle != nullptr, "Failed to create GLFW window");
 
         glfwSetWindowUserPointer(handle, this);
 
@@ -160,7 +160,7 @@ namespace Neon::RHI
 
         glfwMakeContextCurrent(handle);
 
-        Debug::ensure(gladLoadGL(glfwGetProcAddress), "Failed to initialize GLAD");
+        clogr::ensure(gladLoadGL(glfwGetProcAddress), "Failed to initialize GLAD");
 
         glViewport(0, 0, width, height);
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace Neon::RHI
+namespace urhi
 {
 class String
 {

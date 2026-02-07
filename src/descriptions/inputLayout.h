@@ -4,7 +4,7 @@
 #include "vertexAttribute.h"
 #include "vertexBufferDesc.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class InputLayout
 {

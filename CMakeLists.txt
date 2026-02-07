@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.29)
-project(neonRHI)
+project(urhi)
 
 set(CMAKE_CXX_STANDARD 23)
 
@@ -10,8 +10,7 @@ add_subdirectory(${DEPS_DIR}/glm)
 add_subdirectory(${DEPS_DIR}/glfw)
 add_subdirectory(${DEPS_DIR}/glad)
 add_subdirectory(${DEPS_DIR}/spirv-cross)
-add_subdirectory(${DEPS_DIR}/neonLog)
-add_subdirectory(${DEPS_DIR}/neonCore)
+add_subdirectory(${DEPS_DIR}/clogr)
 add_subdirectory(${DEPS_DIR}/rapidyaml)
 
 if(WIN32)
@@ -33,13 +32,13 @@ file(GLOB_RECURSE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
 )
 
-add_library(neonRHI STATIC ${SRC_FILES})
+add_library(urhi STATIC ${SRC_FILES})
 
-target_compile_definitions(neonRHI PRIVATE GLFW_INCLUDE_NONE)
+target_compile_definitions(urhi PRIVATE GLFW_INCLUDE_NONE)
 
-target_include_directories(neonRHI PUBLIC src/)
-target_include_directories(neonRHI PUBLIC include/ "${DEPS_DIR}/slang/include")
-target_link_libraries(neonRHI PUBLIC glfw glm::glm glad neonLog neonCore ${SLANG_LIBRARY} spirv-cross-c)
+target_include_directories(urhi PUBLIC src/)
+target_include_directories(urhi PUBLIC include/ "${DEPS_DIR}/slang/include")
+target_link_libraries(urhi PUBLIC glfw glm::glm glad clogr ${SLANG_LIBRARY} spirv-cross-c)
 
 file(COPY ${SLANG_DLLS}
         DESTINATION "${CMAKE_BINARY_DIR}")
@@ -66,19 +65,19 @@ target_include_directories(imgui_static PUBLIC
 )
 
 ### IMGUI BACKEND
-add_library(neonRHI_imgui STATIC
+add_library(urhi_imgui STATIC
         backends/imgui/imGuiController.cpp
         backends/imgui/imGuiController.h
         backends/imgui/imGuiConfig.h
         backends/imgui/imGuiExtensions.h
         backends/imgui/imGuiExtensions.cpp)
 
-target_include_directories(neonRHI_imgui PUBLIC backends/)
-target_link_libraries(neonRHI_imgui PUBLIC neonRHI imgui_static neonCore ryml::ryml c4core::c4core)
+target_include_directories(urhi_imgui PUBLIC backends/)
+target_link_libraries(urhi_imgui PUBLIC urhi imgui_static grl ryml::ryml c4core::c4core)
 
-target_compile_definitions(neonRHI_imgui PRIVATE
+target_compile_definitions(urhi_imgui PRIVATE
         IMGUI_USER_CONFIG="imgui/imGuiConfig.h"
         IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 )
 
-add_library(neonRHI::imgui ALIAS neonRHI_imgui)
+add_library(urhi::imgui ALIAS urhi_imgui)

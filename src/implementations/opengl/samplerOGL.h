@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <glad/gl.h>
 
-namespace Neon::RHI
+namespace urhi
 {
 class SamplerOGL final : public Sampler
 {

@@ -4,7 +4,7 @@
 #include "enums/textureFilter.h"
 #include "enums/textureWrap.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 struct SamplerDesc
 {

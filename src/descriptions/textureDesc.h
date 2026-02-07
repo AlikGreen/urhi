@@ -5,7 +5,7 @@
 #include "enums/textureUsage.h"
 #include "glm/glm.hpp"
 
-namespace Neon::RHI
+namespace urhi
 {
 struct TextureDesc
 {

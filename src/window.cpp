@@ -2,14 +2,14 @@
 
 #include "implementations/opengl/windowOGL.h"
 
-namespace Neon::RHI
+namespace urhi
 {
-    Rc<Window> Window::createWindow(const WindowCreationOptions& creationOptions, const BackendAPI backendApi)
+    grl::Rc<Window> Window::createWindow(const WindowCreationOptions& creationOptions, const BackendAPI backendApi)
     {
         switch (backendApi)
         {
             case BackendAPI::OpenGL:
-                return makeRc<WindowOGL>(creationOptions);
+                return grl::makeRc<WindowOGL>(creationOptions);
         }
 
         return nullptr;

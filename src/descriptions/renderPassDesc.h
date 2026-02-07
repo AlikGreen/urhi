@@ -1,17 +1,17 @@
 #pragma once
 #include <vector>
-#include <neonCore/mem.h>
+#include <grl/mem.h>
 
 #include "textureView.h"
 #include "enums/loadOp.h"
 #include "enums/storeOp.h"
 #include <glm/glm.hpp>
 
-namespace Neon::RHI
+namespace urhi
 {
 struct ColorAttachment
 {
-     Rc<TextureView> texture = nullptr;
+     grl::Rc<TextureView> texture = nullptr;
 
     LoadOp loadOp = LoadOp::Clear;
     StoreOp storeOp = StoreOp::Store;
@@ -21,7 +21,7 @@ struct ColorAttachment
 
 struct DepthStencilAttachment
 {
-    Rc<TextureView> texture = nullptr;
+    grl::Rc<TextureView> texture = nullptr;
 
     LoadOp depthLoadOp = LoadOp::Clear;
     StoreOp depthStoreOp = StoreOp::Store;

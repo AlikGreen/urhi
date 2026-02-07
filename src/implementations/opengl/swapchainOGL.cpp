@@ -4,13 +4,13 @@
 
 #include "blitShader.h"
 #include "commandListOGL.h"
-#include "debug.h"
+#include <clogr.h>
 #include "deviceOGL.h"
 #include "shaderCompiler.h"
 #include "window.h"
 #include "glad/gl.h"
 
-namespace Neon::RHI
+namespace urhi
 {
     SwapchainOGL::SwapchainOGL(const SwapchainDesc &desc, DeviceOGL* device)
     {
@@ -38,7 +38,7 @@ namespace Neon::RHI
         compileDesc.source = blitShaderSource;
 
         auto compilation = ShaderCompiler::compile(compileDesc);
-        Rc<Shader> shader = device->createShader(compilation);
+        grl::Rc<Shader> shader = device->createShader(compilation);
         shader->compile();
 
         InputLayout vertexInputState{};
@@ -72,7 +72,7 @@ namespace Neon::RHI
         vertexBuffer = device->createVertexBuffer();
         indexBuffer = device->createIndexBuffer();
 
-        Rc<CommandList> cl = device->createCommandList();
+        grl::Rc<CommandList> cl = device->createCommandList();
 
         cl->begin();
 
@@ -93,11 +93,11 @@ namespace Neon::RHI
 
     void SwapchainOGL::present(const uint32_t imageIndex)
     {
-        Debug::ensure(imageIndex < textures.size(), "SwapchainOGL::present(): image index out of range");
-        const Rc<TextureView>& texture = textureViews[imageIndex];
-        const Rc<Sampler>& sampler = samplers[imageIndex];
+        clogr::ensure(imageIndex < textures.size(), "SwapchainOGL::present(): image index out of range");
+        const grl::Rc<TextureView>& texture = textureViews[imageIndex];
+        const grl::Rc<Sampler>& sampler = samplers[imageIndex];
 
-        const Rc<CommandListOGL> cmd = std::dynamic_pointer_cast<CommandListOGL>(device->createCommandList());
+        const grl::Rc<CommandListOGL> cmd = std::dynamic_pointer_cast<CommandListOGL>(device->createCommandList());
 
         cmd->begin();
 
@@ -127,7 +127,7 @@ namespace Neon::RHI
         // Maybe fence things
     }
 
-    const std::vector<Rc<Texture>> & SwapchainOGL::getTextures() const
+    const std::vector<grl::Rc<Texture>> & SwapchainOGL::getTextures() const
     {
         return textures;
     }
@@ -143,7 +143,7 @@ namespace Neon::RHI
                 PixelFormat::R8G8B8A8Unorm,
                 TextureUsage::ColorTarget);
 
-        const Rc<Texture> colTex = device->createTexture(colDesc);
+        const grl::Rc<Texture> colTex = device->createTexture(colDesc);
         textures.clear();
         textures.push_back(colTex);
 

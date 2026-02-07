@@ -7,7 +7,7 @@
 
 #include "descriptions/shaderReflection.h"
 
-namespace Neon::RHI
+namespace urhi
 {
     struct ShaderCompileDescription
     {

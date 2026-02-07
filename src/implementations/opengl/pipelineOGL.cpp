@@ -4,7 +4,7 @@
 
 #include "convertOGL.h"
 
-namespace Neon::RHI
+namespace urhi
 {
     PipelineOGL::PipelineOGL(const GraphicsPipelineDesc &description) : description(description)
     {
@@ -92,7 +92,7 @@ namespace Neon::RHI
         }
     }
 
-    Rc<ShaderOGL> PipelineOGL::getShader() const
+    grl::Rc<ShaderOGL> PipelineOGL::getShader() const
     {
         return shader;
     }

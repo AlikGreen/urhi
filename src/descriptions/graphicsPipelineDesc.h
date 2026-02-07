@@ -1,5 +1,5 @@
 #pragma once
-#include <neonCore/neonCore.h>
+#include <grl/grl.h>
 
 #include "blendState.h"
 #include "depthState.h"
@@ -9,11 +9,11 @@
 #include "enums/primitiveType.h"
 #include "renderTargetsDesc.h"
 
-namespace Neon::RHI
+namespace urhi
 {
     struct GraphicsPipelineDesc
     {
-        Rc<Shader> shader = nullptr;
+        grl::Rc<Shader> shader = nullptr;
         PrimitiveType primitiveType = PrimitiveType::TriangleList;
         InputLayout inputLayout{};
 

@@ -2,7 +2,7 @@
 #include "enums/blendFactor.h"
 #include "enums/blendOp.h"
 
-namespace Neon::RHI
+namespace urhi
 {
     struct BlendState
     {

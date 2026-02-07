@@ -1,11 +1,11 @@
 #pragma once
 
-namespace Neon::RHI
+namespace urhi
 {
     class Window;
 
     struct SwapchainDesc
     {
-        Rc<Window> window;
+        grl::Rc<Window> window;
     };
 }

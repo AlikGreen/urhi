@@ -1,7 +1,7 @@
 #pragma once
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include <neonCore/neonCore.h>
+#include <grl/grl.h>
 
 #include <neonRHI/neonRHI.h>
 
@@ -9,8 +9,8 @@ namespace NeonGui
 {
     void ClearTextureCache();
 
-    void Image(const Neon::Rc<Neon::RHI::TextureView>& textureView, ImVec2 size, ImVec2 uv0 = ImVec2(0, 0), ImVec2 uv1 = ImVec2(1, 1));
-    void Image(const Neon::Rc<Neon::RHI::TextureView>& textureView, const Neon::Rc<Neon::RHI::Sampler>& sampler, ImVec2 size, ImVec2 uv0 = ImVec2(0, 0), ImVec2 uv1 = ImVec2(1, 1));
+    void Image(const grl::Rc<urhi::TextureView>& textureView, ImVec2 size, ImVec2 uv0 = ImVec2(0, 0), ImVec2 uv1 = ImVec2(1, 1));
+    void Image(const grl::Rc<urhi::TextureView>& textureView, const grl::Rc<urhi::Sampler>& sampler, ImVec2 size, ImVec2 uv0 = ImVec2(0, 0), ImVec2 uv1 = ImVec2(1, 1));
 
     bool Checkbox(const char* label, bool& value);
 

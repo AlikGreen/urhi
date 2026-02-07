@@ -3,7 +3,7 @@
 #include <string>
 #include <variant>
 
-namespace Neon::RHI
+namespace urhi
 {
     class Event
     {

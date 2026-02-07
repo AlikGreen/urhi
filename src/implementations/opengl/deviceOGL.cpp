@@ -13,62 +13,62 @@
 #include "textureOGL.h"
 #include "textureViewOGL.h"
 
-namespace Neon::RHI
+namespace urhi
 {
-    Rc<Pipeline> DeviceOGL::createPipeline(const GraphicsPipelineDesc& desc)
+    grl::Rc<Pipeline> DeviceOGL::createPipeline(const GraphicsPipelineDesc& desc)
     {
-        return makeRc<PipelineOGL>(desc);
+        return grl::makeRc<PipelineOGL>(desc);
     }
 
-    Rc<Pipeline> DeviceOGL::createPipeline(const ComputePipelineDesc& description)
+    grl::Rc<Pipeline> DeviceOGL::createPipeline(const ComputePipelineDesc& description)
     {
-        return makeRc<PipelineOGL>(description);
+        return grl::makeRc<PipelineOGL>(description);
     }
 
-    Rc<CommandList> DeviceOGL::createCommandList()
+    grl::Rc<CommandList> DeviceOGL::createCommandList()
     {
-        return makeRc<CommandListOGL>(this);
+        return grl::makeRc<CommandListOGL>(this);
     }
 
-    Rc<Swapchain> DeviceOGL::createSwapchain(const SwapchainDesc& desc)
+    grl::Rc<Swapchain> DeviceOGL::createSwapchain(const SwapchainDesc& desc)
     {
-        return makeRc<SwapchainOGL>(desc, this);
+        return grl::makeRc<SwapchainOGL>(desc, this);
     }
 
-    Rc<Buffer> DeviceOGL::createIndexBuffer()
+    grl::Rc<Buffer> DeviceOGL::createIndexBuffer()
     {
-        return makeRc<BufferOGL>(GL_ELEMENT_ARRAY_BUFFER);
+        return grl::makeRc<BufferOGL>(GL_ELEMENT_ARRAY_BUFFER);
     }
 
-    Rc<Buffer> DeviceOGL::createUniformBuffer()
+    grl::Rc<Buffer> DeviceOGL::createUniformBuffer()
     {
-        return makeRc<BufferOGL>(GL_UNIFORM_BUFFER);
+        return grl::makeRc<BufferOGL>(GL_UNIFORM_BUFFER);
     }
 
-    Rc<Buffer> DeviceOGL::createVertexBuffer()
+    grl::Rc<Buffer> DeviceOGL::createVertexBuffer()
     {
-        return makeRc<BufferOGL>(GL_ARRAY_BUFFER);
+        return grl::makeRc<BufferOGL>(GL_ARRAY_BUFFER);
     }
 
-    Rc<Texture> DeviceOGL::createTexture(const TextureDesc& desc)
+    grl::Rc<Texture> DeviceOGL::createTexture(const TextureDesc& desc)
     {
-        return makeRc<TextureOGL>(desc);
+        return grl::makeRc<TextureOGL>(desc);
     }
 
-    Rc<Sampler> DeviceOGL::createSampler(const SamplerDesc& desc)
+    grl::Rc<Sampler> DeviceOGL::createSampler(const SamplerDesc& desc)
     {
-        return makeRc<SamplerOGL>(desc);
+        return grl::makeRc<SamplerOGL>(desc);
     }
 
-    Rc<TextureView> DeviceOGL::createTextureView(const TextureViewDesc& desc)
+    grl::Rc<TextureView> DeviceOGL::createTextureView(const TextureViewDesc& desc)
     {
-        return makeRc<TextureViewOGL>(desc);
+        return grl::makeRc<TextureViewOGL>(desc);
     }
 
 
-    Rc<Shader> DeviceOGL::createShader(CompiledShader shader)
+    grl::Rc<Shader> DeviceOGL::createShader(CompiledShader shader)
     {
-        return makeRc<ShaderOGL>(shader);
+        return grl::makeRc<ShaderOGL>(shader);
     }
 
     void DeviceOGL::endFrame()
@@ -156,7 +156,7 @@ namespace Neon::RHI
         return fbo;
     }
 
-    void DeviceOGL::submit(const Rc<CommandList>& commandList)
+    void DeviceOGL::submit(const grl::Rc<CommandList>& commandList)
     {
         dynamic_cast<CommandListOGL*>(commandList.get())->executeCommands();
     }

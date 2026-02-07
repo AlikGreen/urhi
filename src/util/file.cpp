@@ -4,7 +4,7 @@
 #include <sstream>
 #include <filesystem>
 
-namespace Neon::RHI
+namespace urhi
 {
     std::string File::readFileText(const char *filePath)
     {

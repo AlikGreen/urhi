@@ -16,7 +16,7 @@
 #include "enums/shaderStage.h"
 #include "input/keyCodes.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class ConvertOGL
 {

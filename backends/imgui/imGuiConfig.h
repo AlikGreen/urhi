@@ -1,21 +1,21 @@
 #pragma once
-#include <neonCore/neonCore.h>
+#include <grl/grl.h>
 #include <glm/glm.hpp>
 
-namespace Neon::RHI
+namespace urhi
 {
     class TextureView;
     class Sampler;
 
     struct ImGuiImage
     {
-        Rc<TextureView> view;
-        Rc<Sampler> sampler;
+        grl::Rc<TextureView> view;
+        grl::Rc<Sampler> sampler;
     };
 }
 
 #undef ImTextureID
-#define ImTextureID Neon::RHI::ImGuiImage*
+#define ImTextureID urhi::ImGuiImage*
 
 #undef ImTextureID_Invalid
 #define ImTextureID_Invalid nullptr

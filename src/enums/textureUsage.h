@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace Neon::RHI
+namespace urhi
 {
     enum class TextureUsage : uint32_t
     {

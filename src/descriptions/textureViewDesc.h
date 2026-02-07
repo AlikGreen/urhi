@@ -1,12 +1,12 @@
 #pragma once
 #include "texture.h"
-#include <neonCore/neonCore.h>
+#include <grl/grl.h>
 
-namespace Neon::RHI
+namespace urhi
 {
 struct TextureViewDesc
 {
-    Rc<Texture> target = nullptr;
+    grl::Rc<Texture> target = nullptr;
 
     uint32_t baseMipLevel = 0;
     uint32_t mipLevels = 1;
@@ -17,7 +17,7 @@ struct TextureViewDesc
 
     TextureViewDesc() = default;
 
-    explicit TextureViewDesc(const Rc<Texture>& target)
+    explicit TextureViewDesc(const grl::Rc<Texture>& target)
     {
         this->target = target;
         baseMipLevel = 0;
@@ -27,7 +27,7 @@ struct TextureViewDesc
         format = target->getFormat();
     }
 
-    TextureViewDesc(const Rc<Texture>& target, const PixelFormat format)
+    TextureViewDesc(const grl::Rc<Texture>& target, const PixelFormat format)
     {
         this->target = target;
         baseMipLevel = 0;
@@ -37,7 +37,7 @@ struct TextureViewDesc
         this->format = format;
     }
 
-    TextureViewDesc(const Rc<Texture>& target, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
+    TextureViewDesc(const grl::Rc<Texture>& target, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
     {
         this->target = target;
         this->baseMipLevel = baseMipLevel;
@@ -47,7 +47,7 @@ struct TextureViewDesc
         format = target->getFormat();
     }
 
-    TextureViewDesc(const Rc<Texture>& target, const PixelFormat format, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
+    TextureViewDesc(const grl::Rc<Texture>& target, const PixelFormat format, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
     {
         this->target = target;
         this->baseMipLevel = baseMipLevel;

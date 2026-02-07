@@ -1,7 +1,7 @@
 #pragma once
 #include "descriptions/shaderReflection.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class Shader
 {

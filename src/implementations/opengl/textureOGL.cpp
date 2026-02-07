@@ -4,9 +4,9 @@
 #include <glad/gl.h>
 
 #include "convertOGL.h"
-#include "debug.h"
+#include <clogr.h>
 
-namespace Neon::RHI
+namespace urhi
 {
     TextureOGL::TextureOGL(const TextureDesc &description)
     {
@@ -14,9 +14,9 @@ namespace Neon::RHI
         height = description.height;
         depth = description.depth;
 
-        Debug::ensure(width > 0, "Texture width must be greater than 0");
-        Debug::ensure(height > 0, "Texture height must be greater than 0");
-        Debug::ensure(depth > 0, "Texture depth must be greater than 0");
+        clogr::ensure(width > 0, "Texture width must be greater than 0");
+        clogr::ensure(height > 0, "Texture height must be greater than 0");
+        clogr::ensure(depth > 0, "Texture depth must be greater than 0");
 
         format = description.format;
 
@@ -175,6 +175,6 @@ namespace Neon::RHI
             return;
         }
 
-        Debug::ensure(false, "Texture type unknown");
+        clogr::ensure(false, "Texture type unknown");
     }
 }

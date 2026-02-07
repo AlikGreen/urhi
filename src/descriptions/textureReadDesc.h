@@ -4,7 +4,7 @@
 #include "enums/pixelLayout.h"
 #include "enums/pixelType.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 struct TextureReadDesc
 {

@@ -2,13 +2,13 @@
 
 #include <glad/gl.h>
 
-#include "debug.h"
+#include <clogr.h>
 
-namespace Neon::RHI
+namespace urhi
 {
     BufferOGL::BufferOGL(const GLenum target) : target(target)
     {
-        Debug::ensure(target == GL_ARRAY_BUFFER ||
+        clogr::ensure(target == GL_ARRAY_BUFFER ||
                      target == GL_ELEMENT_ARRAY_BUFFER ||
                      target == GL_UNIFORM_BUFFER ||
                      target == GL_SHADER_STORAGE_BUFFER ||
@@ -22,7 +22,7 @@ namespace Neon::RHI
                      "Invalid buffer target {}", target);
 
         glGenBuffers(1, &handle);
-        Debug::ensure(handle != 0, "Failed to generate OpenGL buffer object");
+        clogr::ensure(handle != 0, "Failed to generate OpenGL buffer object");
     }
 
     BufferOGL::~BufferOGL()
@@ -32,20 +32,20 @@ namespace Neon::RHI
 
     void BufferOGL::bind() const
     {
-        Debug::ensure(handle != 0, "Binding null buffer");
+        clogr::ensure(handle != 0, "Binding null buffer");
         glBindBuffer(target, handle);
     }
 
     void BufferOGL::unbind() const
     {
-        Debug::ensure(handle != 0, "Unbinding null buffer");
+        clogr::ensure(handle != 0, "Unbinding null buffer");
         glBindBuffer(target, 0);
     }
 
     void BufferOGL::reserveSpace(const size_t size)
     {
-        Debug::ensure(handle != 0, "Reserving space on null buffer");
-        Debug::ensure(size > 0, "Attempting to reserve zero or negative buffer size: {}", size);
+        clogr::ensure(handle != 0, "Reserving space on null buffer");
+        clogr::ensure(size > 0, "Attempting to reserve zero or negative buffer size: {}", size);
 
         this->capacity = size;
         bind();
@@ -55,10 +55,10 @@ namespace Neon::RHI
 
     void BufferOGL::uploadData(const void *data, const size_t size) const
     {
-        Debug::ensure(handle != 0, "Uploading data to null buffer");
-        Debug::ensure(data != nullptr, "Uploading null data pointer");
-        Debug::ensure(size > 0, "Uploading zero bytes");
-        Debug::ensure(size <= this->capacity, "Data to be uploaded exceeds buffer capacity: {} > {}", size, this->capacity);
+        clogr::ensure(handle != 0, "Uploading data to null buffer");
+        clogr::ensure(data != nullptr, "Uploading null data pointer");
+        clogr::ensure(size > 0, "Uploading zero bytes");
+        clogr::ensure(size <= this->capacity, "Data to be uploaded exceeds buffer capacity: {} > {}", size, this->capacity);
 
         bind();
         glBufferSubData(target, 0, static_cast<GLsizeiptr>(size), data);
@@ -67,9 +67,9 @@ namespace Neon::RHI
 
     void BufferOGL::bindBase(const uint32_t binding) const
     {
-        Debug::ensure(handle != 0, "Binding null buffer to base {}", binding);
-        Debug::ensure(glIsBuffer(handle) == GL_TRUE, "Binding invalid buffer handle {} to base {}", handle, binding);
-        Debug::ensure(target == GL_UNIFORM_BUFFER || target == GL_SHADER_STORAGE_BUFFER ||
+        clogr::ensure(handle != 0, "Binding null buffer to base {}", binding);
+        clogr::ensure(glIsBuffer(handle) == GL_TRUE, "Binding invalid buffer handle {} to base {}", handle, binding);
+        clogr::ensure(target == GL_UNIFORM_BUFFER || target == GL_SHADER_STORAGE_BUFFER ||
                      target == GL_TRANSFORM_FEEDBACK_BUFFER || target == GL_ATOMIC_COUNTER_BUFFER,
                      "bindBase called on unsupported target {}", target);
 
@@ -78,7 +78,7 @@ namespace Neon::RHI
 
     GLenum BufferOGL::getTarget() const
     {
-        Debug::ensure(handle != 0, "getTarget called on null buffer");
+        clogr::ensure(handle != 0, "getTarget called on null buffer");
         return target;
     }
 }

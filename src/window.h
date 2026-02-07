@@ -5,16 +5,16 @@
 #include "enums/backendAPI.h"
 #include "glm/glm.hpp"
 
-namespace Neon::RHI
+namespace urhi
 {
 class Window
 {
 public:
   virtual ~Window() = default;
 
-  static Rc<Window> createWindow(const WindowCreationOptions& creationOptions, BackendAPI backendApi = BackendAPI::OpenGL);
+  static grl::Rc<Window> createWindow(const WindowCreationOptions& creationOptions, BackendAPI backendApi = BackendAPI::OpenGL);
 
-  virtual Rc<Device> createDevice() = 0;
+  virtual grl::Rc<Device> createDevice() = 0;
 
   virtual void run() = 0;
   virtual void close() = 0;

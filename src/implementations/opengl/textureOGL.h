@@ -5,7 +5,7 @@
 #include "descriptions/textureUploadDesc.h"
 #include "glad/gl.h"
 
-namespace Neon::RHI
+namespace urhi
 {
 class TextureOGL final : public Texture
 {
