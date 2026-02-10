@@ -5,6 +5,8 @@
 
 #include <clogr.h>
 
+#include "glm/vec3.hpp"
+
 namespace urhi
 {
     static ShaderReflection::DataType slangTypeToDataType(slang::TypeReflection* type)
@@ -16,9 +18,9 @@ namespace urhi
 
         if (kind == slang::TypeReflection::Kind::Vector)
         {
-            auto elemCount = type->getElementCount();
-            auto elemType = type->getElementType();
-            auto scalarKind = elemType->getScalarType();
+            const auto elemCount = type->getElementCount();
+            const auto elemType = type->getElementType();
+            const auto scalarKind = elemType->getScalarType();
 
             if (scalarKind == slang::TypeReflection::ScalarType::Float32)
             {
@@ -27,24 +29,27 @@ namespace urhi
                     case 2: return ShaderReflection::DataType::Float2;
                     case 3: return ShaderReflection::DataType::Float3;
                     case 4: return ShaderReflection::DataType::Float4;
+                    default: return ShaderReflection::DataType::Float;
                 }
             }
-            else if (scalarKind == slang::TypeReflection::ScalarType::Int32)
+            if (scalarKind == slang::TypeReflection::ScalarType::Int32)
             {
                 switch (elemCount)
                 {
                     case 2: return ShaderReflection::DataType::Int2;
                     case 3: return ShaderReflection::DataType::Int3;
                     case 4: return ShaderReflection::DataType::Int4;
+                    default: return ShaderReflection::DataType::Int;
                 }
             }
-            else if (scalarKind == slang::TypeReflection::ScalarType::UInt32)
+            if (scalarKind == slang::TypeReflection::ScalarType::UInt32)
             {
                 switch (elemCount)
                 {
                     case 2: return ShaderReflection::DataType::UInt2;
                     case 3: return ShaderReflection::DataType::UInt3;
                     case 4: return ShaderReflection::DataType::UInt4;
+                    default: return ShaderReflection::DataType::UInt;
                 }
             }
         }
@@ -153,6 +158,18 @@ namespace urhi
 
         CompiledShader compiled;
 
+        // Get thread group size only works with 1 compute entry point per shader currently
+        for (int i = 0; i < layout->getEntryPointCount(); ++i)
+        {
+            auto entry = layout->getEntryPointByIndex(i);
+            if (entry->getStage() == SLANG_STAGE_COMPUTE)
+            {
+                SlangUInt threadGroupSize[3] = { 1, 1, 1 };
+                entry->getComputeThreadGroupSize(3, threadGroupSize);
+                compiled.reflection.threadGroupSize = { threadGroupSize[0], threadGroupSize[1], threadGroupSize[2] };
+            }
+        }
+
         // Reflect parameters using Slang's reflection API
         SlangUInt paramCount = layout->getParameterCount();
         for (SlangUInt i = 0; i < paramCount; i++)
@@ -164,7 +181,6 @@ namespace urhi
             const char* name = param->getName();
 
             uint32_t binding = 0;
-            bool isPushConstant = false;
 
             auto categoryCount = param->getCategoryCount();
             for (SlangInt c = 0; c < categoryCount; c++)
@@ -172,21 +188,16 @@ namespace urhi
                 auto category = param->getCategoryByIndex(c);
 
                 binding = param->getOffset(category);
-                if (category == SLANG_PARAMETER_CATEGORY_PUSH_CONSTANT_BUFFER) // stupid probably doesnt do anything but i cant figure out how to add push constants in a nice way anyway so...
-                {
-                    isPushConstant = true;
-                }
                 break;
             }
 
             auto kind = type->getKind();
 
             if (kind == slang::TypeReflection::Kind::ConstantBuffer ||
-                kind == slang::TypeReflection::Kind::ParameterBlock ||
-                isPushConstant)
+                kind == slang::TypeReflection::Kind::ParameterBlock)
             {
                 ShaderReflection::Resource resource{};
-                resource.type = isPushConstant ? ShaderReflection::ResourceType::PushConstant : ShaderReflection::ResourceType::ConstantBuffer;
+                resource.type = ShaderReflection::ResourceType::ConstantBuffer;
                 resource.name = name;
                 resource.binding = binding;
 
@@ -217,7 +228,8 @@ namespace urhi
                 auto resourceShape = type->getResourceShape();
                 auto access = type->getResourceAccess();
 
-                if ((resourceShape & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_STRUCTURED_BUFFER)
+                if ((resourceShape & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_STRUCTURED_BUFFER ||
+                    (resourceShape & SLANG_RESOURCE_BASE_SHAPE_MASK) == SLANG_BYTE_ADDRESS_BUFFER)
                 {
                     ShaderReflection::Resource resource{};
                     resource.type = ShaderReflection::ResourceType::StorageBuffer;

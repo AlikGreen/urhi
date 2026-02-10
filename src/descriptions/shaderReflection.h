@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <glm/glm.hpp>
 
 namespace urhi
 {
@@ -67,5 +68,6 @@ struct ShaderReflection
     std::vector<Resource> resources;
     std::vector<VertexAttribute> vertexInputs;
     std::optional<ComputeInfo> computeInfo;
+    glm::uvec3 threadGroupSize;
 };
 }

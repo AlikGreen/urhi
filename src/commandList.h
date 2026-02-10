@@ -28,6 +28,7 @@ public:
     virtual void begin() = 0;
 
     virtual void setUniformBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
+    virtual void setStorageBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
     virtual void setTexture(const std::string& name, const grl::Rc<TextureView>& texture) = 0;
     virtual void setSampler(const std::string& name, const grl::Rc<Sampler>& sampler) = 0;
     virtual void setImage(const std::string& name, const grl::Rc<TextureView>& texture, ImageAccess access) = 0;
@@ -51,7 +52,7 @@ public:
     virtual void dispatch(const glm::ivec3& numGroups) = 0;
 
     virtual void resourceBarrier(const grl::Rc<Texture>& texture, ImageAccess nextAccess) = 0;
-    void resourceBarrier(const grl::Rc<Texture>& texture) { resourceBarrier(texture, ImageAccess::ReadWrite); }
+    virtual void resourceBarrier(const grl::Rc<Buffer>& buffer) = 0;
 
 
     template<typename T>

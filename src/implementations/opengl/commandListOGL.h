@@ -18,6 +18,7 @@ namespace urhi
         void begin() override;
 
         void setUniformBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) override;
+        void setStorageBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) override;
 
         void setTexture(const std::string& name, const grl::Rc<TextureView>& texture) override;
         void setSampler(const std::string& name, const grl::Rc<Sampler>& sampler) override;
@@ -41,6 +42,7 @@ namespace urhi
         void dispatch(const glm::ivec3& numGroups) override;
 
         void resourceBarrier(const grl::Rc<Texture> &texture, ImageAccess nextAccess) override;
+        void resourceBarrier(const grl::Rc<Buffer> &buffer) override;
 
         void addCustomCommand(const std::function<void()> &command);
 

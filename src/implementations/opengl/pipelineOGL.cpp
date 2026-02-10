@@ -34,7 +34,7 @@ namespace urhi
     {
         isComputePipeline = true;
         shader = std::dynamic_pointer_cast<ShaderOGL>(description.shader);
-        theadGroupSize = description.threadGroupSize;
+        theadGroupSize = shader->getThreadGroupSize();
     }
 
     PipelineOGL::~PipelineOGL()

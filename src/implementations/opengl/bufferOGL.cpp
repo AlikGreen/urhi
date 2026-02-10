@@ -44,7 +44,6 @@ namespace urhi
 
     void BufferOGL::reserveSpace(const size_t size)
     {
-        clogr::ensure(handle != 0, "Reserving space on null buffer");
         clogr::ensure(size > 0, "Attempting to reserve zero or negative buffer size: {}", size);
 
         this->capacity = size;
@@ -55,7 +54,6 @@ namespace urhi
 
     void BufferOGL::uploadData(const void *data, const size_t size) const
     {
-        clogr::ensure(handle != 0, "Uploading data to null buffer");
         clogr::ensure(data != nullptr, "Uploading null data pointer");
         clogr::ensure(size > 0, "Uploading zero bytes");
         clogr::ensure(size <= this->capacity, "Data to be uploaded exceeds buffer capacity: {} > {}", size, this->capacity);
@@ -65,15 +63,35 @@ namespace urhi
         unbind();
     }
 
-    void BufferOGL::bindBase(const uint32_t binding) const
+    void BufferOGL::bindBase(const uint32_t binding, GLenum target) const
     {
-        clogr::ensure(handle != 0, "Binding null buffer to base {}", binding);
-        clogr::ensure(glIsBuffer(handle) == GL_TRUE, "Binding invalid buffer handle {} to base {}", handle, binding);
         clogr::ensure(target == GL_UNIFORM_BUFFER || target == GL_SHADER_STORAGE_BUFFER ||
                      target == GL_TRANSFORM_FEEDBACK_BUFFER || target == GL_ATOMIC_COUNTER_BUFFER,
                      "bindBase called on unsupported target {}", target);
 
         glBindBufferBase(target, binding, handle);
+    }
+
+    void BufferOGL::memoryBarrier() const
+    {
+        switch (target)
+        {
+            case GL_ARRAY_BUFFER:
+                glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+                break;
+            case GL_ELEMENT_ARRAY_BUFFER:
+                glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT);
+                break;
+            case GL_UNIFORM_BUFFER:
+                glMemoryBarrier(GL_UNIFORM_BARRIER_BIT);
+                break;
+            case GL_SHADER_STORAGE_BUFFER:
+                glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+                break;
+            default:
+                glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+                break;
+        }
     }
 
     GLenum BufferOGL::getTarget() const

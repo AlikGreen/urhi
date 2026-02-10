@@ -17,8 +17,9 @@ public:
     grl::Rc<Swapchain> createSwapchain(const SwapchainDesc &desc) override;
 
     grl::Rc<Buffer> createIndexBuffer() override;
-    grl::Rc<Buffer> createUniformBuffer() override;
     grl::Rc<Buffer> createVertexBuffer() override;
+    grl::Rc<Buffer> createUniformBuffer() override;
+    grl::Rc<Buffer> createStorageBuffer() override;
 
     grl::Rc<Texture> createTexture(const TextureDesc& desc) override;
     grl::Rc<Sampler> createSampler(const SamplerDesc& desc) override;
@@ -34,6 +35,7 @@ public:
 private:
     static size_t hashRenderPass(const RenderPassDesc &desc);
 
+private:
     struct CachedFb
     {
         GLuint fbo;

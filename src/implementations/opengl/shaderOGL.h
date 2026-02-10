@@ -9,6 +9,7 @@
 #include "shaderCompiler.h"
 #include "spirv_common.hpp"
 #include "spirv_cross.hpp"
+#include "glm/vec3.hpp"
 
 namespace urhi
 {
@@ -30,6 +31,8 @@ public:
     uint32_t getTextureLocation(const std::string &name) const;
     uint32_t getSamplerLocation(const std::string &name) const;
     uint32_t getImageLocation(  const std::string &name) const;
+
+    glm::uvec3 getThreadGroupSize() const;
 private:
     struct ShaderStage
     {

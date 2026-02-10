@@ -149,7 +149,7 @@ namespace urhi
             glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &success);
             glGetShaderInfoLog(shaderHandle, 512, nullptr, infoLog);
 
-            clogr::ensure(success, "Shader compilation error: {}", infoLog);
+            clogr::ensure(success, "Shader compilation error: {}\n{}", infoLog, glslSource);
         }
 
         m_handle = glCreateProgram();
@@ -223,5 +223,10 @@ namespace urhi
     {
         clogr::ensure(m_internalReflection.imageUnit.contains(name), "Shader does not contain an image with the name {}", name);
         return m_internalReflection.imageUnit.at(name);
+    }
+
+    glm::uvec3 ShaderOGL::getThreadGroupSize() const
+    {
+        return m_reflection.threadGroupSize;
     }
 }

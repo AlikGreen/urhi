@@ -39,8 +39,9 @@ public:
     virtual grl::Rc<Shader> createShader(CompiledShader shader) = 0;
 
     virtual grl::Rc<Buffer> createIndexBuffer() = 0;
-    virtual grl::Rc<Buffer> createUniformBuffer() = 0;
     virtual grl::Rc<Buffer> createVertexBuffer() = 0;
+    virtual grl::Rc<Buffer> createUniformBuffer() = 0;
+    virtual grl::Rc<Buffer> createStorageBuffer() = 0;
 
     virtual void submit(const grl::Rc<CommandList>& commandList) = 0;
 };

@@ -9,7 +9,5 @@ namespace urhi
 struct ComputePipelineDesc
 {
     grl::Rc<Shader> shader = nullptr;
-
-    glm::ivec3 threadGroupSize{1};
 };
 }

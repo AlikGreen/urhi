@@ -39,8 +39,21 @@ namespace urhi
             const uint32_t binding = getPipeline()->getShader()->getUBOLocation(name);
             const auto* uniformBufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
             clogr::ensure(uniformBufferOGL != nullptr, "setUniformBuffer: buffer is not BufferOGL");
-            clogr::ensure(uniformBufferOGL->getTarget() == GL_UNIFORM_BUFFER, "Buffer being set as Uniform Buffer was not created as GL_UNIFORM_BUFFER");
-            uniformBufferOGL->bindBase(binding);
+            uniformBufferOGL->bindBase(binding, GL_UNIFORM_BUFFER);
+        });
+    }
+
+    void CommandListOGL::setStorageBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
+    {
+        clogr::ensure(buffer != nullptr, "setUniformBuffer: null buffer");
+
+        m_commands.emplace_back([buffer, name, this]
+        {
+            const uint32_t binding = getPipeline()->getShader()->getSSBOLocation(name);
+            const auto* storageBufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
+            clogr::ensure(storageBufferOGL != nullptr, "setUniformBuffer: buffer is not BufferOGL");
+
+            storageBufferOGL->bindBase(binding, GL_SHADER_STORAGE_BUFFER);
         });
     }
 
@@ -267,6 +280,15 @@ namespace urhi
         m_commands.emplace_back([]
         {
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        });
+    }
+
+    void CommandListOGL::resourceBarrier(const grl::Rc<Buffer> &buffer)
+    {
+        m_commands.emplace_back([buffer]
+        {
+            const auto* bufferOGL = dynamic_cast<BufferOGL*>(buffer.get());
+            bufferOGL->memoryBarrier();
         });
     }
 

@@ -15,7 +15,8 @@ public:
     void unbind() const;
     void reserveSpace(size_t size);
     void uploadData(const void* data, size_t size) const;
-    void bindBase(uint32_t binding) const;
+    void bindBase(uint32_t binding, GLenum target) const;
+    void memoryBarrier() const;
 
     [[nodiscard]] GLenum getTarget() const;
 private:

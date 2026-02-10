@@ -45,6 +45,11 @@ namespace urhi
         return grl::makeRc<BufferOGL>(GL_UNIFORM_BUFFER);
     }
 
+    grl::Rc<Buffer> DeviceOGL::createStorageBuffer()
+    {
+        return grl::makeRc<BufferOGL>(GL_SHADER_STORAGE_BUFFER);
+    }
+
     grl::Rc<Buffer> DeviceOGL::createVertexBuffer()
     {
         return grl::makeRc<BufferOGL>(GL_ARRAY_BUFFER);
