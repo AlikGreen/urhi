@@ -2,7 +2,7 @@
 
 namespace urhi
 {
-struct WindowCreationOptions
+struct WindowDesc
 {
     const char* title{};
     int width = -1;

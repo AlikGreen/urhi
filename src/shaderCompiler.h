@@ -9,11 +9,11 @@
 
 namespace urhi
 {
-    struct ShaderCompileDescription
+    struct ShaderCompileDesc
     {
-        std::string path;
-        std::string source;
-        std::vector<std::string> includePaths;
+        std::string path{};
+        std::string source{};
+        std::vector<std::string> includePaths{};
     };
 
     struct CompiledShader
@@ -25,6 +25,6 @@ namespace urhi
     class ShaderCompiler
     {
     public:
-        static CompiledShader compile(const ShaderCompileDescription& compileDesc);
+        static CompiledShader compile(const ShaderCompileDesc& compileDesc);
     };
 }

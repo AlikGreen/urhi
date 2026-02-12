@@ -9,7 +9,6 @@
 #include "shaderCompiler.h"
 #include "swapchain.h"
 #include "texture.h"
-#include "grl/grl.h"
 
 #include "descriptions/graphicsPipelineDesc.h"
 #include "descriptions/computePipelineDesc.h"
@@ -17,6 +16,7 @@
 #include "descriptions/swapchainDesc.h"
 #include "descriptions/textureDesc.h"
 #include "descriptions/textureViewDesc.h"
+#include "enums/queueType.h"
 
 namespace urhi
 {
@@ -28,9 +28,7 @@ public:
     virtual grl::Rc<Pipeline> createPipeline(const GraphicsPipelineDesc& desc) = 0;
     virtual grl::Rc<Pipeline> createPipeline(const ComputePipelineDesc& desc) = 0;
 
-    virtual grl::Rc<Swapchain> createSwapchain(const SwapchainDesc& desc) = 0;
-
-    virtual grl::Rc<CommandList> createCommandList() = 0;
+    virtual grl::Rc<CommandList> acquireCommandList(QueueType queueType) = 0;
 
     virtual grl::Rc<Texture> createTexture(const TextureDesc& description) = 0;
     virtual grl::Rc<Sampler> createSampler(const SamplerDesc& description) = 0;

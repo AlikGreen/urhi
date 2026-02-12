@@ -11,7 +11,10 @@ add_subdirectory(${DEPS_DIR}/glfw)
 add_subdirectory(${DEPS_DIR}/glad)
 add_subdirectory(${DEPS_DIR}/spirv-cross)
 add_subdirectory(${DEPS_DIR}/clogr)
+add_subdirectory(${DEPS_DIR}/vk-bootstrap)
 add_subdirectory(${DEPS_DIR}/rapidyaml)
+
+find_package(Vulkan REQUIRED)
 
 if(WIN32)
     set(SLANG_BIN_DIR "${DEPS_DIR}/slang/windows-x64/bin")
@@ -38,7 +41,7 @@ target_compile_definitions(urhi PRIVATE GLFW_INCLUDE_NONE)
 
 target_include_directories(urhi PUBLIC src/)
 target_include_directories(urhi PUBLIC include/ "${DEPS_DIR}/slang/include")
-target_link_libraries(urhi PUBLIC glfw glm::glm glad clogr ${SLANG_LIBRARY} spirv-cross-c)
+target_link_libraries(urhi PUBLIC glfw glm::glm glad clogr ${SLANG_LIBRARY} spirv-cross-c vk-bootstrap::vk-bootstrap Vulkan::Vulkan)
 
 file(COPY ${SLANG_DLLS}
         DESTINATION "${CMAKE_BINARY_DIR}")
@@ -73,7 +76,7 @@ add_library(urhi_imgui STATIC
         backends/imgui/imGuiExtensions.cpp)
 
 target_include_directories(urhi_imgui PUBLIC backends/)
-target_link_libraries(urhi_imgui PUBLIC urhi imgui_static grl ryml::ryml c4core::c4core)
+target_link_libraries(urhi_imgui PUBLIC urhi imgui_static ryml::ryml c4core::c4core)
 
 target_compile_definitions(urhi_imgui PRIVATE
         IMGUI_USER_CONFIG="imgui/imGuiConfig.h"
@@ -81,3 +84,6 @@ target_compile_definitions(urhi_imgui PRIVATE
 )
 
 add_library(urhi::imgui ALIAS urhi_imgui)
+
+add_executable(urhi_basic_example examples/basic.cpp)
+target_link_libraries(urhi_basic_example PUBLIC urhi)

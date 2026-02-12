@@ -11,7 +11,7 @@ namespace urhi
 {
 struct ColorAttachment
 {
-     grl::Rc<TextureView> texture = nullptr;
+    grl::Rc<TextureView> texture = nullptr;
 
     LoadOp loadOp = LoadOp::Clear;
     StoreOp storeOp = StoreOp::Store;

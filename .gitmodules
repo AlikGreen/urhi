@@ -31,3 +31,6 @@
 [submodule "dependencies/clogr"]
 	path = dependencies/clogr
 	url = https://github.com/AlikGreen/clogr.git
+[submodule "dependencies/vk-bootstrap"]
+	path = dependencies/vk-bootstrap
+	url = https://github.com/charles-lunarg/vk-bootstrap.git

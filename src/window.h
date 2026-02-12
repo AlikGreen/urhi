@@ -1,8 +1,6 @@
 #pragma once
 #include "device.h"
 #include "event.h"
-#include "descriptions/windowCreationOptions.h"
-#include "enums/backendAPI.h"
 #include "glm/glm.hpp"
 
 namespace urhi
@@ -12,11 +10,6 @@ class Window
 public:
   virtual ~Window() = default;
 
-  static grl::Rc<Window> createWindow(const WindowCreationOptions& creationOptions, BackendAPI backendApi = BackendAPI::OpenGL);
-
-  virtual grl::Rc<Device> createDevice() = 0;
-
-  virtual void run() = 0;
   virtual void close() = 0;
   virtual std::vector<Event> pollEvents() = 0;
 
@@ -33,7 +26,5 @@ public:
 
   virtual void setCursorLocked(bool locked) = 0;
   virtual void setCursorVisible(bool visible) = 0;
-
-  virtual void swapBuffers() = 0;
 };
 }

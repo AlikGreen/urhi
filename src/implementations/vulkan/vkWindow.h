@@ -1,19 +1,22 @@
 #pragma once
-#include "event.h"
+
+#include <vulkan/vulkan.hpp>
+
 #include "window.h"
+#include "descriptions/windowDesc.h"
 
-#include "GLFW/glfw3.h"
-
+struct GLFWwindow;
 namespace urhi
 {
-class WindowOGL final : public Window
+    class VkContext;
+
+class VkWindow final : public Window
 {
 public:
-    explicit WindowOGL(const WindowCreationOptions& creationOptions);
-    grl::Rc<Device> createDevice() override;
+    explicit VkWindow(const WindowDesc& options, const VkContext* context);
 
-    void run() override;
     void close() override;
+
     std::vector<Event> pollEvents() override;
 
     uint32_t getWidth() override;
@@ -30,16 +33,12 @@ public:
     void setCursorLocked(bool locked) override;
     void setCursorVisible(bool visible) override;
 
-    void swapBuffers() override;
+    [[nodiscard]] vk::SurfaceKHR getSurface() const;
 private:
-    WindowCreationOptions creationOptions;
-    GLFWwindow* handle{};
-    bool cursorVisible = true;
-    bool cursorLocked = false;
+    GLFWwindow* m_handle = nullptr;
+    std::vector<Event> m_events{};
 
-    std::vector<Event> events{};
-
-    void updateCursorState() const;
+    vk::SurfaceKHR m_surface;
 
     static void keyCallback(GLFWwindow* windowGLFW, int key, int scancode, int action, int mods);
     static void mouseButtonCallback(GLFWwindow* windowGLFW, int button, int action, int mods);

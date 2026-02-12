@@ -4,6 +4,6 @@ namespace urhi
 {
     enum class BackendAPI
     {
-        OpenGL
+        OpenGL, Vulkan
     };
 }

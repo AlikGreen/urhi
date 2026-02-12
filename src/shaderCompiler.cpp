@@ -78,7 +78,7 @@ namespace urhi
         return ShaderReflection::DataType::Float;
     }
 
-    CompiledShader ShaderCompiler::compile(const ShaderCompileDescription& compileDesc)
+    CompiledShader ShaderCompiler::compile(const ShaderCompileDesc& compileDesc)
     {
         using namespace Slang;
         ComPtr<slang::IGlobalSession> globalSession;
