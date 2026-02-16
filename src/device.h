@@ -6,9 +6,10 @@
 
 #include "buffer.h"
 #include "sampler.h"
-#include "shaderCompiler.h"
+#include "spirvShader.h"
 #include "swapchain.h"
 #include "texture.h"
+#include "descriptions/bufferDesc.h"
 
 #include "descriptions/graphicsPipelineDesc.h"
 #include "descriptions/computePipelineDesc.h"
@@ -30,16 +31,12 @@ public:
 
     virtual grl::Rc<CommandList> acquireCommandList(QueueType queueType) = 0;
 
-    virtual grl::Rc<Texture> createTexture(const TextureDesc& description) = 0;
-    virtual grl::Rc<Sampler> createSampler(const SamplerDesc& description) = 0;
+    virtual grl::Rc<Texture> createTexture(const TextureDesc& desc) = 0;
+    virtual grl::Rc<Sampler> createSampler(const SamplerDesc& desc) = 0;
     virtual grl::Rc<TextureView> createTextureView(const TextureViewDesc& desc) = 0;
 
-    virtual grl::Rc<Shader> createShader(CompiledShader shader) = 0;
-
-    virtual grl::Rc<Buffer> createIndexBuffer() = 0;
-    virtual grl::Rc<Buffer> createVertexBuffer() = 0;
-    virtual grl::Rc<Buffer> createUniformBuffer() = 0;
-    virtual grl::Rc<Buffer> createStorageBuffer() = 0;
+    virtual grl::Rc<Shader> createShader(SpirvShader shader) = 0;
+    virtual grl::Rc<Buffer> createBuffer(const BufferDesc& desc) = 0;
 
     virtual void submit(const grl::Rc<CommandList>& commandList) = 0;
 };

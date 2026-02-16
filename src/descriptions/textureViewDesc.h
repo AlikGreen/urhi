@@ -6,7 +6,7 @@ namespace urhi
 {
 struct TextureViewDesc
 {
-    grl::Rc<Texture> target = nullptr;
+    grl::Rc<Texture> texture = nullptr;
 
     uint32_t baseMipLevel = 0;
     uint32_t mipLevels = 1;
@@ -17,39 +17,39 @@ struct TextureViewDesc
 
     TextureViewDesc() = default;
 
-    explicit TextureViewDesc(const grl::Rc<Texture>& target)
+    explicit TextureViewDesc(const grl::Rc<Texture>& texture)
     {
-        this->target = target;
+        this->texture = texture;
         baseMipLevel = 0;
-        mipLevels = target->getMipLevels();
+        mipLevels = texture->getMipLevels();
         baseArrayLayer = 0;
-        arrayLayers = target->getArrayLayers();
-        format = target->getFormat();
+        arrayLayers = texture->getArrayLayers();
+        format = texture->getFormat();
     }
 
-    TextureViewDesc(const grl::Rc<Texture>& target, const PixelFormat format)
+    TextureViewDesc(const grl::Rc<Texture>& texture, const PixelFormat format)
     {
-        this->target = target;
+        this->texture = texture;
         baseMipLevel = 0;
-        mipLevels = target->getMipLevels();
+        mipLevels = texture->getMipLevels();
         baseArrayLayer = 0;
-        arrayLayers = target->getArrayLayers();
+        arrayLayers = texture->getArrayLayers();
         this->format = format;
     }
 
-    TextureViewDesc(const grl::Rc<Texture>& target, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
+    TextureViewDesc(const grl::Rc<Texture>& texture, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
     {
-        this->target = target;
+        this->texture = texture;
         this->baseMipLevel = baseMipLevel;
         this->mipLevels = mipLevels;
         this->baseArrayLayer = baseArrayLayer;
         this->arrayLayers = arrayLayers;
-        format = target->getFormat();
+        format = texture->getFormat();
     }
 
-    TextureViewDesc(const grl::Rc<Texture>& target, const PixelFormat format, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
+    TextureViewDesc(const grl::Rc<Texture>& texture, const PixelFormat format, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)
     {
-        this->target = target;
+        this->texture = texture;
         this->baseMipLevel = baseMipLevel;
         this->mipLevels = mipLevels;
         this->baseArrayLayer = baseArrayLayer;

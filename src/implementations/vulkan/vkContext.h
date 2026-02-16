@@ -13,8 +13,8 @@ public:
     grl::Rc<Window> createWindow(const WindowDesc& desc) override;
     grl::Rc<Swapchain> createSwapchain(const SwapchainDesc& desc) override;
 
-    vkb::Instance getVkbInstance() const;
-    vk::Instance getVkInstance() const;
+    [[nodiscard]] vkb::Instance getVkbInstance() const;
+    [[nodiscard]] vk::Instance getVkInstance() const;
 private:
     vk::Instance m_instance;
     vk::DebugUtilsMessengerEXT m_debugMessenger;

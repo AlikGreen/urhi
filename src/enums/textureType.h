@@ -9,6 +9,7 @@ namespace urhi
         Texture3D,
         Texture2DArray,
         TextureCube,
-        TextureCubeArray
+        TextureCubeArray,
+        Unknown
     };
 }

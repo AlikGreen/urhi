@@ -54,49 +54,52 @@ namespace urhi
 
     void VkWindow::close()
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
-    std::vector<Event> VkWindow::pollEvents()
+    void VkWindow::pollEvents(const std::function<void(Event&)> callback)
     {
         m_events.clear();
         glfwPollEvents();
-        return m_events;
+        for(auto& event : m_events)
+        {
+            callback(event);
+        }
     }
 
     uint32_t VkWindow::getWidth()
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     uint32_t VkWindow::getHeight()
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     glm::ivec2 VkWindow::getSize()
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     void VkWindow::setWidth(uint32_t width)
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     void VkWindow::setHeight(uint32_t height)
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     void VkWindow::setSize(glm::ivec2 size)
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     std::string VkWindow::getTitle()
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     void VkWindow::setTitle(std::string title)

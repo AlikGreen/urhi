@@ -7,28 +7,28 @@
 #include "enums/storeOp.h"
 #include <glm/glm.hpp>
 
+#include "clearValue.h"
+#include "rect2D.h"
+
 namespace urhi
 {
 struct ColorAttachment
 {
-    grl::Rc<TextureView> texture = nullptr;
+    grl::Rc<TextureView> target = nullptr;
 
     LoadOp loadOp = LoadOp::Clear;
     StoreOp storeOp = StoreOp::Store;
 
-    glm::vec4 clearColor { 0.0f, 0.0f, 0.0f, 1.0f };
+    ClearValue clearValue = ClearColorFloat{0.0f, 0.0f, 0.0f, 1.0f};
 };
 
 struct DepthStencilAttachment
 {
-    grl::Rc<TextureView> texture = nullptr;
+    grl::Rc<TextureView> target = nullptr;
 
-    LoadOp depthLoadOp = LoadOp::Clear;
-    StoreOp depthStoreOp = StoreOp::Store;
+    LoadOp loadOp = LoadOp::Clear;
+    StoreOp storeOp = StoreOp::Store;
     float clearDepth = 1.0f;
-
-    LoadOp stencilLoadOp = LoadOp::Clear;
-    StoreOp stencilStoreOp = StoreOp::Store;
     uint32_t clearStencil = 0;
 };
 
@@ -37,5 +37,6 @@ struct RenderPassDesc
 {
     DepthStencilAttachment depthAttachment{};
     std::vector<ColorAttachment> colorAttachments{};
+    Rect2D renderArea;
 };
 }

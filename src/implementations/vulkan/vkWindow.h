@@ -17,7 +17,7 @@ public:
 
     void close() override;
 
-    std::vector<Event> pollEvents() override;
+    void pollEvents(std::function<void(Event&)> callback) override;
 
     uint32_t getWidth() override;
     uint32_t getHeight() override;

@@ -13,6 +13,7 @@ add_subdirectory(${DEPS_DIR}/spirv-cross)
 add_subdirectory(${DEPS_DIR}/clogr)
 add_subdirectory(${DEPS_DIR}/vk-bootstrap)
 add_subdirectory(${DEPS_DIR}/rapidyaml)
+add_subdirectory(${DEPS_DIR}/vma)
 
 find_package(Vulkan REQUIRED)
 
@@ -41,7 +42,16 @@ target_compile_definitions(urhi PRIVATE GLFW_INCLUDE_NONE)
 
 target_include_directories(urhi PUBLIC src/)
 target_include_directories(urhi PUBLIC include/ "${DEPS_DIR}/slang/include")
-target_link_libraries(urhi PUBLIC glfw glm::glm glad clogr ${SLANG_LIBRARY} spirv-cross-c vk-bootstrap::vk-bootstrap Vulkan::Vulkan)
+target_link_libraries(urhi PUBLIC
+        glfw
+        glm::glm
+        glad
+        clogr
+        ${SLANG_LIBRARY}
+        spirv-cross-c
+        vk-bootstrap::vk-bootstrap
+        Vulkan::Vulkan
+        VulkanMemoryAllocator)
 
 file(COPY ${SLANG_DLLS}
         DESTINATION "${CMAKE_BINARY_DIR}")
@@ -87,3 +97,11 @@ add_library(urhi::imgui ALIAS urhi_imgui)
 
 add_executable(urhi_basic_example examples/basic.cpp)
 target_link_libraries(urhi_basic_example PUBLIC urhi)
+
+if(MINGW)
+    target_link_options(urhi_basic_example PRIVATE
+            -static-libgcc
+            -static-libstdc++
+            -static
+    )
+endif()

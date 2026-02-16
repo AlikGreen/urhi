@@ -1,15 +1,20 @@
 #include "vkDevice.h"
 
+#define VMA_IMPLEMENTATION
+#include <vma/vk_mem_alloc.h>
+
 #include "clogr.h"
 #include "VkBootstrap.h"
 #include "vkContext.h"
+#include "vkPipeline.h"
+#include "vkShader.h"
 #include "vkWindow.h"
 #include "enums/queueType.h"
+#include "vkStagedBuffer.h"
+#include "vkTexture.h"
 
 namespace urhi
 {
-    thread_local std::vector<std::vector<grl::Rc<VkCommandListPool>>> VkDevice::m_commandListPools = {};
-
     VkDevice::VkDevice(const DeviceDesc& desc, VkContext* context)
     {
         VkPhysicalDeviceVulkan13Features features13{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
@@ -38,96 +43,100 @@ namespace urhi
         m_handle = vkbDevice.device;
         m_physicalDevice = physicalDevice.physical_device;
 
-        m_queueStates.resize(3);
+        m_queueStates[0] = grl::makeRc<VkQueueState>();
+        m_queueStates[0]->queue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+        m_queueStates[0]->family = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+        m_queueStates[0]->mutex = grl::makeBox<std::mutex>();
 
-        m_queueStates[0].queue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
-        m_queueStates[0].family = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
-        m_queueStates[0].mutex = grl::makeBox<std::mutex>();
+        m_queueStates[1] = grl::makeRc<VkQueueState>();
+        m_queueStates[1]->queue = vkbDevice.get_queue(vkb::QueueType::compute).value();
+        m_queueStates[1]->family = vkbDevice.get_queue_index(vkb::QueueType::compute).value();
+        m_queueStates[1]->mutex = grl::makeBox<std::mutex>();
 
-        m_queueStates[1].queue = vkbDevice.get_queue(vkb::QueueType::compute).value();
-        m_queueStates[1].family = vkbDevice.get_queue_index(vkb::QueueType::compute).value();
-        m_queueStates[1].mutex = grl::makeBox<std::mutex>();
+        m_queueStates[2] = grl::makeRc<VkQueueState>();
+        m_queueStates[2]->queue = vkbDevice.get_queue(vkb::QueueType::transfer).value();
+        m_queueStates[2]->family = vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
+        m_queueStates[2]->mutex = grl::makeBox<std::mutex>();
 
-        m_queueStates[2].queue = vkbDevice.get_queue(vkb::QueueType::transfer).value();
-        m_queueStates[2].family = vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
-        m_queueStates[2].mutex = grl::makeBox<std::mutex>();
+        VmaVulkanFunctions vkFunctions{
+            .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+            .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+            .vkCreateImage = vkCreateImage
+        };
+        VmaAllocatorCreateInfo allocatorCI{
+            .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+            .physicalDevice = m_physicalDevice,
+            .device = m_handle,
+            .pVulkanFunctions = &vkFunctions,
+            .instance = context->getVkInstance()
+        };
+        vmaCreateAllocator(&allocatorCI, &m_allocator);
+
+        m_stagingBufferPool = grl::makeRc<VkStagingBufferPool>(this);
     }
 
     grl::Rc<Pipeline> VkDevice::createPipeline(const GraphicsPipelineDesc &desc)
     {
-        clogr::ensure(false, "not implemented");
+        return grl::makeRc<VkPipeline>(this, desc);
     }
 
     grl::Rc<Pipeline> VkDevice::createPipeline(const ComputePipelineDesc &desc)
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     grl::Rc<CommandList> VkDevice::acquireCommandList(QueueType queueType)
     {
-        if(m_commandListPools.size() < 3)
-            m_commandListPools.resize(3);
+        auto& pool = m_commandListPools[m_cmdListIndex][static_cast<size_t>(queueType)];
 
-        auto& queuePools = m_commandListPools.at(static_cast<size_t>(queueType));
+        if(!pool)
+        {
+            pool = grl::makeBox<VkCommandListPool>(
+                this,
+                m_queueStates[static_cast<size_t>(queueType)]
+            );
+        }
 
-        if(queuePools.size() < m_currentFrameIndex+1)
-            queuePools.resize(m_currentFrameIndex+1);
-
-        if(queuePools[m_currentFrameIndex] == nullptr)
-            queuePools[m_currentFrameIndex] = grl::makeBox<VkCommandListPool>(m_queueStates[static_cast<size_t>(queueType)].family, this);
-
-
-        auto pool = queuePools[m_currentFrameIndex];
-        return grl::makeRc<VkCommandList>(this, pool, queueType, pool->acquire());
+        return grl::makeRc<VkCommandList>(this, pool.get(), queueType, pool->acquire());
     }
 
-    grl::Rc<Texture> VkDevice::createTexture(const TextureDesc &description)
+    grl::Rc<Texture> VkDevice::createTexture(const TextureDesc &desc)
     {
-        clogr::ensure(false, "not implemented");
+        return grl::makeRc<VkTexture>(this, desc);
     }
 
-    grl::Rc<Sampler> VkDevice::createSampler(const SamplerDesc &description)
+    grl::Rc<Sampler> VkDevice::createSampler(const SamplerDesc &desc)
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     grl::Rc<TextureView> VkDevice::createTextureView(const TextureViewDesc &desc)
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
-    grl::Rc<Shader> VkDevice::createShader(CompiledShader shader)
+    grl::Rc<Shader> VkDevice::createShader(SpirvShader shader)
     {
-        clogr::ensure(false, "not implemented");
+        return grl::makeRc<VkShader>(this, shader);
     }
 
-    grl::Rc<Buffer> VkDevice::createIndexBuffer()
+    grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
     {
-        clogr::ensure(false, "not implemented");
-    }
+        // if (desc.usage == BufferUsage::Uniform && desc.size < 64 * 1024)
+        //     return grl::makeRc<VkPersistentMappedBuffer>(this, desc);
 
-    grl::Rc<Buffer> VkDevice::createVertexBuffer()
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    grl::Rc<Buffer> VkDevice::createUniformBuffer()
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    grl::Rc<Buffer> VkDevice::createStorageBuffer()
-    {
-        clogr::ensure(false, "not implemented");
+        return grl::makeRc<VkStagedBuffer>(this, desc);
     }
 
     void VkDevice::submit(const grl::Rc<CommandList> &cmd)
     {
         const auto vkCmd = dynamic_cast<VkCommandList*>(cmd.get());
-        const vk::CommandBuffer commandBuffer = vkCmd->getHandle();
+        const vk::CommandBuffer commandBuffer = vkCmd->getCmdBuffer();
         commandBuffer.end();
 
         vkCmd->getPool().submit(vkCmd);
+
+        m_cmdListIndex = ++m_cmdListIndex % CMD_POOLS_PER_QUEUE;
     }
 
     vk::PhysicalDevice VkDevice::getPhysicalDevice() const
@@ -140,13 +149,18 @@ namespace urhi
         return m_handle;
     }
 
-    vk::Queue VkDevice::getQueue(QueueType queueType) const
+    VmaAllocator VkDevice::getAllocator() const
     {
-        return m_queueStates[static_cast<size_t>(queueType)].queue;
+        return m_allocator;
     }
 
-    std::mutex& VkDevice::getQueueMutex(QueueType queueType) const
+    grl::Rc<VkStagingBufferPool> VkDevice::getStagingBufferPool() const
     {
-        return *m_queueStates[static_cast<size_t>(queueType)].mutex;
+        return m_stagingBufferPool;
+    }
+
+    grl::Rc<VkQueueState> VkDevice::getQueueState(QueueType queueType)
+    {
+        return m_queueStates[static_cast<size_t>(queueType)];
     }
 }

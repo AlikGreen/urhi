@@ -11,7 +11,11 @@ namespace urhi
 class Context
 {
 public:
+    Context() = default;
     virtual ~Context() = default;
+
+    Context(const Context&) = delete;
+    Context& operator= (const Context&) = delete;
 
     virtual grl::Rc<Device>    createDevice(const DeviceDesc& desc)       = 0;
     virtual grl::Rc<Window>    createWindow(const WindowDesc& desc)       = 0;

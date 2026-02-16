@@ -2,7 +2,7 @@
 
 namespace urhi
 {
-    enum class ImageAccess
+    enum class ResourceAccess
     {
         ReadOnly,
         WriteOnly,

@@ -3,12 +3,15 @@
 #include <utility>
 
 #include "clogr.h"
+#include "renderPass.h"
 #include "vkDevice.h"
+#include "vkStagedBuffer.h"
+#include "vkRenderPass.h"
 
 namespace urhi
 {
-    VkCommandList::VkCommandList(VkDevice* device, const grl::Rc<VkCommandListPool> &pool, const QueueType queueType, const vk::CommandBuffer commandBuffer)
-        : m_commandBuffer(commandBuffer),  m_queueType(queueType), m_pool(std::move(pool)), m_device(device)
+    VkCommandList::VkCommandList(VkDevice* device, VkCommandListPool* pool, const QueueType queueType, const vk::CommandBuffer commandBuffer)
+        : m_commandBuffer(commandBuffer),  m_queueType(queueType), m_pool(pool), m_device(device)
     {
 
     }
@@ -20,59 +23,9 @@ namespace urhi
         m_pool->m_recordingCount++;
     }
 
-    void VkCommandList::setUniformBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
+    grl::Rc<RenderPass> VkCommandList::beginRenderPass(const RenderPassDesc &desc)
     {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::setStorageBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::setTexture(const std::string &name, const grl::Rc<TextureView> &texture)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::setSampler(const std::string &name, const grl::Rc<Sampler> &sampler)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::setImage(const std::string &name, const grl::Rc<TextureView> &texture, ImageAccess access)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::setPipeline(const grl::Rc<Pipeline> &pipeline)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::beginRenderPass(const RenderPassDesc &desc)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::endRenderPass()
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::setVertexBuffer(uint32_t index, const grl::Rc<Buffer> &vertexBuffer)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::setIndexBuffer(const grl::Rc<Buffer> &indexBuffer, IndexFormat indexFormat)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::setScissor(ScissorRect rect)
-    {
-        clogr::ensure(false, "not implemented");
+        return grl::makeRc<VkRenderPass>(m_device, m_commandBuffer, desc);
     }
 
     void VkCommandList::updateTexture(const grl::Rc<Texture> &texture, const TextureUploadDesc &desc)
@@ -90,22 +43,7 @@ namespace urhi
         clogr::ensure(false, "not implemented");
     }
 
-    void VkCommandList::dispatch(const glm::ivec3 &numGroups)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::resourceBarrier(const grl::Rc<Texture> &texture, ImageAccess nextAccess)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::resourceBarrier(const grl::Rc<Buffer> &buffer)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    vk::CommandBuffer VkCommandList::getHandle() const
+    vk::CommandBuffer VkCommandList::getCmdBuffer() const
     {
         return m_commandBuffer;
     }
@@ -120,19 +58,12 @@ namespace urhi
         return *m_pool;
     }
 
-    void VkCommandList::drawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkCommandList::drawIndexedImpl(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int vertexOffset, uint32_t firstInstance)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
     void VkCommandList::updateBufferImpl(const grl::Rc<Buffer> &buffer, void *data, uint32_t size)
     {
-        clogr::ensure(false, "not implemented");
+        if(auto vkStaged = dynamic_cast<VkStagedBuffer*>(buffer.get()))
+        {
+            vkStaged->write(data, size, 0, this);
+        }
     }
 
     void VkCommandList::readTextureImpl(const grl::Rc<TextureView> &texture, const TextureReadDesc &desc, size_t destSize, void *dest)

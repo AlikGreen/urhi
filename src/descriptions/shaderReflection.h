@@ -5,6 +5,10 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+#include "enums/resourceAccess.h"
+#include "enums/shaderStage.h"
+#include "enums/textureType.h"
+
 namespace urhi
 {
 struct ShaderReflection
@@ -25,7 +29,8 @@ struct ShaderReflection
         Int, Int2, Int3, Int4,
         UInt, UInt2, UInt3, UInt4,
         Mat3, Mat4,
-        Struct
+        Struct,
+        Unknown
     };
 
     struct Member
@@ -41,13 +46,40 @@ struct ShaderReflection
     struct Resource
     {
         std::string name;
-        ResourceType type;
-        uint32_t binding;
-        uint32_t arrayCount;
+        ResourceType type = ResourceType::ConstantBuffer;
+        uint32_t set = 0;
+        uint32_t binding = 0;
+        uint32_t arrayCount = 1;
+        ShaderStage stages = ShaderStage::None;
+        ResourceAccess access = ResourceAccess::ReadOnly;
 
+        uint32_t totalSize = 0;
         std::vector<Member> members;
-        uint32_t totalSize;
+
+        TextureType dimension = TextureType::Texture2D;
+
+        [[nodiscard]] bool isBuffer() const
+        {
+            return type == ResourceType::ConstantBuffer ||
+                   type == ResourceType::StorageBuffer;
+        }
+
+        [[nodiscard]] bool isTexture() const
+        {
+            return type == ResourceType::Texture ||
+                   type == ResourceType::StorageImage;
+        }
+
+        [[nodiscard]] const Member* findMember(const std::string& memberName) const
+        {
+            for (const auto& m : members)
+            {
+                if (m.name == memberName) return &m;
+            }
+            return nullptr;
+        }
     };
+
 
     struct VertexAttribute
     {
@@ -57,17 +89,33 @@ struct ShaderReflection
         uint32_t offset;
     };
 
-    struct ComputeInfo
+
+    struct VertexBinding
     {
-        uint32_t workgroupSizeX;
-        uint32_t workgroupSizeY;
-        uint32_t workgroupSizeZ;
+        uint32_t binding = 0;
+        uint32_t stride = 0;
+        std::string structName;
+        std::vector<VertexAttribute> attributes;
     };
 
 
+    struct ComputeInfo
+    {
+        uint32_t workgroupSizeX = 1;
+        uint32_t workgroupSizeY = 1;
+        uint32_t workgroupSizeZ = 1;
+    };
+
+    struct EntryPoint
+    {
+        std::string name;
+        ShaderStage stage = ShaderStage::None;
+    };
+
+    std::vector<EntryPoint> entryPoints;
     std::vector<Resource> resources;
-    std::vector<VertexAttribute> vertexInputs;
+    std::vector<VertexBinding> vertexBindings;
     std::optional<ComputeInfo> computeInfo;
-    glm::uvec3 threadGroupSize;
 };
+
 }

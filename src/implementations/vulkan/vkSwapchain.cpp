@@ -12,6 +12,7 @@ namespace urhi
         m_window = std::dynamic_pointer_cast<VkWindow>(desc.window);
         m_presentMode = VkConvert::presentMode(desc.presentMode);
         m_colorSpace = VkConvert::colorSpace(desc.colorSpace);
+        m_imageFormat = VkConvert::pixelFormat(desc.format);
         resize(desc.width, desc.height);
     }
 
@@ -29,13 +30,11 @@ namespace urhi
 
         vkb::SwapchainBuilder swapchainBuilder{ m_device->getPhysicalDevice(), m_device->getHandle(), m_window->getSurface() };
 
-        m_imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
-
         vkb::Swapchain vkbSwapchain = swapchainBuilder
             //.use_default_format_selection()
-            .set_desired_format(VkSurfaceFormatKHR{ .format = m_imageFormat, .colorSpace = m_colorSpace })
+            .set_desired_format(VkSurfaceFormatKHR{ .format = static_cast<VkFormat>(m_imageFormat), .colorSpace = static_cast<VkColorSpaceKHR>(m_imageFormat) })
             //use vsync present mode
-            .set_desired_present_mode(m_presentMode)
+            .set_desired_present_mode(static_cast<VkPresentModeKHR>(m_presentMode))
             .set_desired_extent(width, height)
             .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
             .build()
@@ -45,18 +44,18 @@ namespace urhi
         //store swapchain and its related images
         m_handle = vkbSwapchain.swapchain;
 
-        auto rawImages = vkbSwapchain.get_images().value();
+        const auto rawImages = vkbSwapchain.get_images().value();
         m_images.clear();
         m_images.reserve(rawImages.size());
-        for (VkImage raw : rawImages)
+        for (const VkImage raw : rawImages)
         {
             m_images.emplace_back(static_cast<vk::Image>(raw));
         }
 
-        auto rawImageViews = vkbSwapchain.get_image_views().value();
+        const auto rawImageViews = vkbSwapchain.get_image_views().value();
         m_imageViews.clear();
         m_imageViews.reserve(rawImageViews.size());
-        for (VkImageView rawView : rawImageViews)
+        for (const VkImageView rawView : rawImageViews)
         {
             m_imageViews.emplace_back(static_cast<vk::ImageView>(rawView));
         }
@@ -76,12 +75,21 @@ namespace urhi
 
     const std::vector<grl::Rc<TextureView>> & VkSwapchain::getTextureViews() const
     {
-        clogr::ensure(false, "not implemented");
+        clogr::abort("not implemented");
     }
 
     void VkSwapchain::present(const uint32_t imageIndex)
     {
+        m_device->m_lastFrameIndex = m_device->m_currentFrameIndex;
         m_device->m_currentFrameIndex = imageIndex;
 
+        const vk::PresentInfoKHR presentInfo(
+            {},              // Wait semaphores (add render finished semaphore later)
+            {m_handle},
+            {imageIndex}
+        );
+
+        const vk::Queue presentQueue = m_device->getQueueState(QueueType::Graphics)->queue;
+        auto res = presentQueue.presentKHR(&presentInfo);
     }
 }

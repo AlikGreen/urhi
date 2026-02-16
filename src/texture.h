@@ -9,7 +9,11 @@ namespace urhi
 class Texture
 {
 public:
+    Texture() = default;
     virtual ~Texture() = default;
+
+    Texture(const Texture&) = delete;
+    Texture& operator= (const Texture&) = delete;
 
     [[nodiscard]] virtual uint32_t getWidth() const = 0;
     [[nodiscard]] virtual uint32_t getHeight() const = 0;

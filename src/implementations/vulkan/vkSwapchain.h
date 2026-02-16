@@ -23,11 +23,11 @@ private:
     grl::Rc<VkDevice> m_device;
     grl::Rc<VkWindow> m_window;
 
-    VkColorSpaceKHR m_colorSpace;
-    VkPresentModeKHR m_presentMode;
+    vk::ColorSpaceKHR m_colorSpace;
+    vk::PresentModeKHR m_presentMode;
 
-    VkSwapchainKHR m_handle{};
-    VkFormat m_imageFormat{};
+    vk::SwapchainKHR m_handle{};
+    vk::Format m_imageFormat{};
 
     std::vector<vk::Image> m_images{};
     std::vector<vk::ImageView> m_imageViews{};

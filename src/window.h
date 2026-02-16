@@ -8,10 +8,14 @@ namespace urhi
 class Window
 {
 public:
+  Window() = default;
   virtual ~Window() = default;
 
+  Window(const Window&) = delete;
+  Window& operator= (const Window&) = delete;
+
   virtual void close() = 0;
-  virtual std::vector<Event> pollEvents() = 0;
+  virtual void pollEvents(std::function<void(Event&)> callback) = 0;
 
   virtual uint32_t getWidth() = 0;
   virtual uint32_t getHeight() = 0;

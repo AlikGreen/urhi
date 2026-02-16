@@ -2,18 +2,20 @@
 
 #include <mutex>
 
+#include "clogr.h"
 #include "vkDevice.h"
 
 namespace urhi
 {
-    VkCommandListPool::VkCommandListPool(const uint32_t queueFamily, VkDevice* device)
+    VkCommandListPool::VkCommandListPool(VkDevice* device, const grl::Rc<VkQueueState> &queueState)
+        : m_queueState(queueState)
     {
         m_device = device;
         vk::CommandPoolCreateInfo commandPoolInfo =  {};
         commandPoolInfo.sType = vk::StructureType::eCommandPoolCreateInfo;
         commandPoolInfo.pNext = nullptr;
         commandPoolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-        commandPoolInfo.queueFamilyIndex = queueFamily;
+        commandPoolInfo.queueFamilyIndex = m_queueState->family;
 
         auto res = m_device->getHandle().createCommandPool(&commandPoolInfo, nullptr, &m_commandPool);
 
@@ -32,19 +34,18 @@ namespace urhi
 
     vk::CommandBuffer VkCommandListPool::acquire()
     {
-        auto res = m_device->getHandle().getSemaphoreCounterValue(m_timeline, &m_completedSubmitCount);
-        if (m_recordingCount == 0 &&
-            m_submittedCount > 0 &&
-            m_submittedCount <= m_completedSubmitCount)
+        if (canReset())
         {
             m_device->getHandle().resetCommandPool(m_commandPool);
-            m_submittedCount = 0;
-            m_completedSubmitCount = 0;
             m_nextBufferIndex = 0;
         }
 
         if (m_nextBufferIndex < m_commandBuffers.size())
+        {
             return m_commandBuffers[m_nextBufferIndex++];
+        }
+
+        clogr::ensure(m_commandBuffers.size() < ERROR_THRESHOLD, "Too many command buffers allocated. You may have forgot to submit command buffers.");
 
         const vk::CommandBufferAllocateInfo info(
             m_commandPool,
@@ -61,17 +62,15 @@ namespace urhi
 
     void VkCommandListPool::submit(const VkCommandList* cmd)
     {
-        m_submittedCount++;
         m_recordingCount--;
-
-        const uint64_t signalValue = m_completedSubmitCount + 1;
+        uint64_t signalValue = ++m_nextBufferIndex;
 
         const vk::TimelineSemaphoreSubmitInfo timelineInfo(
             {},
             {signalValue}
         );
 
-        auto cmdBuffer = cmd->getHandle();
+        auto cmdBuffer = cmd->getCmdBuffer();
 
         const vk::SubmitInfo submitInfo(
             {},
@@ -81,13 +80,17 @@ namespace urhi
             &timelineInfo
         );
 
+        std::scoped_lock lock(*m_queueState->mutex);
+        auto res = m_queueState->queue.submit(1, &submitInfo, VK_NULL_HANDLE);
+    }
 
-        const vk::Queue queue = m_device->getQueue(cmd->getQueueType());
-        auto res = queue.submit(1, &submitInfo, VK_NULL_HANDLE);
+    bool VkCommandListPool::canReset() const
+    {
+        if(m_recordingCount != 0 || m_nextBufferIndex == 0) return false;
 
-        {
-            std::scoped_lock lock(m_device->getQueueMutex(cmd->getQueueType()));
-            res = queue.submit(1, &submitInfo, VK_NULL_HANDLE);
-        }
+        uint64_t completedValue = 0;
+        auto res = m_device->getHandle().getSemaphoreCounterValue(m_timeline, &completedValue);
+
+        return completedValue >= m_nextBufferIndex;
     }
 }

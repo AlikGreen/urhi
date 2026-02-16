@@ -6,11 +6,12 @@ namespace urhi
 class Shader
 {
 public:
+    Shader() = default;
     virtual ~Shader() = default;
 
-    virtual void compile() = 0;
-    virtual void dispose() = 0;
+    Shader(const Shader&) = delete;
+    Shader& operator= (const Shader&) = delete;
 
-    virtual ShaderReflection getShaderReflection() = 0;
+    virtual ShaderReflection reflection() = 0;
 };
 }
