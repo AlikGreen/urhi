@@ -50,7 +50,6 @@ struct ShaderReflection
         uint32_t set = 0;
         uint32_t binding = 0;
         uint32_t arrayCount = 1;
-        ShaderStage stages = ShaderStage::None;
         ResourceAccess access = ResourceAccess::ReadOnly;
 
         uint32_t totalSize = 0;
@@ -106,13 +105,6 @@ struct ShaderReflection
         uint32_t workgroupSizeZ = 1;
     };
 
-    struct EntryPoint
-    {
-        std::string name;
-        ShaderStage stage = ShaderStage::None;
-    };
-
-    std::vector<EntryPoint> entryPoints;
     std::vector<Resource> resources;
     std::vector<VertexBinding> vertexBindings;
     std::optional<ComputeInfo> computeInfo;

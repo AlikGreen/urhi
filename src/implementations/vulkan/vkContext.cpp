@@ -7,10 +7,10 @@ namespace urhi
 {
     VkContext::VkContext()
     {
-        constexpr bool useValidationLayers = false;
+        constexpr bool useValidationLayers = true;
 
         vkb::InstanceBuilder builder;
-        auto instRet = builder.set_app_name("Placeholder ")
+        auto instRet = builder.set_app_name("Placeholder")
             .request_validation_layers(useValidationLayers)
             .use_default_debug_messenger()
             .require_api_version(1, 3, 0)
@@ -33,7 +33,8 @@ namespace urhi
 
     grl::Rc<Swapchain> VkContext::createSwapchain(const SwapchainDesc &desc)
     {
-        return grl::makeRc<VkSwapchain>(desc);
+        m_swapchain = grl::makeRc<VkSwapchain>(desc);;
+        return m_swapchain;
     }
 
     vkb::Instance VkContext::getVkbInstance() const
@@ -44,5 +45,10 @@ namespace urhi
     vk::Instance VkContext::getVkInstance() const
     {
         return m_instance;
+    }
+
+    grl::Rc<VkSwapchain> VkContext::getSwapchain() const
+    {
+        return m_swapchain;
     }
 }

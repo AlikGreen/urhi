@@ -13,24 +13,44 @@ class VkSwapchain final : public Swapchain
 {
 public:
     explicit VkSwapchain(const SwapchainDesc& desc);
+    ~VkSwapchain() override;
     void resize(uint32_t width, uint32_t height) override;
 
     [[nodiscard]] uint32_t acquireNextImage() override;
     [[nodiscard]] const std::vector<grl::Rc<TextureView>> & getTextureViews() const override;
 
     void present(uint32_t imageIndex) override;
+    vk::Semaphore consumeSemaphore();
 private:
+    bool m_semaphoreConsumed = false;
     grl::Rc<VkDevice> m_device;
     grl::Rc<VkWindow> m_window;
 
     vk::ColorSpaceKHR m_colorSpace;
     vk::PresentModeKHR m_presentMode;
 
-    vk::SwapchainKHR m_handle{};
+    vk::SwapchainKHR m_handle{nullptr};
     vk::Format m_imageFormat{};
+    uint32_t m_width{}, m_height{};
 
-    std::vector<vk::Image> m_images{};
-    std::vector<vk::ImageView> m_imageViews{};
-    VkExtent2D m_extent{};
+    std::vector<grl::Rc<Texture>> m_textures{};
+    std::vector<grl::Rc<TextureView>> m_textureViews{};
+    vk::Extent2D m_extent{};
+
+    uint32_t m_frameIndex = 0;
+    uint32_t m_maxFramesInFlight{};
+
+    struct Frame
+    {
+        vk::Semaphore imageAvailableSemaphore;
+        vk::CommandPool transitionPool;
+        vk::CommandBuffer transitionCmd;
+        vk::Fence inFlightFence;
+        uint64_t maxTimelineValue = 0;
+    };
+
+    std::vector<vk::Semaphore> m_renderFinishedSemaphores;
+
+    std::vector<Frame> m_frames;
 };
 }

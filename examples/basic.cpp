@@ -1,5 +1,6 @@
 
 #include "context.h"
+#include "shaderCompiler.h"
 #include "window.h"
 
 int main()
@@ -21,7 +22,9 @@ int main()
 
     auto swapchain = context->createSwapchain({
         .window = window,
-        .device = device
+        .device = device,
+        .width = 800,
+        .height = 600
     });
 
      const auto shaderSource = R"(
@@ -66,18 +69,33 @@ int main()
          }
      )";
 
-     const auto spirvShader = ShaderCompiler::compile({
+     const auto entryPoints = ShaderCompiler::compile({
          .source = shaderSource
      });
 
-     const auto shader = device->createShader(spirvShader);
+     Rc<Shader> vertexShader{};
+     Rc<Shader> fragmentShader{};
 
-    // auto pipeline = device->createPipeline({
-    //     .shader = shader,
-    //     .rasterizerState = { .cullMode = CullMode::Back },
-    //     .depthState = { .enableDepthTest = true },
-    //     .blendState = { .enableBlend = true },
-    // });
+    for(const auto& ep : entryPoints)
+    {
+        if(ep.stage == ShaderStage::Vertex)   vertexShader = device->createShader(ep);
+        if(ep.stage == ShaderStage::Fragment) fragmentShader = device->createShader(ep);
+    }
+
+    auto pipeline = device->createPipeline({
+        .vertexShader = vertexShader,
+        .fragmentShader = fragmentShader,
+        .primitiveType = PrimitiveType::TriangleStrip,
+        .rasterizerState = { .cullMode = CullMode::Back },
+        .depthState = { .enableDepthTest = true },
+        .colorAttachments = {
+            ColorAttachmentDesc {
+                .format = PixelFormat::R8G8B8A8Unorm,
+                .blend = BlendState::opaque()
+            }
+        },
+        .depthAttachmentFormat = PixelFormat::D32FloatS8Uint,
+    });
 
 
     struct Vertex
@@ -144,10 +162,16 @@ int main()
 
     while (running)
     {
-        window->pollEvents([&running](const Event& event)
+        window->pollEvents([&running, swapchain, window](const Event& event)
         {
             if(event.type == Event::Type::Quit)
+            {
                 running = false;
+            }
+            if(event.type == Event::Type::WindowResize)
+            {
+                swapchain->resize(window->getWidth(), window->getHeight());
+            }
         });
 
         auto cmdList = device->acquireCommandList(QueueType::Graphics);
@@ -156,6 +180,7 @@ int main()
         cmdList->begin();
         // // Begin render pass - implicit state management
         RenderPassDesc renderPassDesc;
+        renderPassDesc.renderArea = {0, 0, window->getWidth(), window->getHeight()};
         renderPassDesc.colorAttachments.push_back({
             swapchain->getTextureViews()[imageIndex],
             LoadOp::Clear,
@@ -164,8 +189,8 @@ int main()
         });
 
         auto renderPass = cmdList->beginRenderPass(renderPassDesc);
-        //
-        // renderPass->setPipeline(pipeline);
+
+        renderPass->setPipeline(pipeline);
         // renderPass->setUniformBuffer("transformBuffer", uniformBuffer);
         // renderPass->setTexture("diffuseTexture", textureView);
         // renderPass->setSampler("samplerState", sampler);

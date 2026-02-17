@@ -1,7 +1,8 @@
 #pragma once
 
-namespace urhi {
-class vkSampler
+namespace urhi
+{
+class VkSampler
 {
 
 };

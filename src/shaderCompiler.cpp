@@ -1,7 +1,9 @@
-#include "spirvShader.h"
+#include "shaderCompiler.h"
 
 #include <algorithm>
 #include <clogr.h>
+
+#include "descriptions/shaderEntryPoint.h"
 
 namespace urhi
 {
@@ -27,18 +29,7 @@ namespace urhi
         }
     }
 
-    SpirvShader ShaderCompiler::compile(const ShaderCompileDesc& desc)
-    {
-        const auto session = createSession(desc);
-        const auto linkedProgram = compileAndLink(session, desc);
-
-        SpirvShader shader;
-        shader.reflection = extractReflection(linkedProgram->getLayout(), desc);
-        shader.spirv = extractSpirv(linkedProgram);
-        return shader;
-    }
-
-    Slang::ComPtr<slang::ISession> ShaderCompiler::createSession(const ShaderCompileDesc& desc)
+   std::vector<ShaderEntryPoint> ShaderCompiler::compile(const ShaderCompileDesc& desc)
     {
         Slang::ComPtr<slang::IGlobalSession> globalSession;
         slang::createGlobalSession(globalSession.writeRef());
@@ -64,7 +55,63 @@ namespace urhi
 
         Slang::ComPtr<slang::ISession> session;
         globalSession->createSession(sessionDesc, session.writeRef());
-        return session;
+
+        Slang::ComPtr<slang::IBlob> diagnostics;
+
+        slang::IModule* module = session->loadModuleFromSourceString(
+            "shaderModule",
+            desc.path.c_str(),
+            desc.source.c_str(),
+            diagnostics.writeRef());
+
+        if (diagnostics)
+        {
+            auto msg = static_cast<const char*>(diagnostics->getBufferPointer());
+            clogr::ensure(module != nullptr, "Slang compilation failed: {}", msg);
+        }
+
+        std::vector<Slang::ComPtr<slang::IEntryPoint>> entryPoints;
+        for (SlangInt32 i = 0; i < module->getDefinedEntryPointCount(); ++i)
+        {
+            Slang::ComPtr<slang::IEntryPoint> ep;
+            module->getDefinedEntryPoint(i, ep.writeRef());
+            entryPoints.push_back(ep);
+        }
+
+        std::vector<ShaderEntryPoint> shaderEntryPoints;
+
+        for (uint32_t i = 0; i < entryPoints.size(); ++i)
+        {
+            slang::IComponentType* components[] = {module, entryPoints[i]};
+
+            Slang::ComPtr<slang::IComponentType> program;
+            session->createCompositeComponentType(
+                components, 2,
+                program.writeRef(),
+                diagnostics.writeRef());
+
+            Slang::ComPtr<slang::IComponentType> linked;
+            program->link(linked.writeRef(), diagnostics.writeRef());
+
+            if (diagnostics)
+            {
+                auto msg = static_cast<const char*>(diagnostics->getBufferPointer());
+                clogr::ensure(linked != nullptr, "Slang linking failed: {}", msg);
+            }
+
+            auto* layout = linked->getLayout();
+            auto* epReflection = layout->getEntryPointByIndex(0);
+
+            ShaderEntryPoint stageData;
+            stageData.name = epReflection->getName();
+            stageData.stage = convertStage(epReflection->getStage());
+            stageData.reflection = extractReflection(layout, epReflection, desc);
+            stageData.spirv = extractSpirv(linked);
+
+            shaderEntryPoints.push_back(std::move(stageData));
+        }
+
+        return shaderEntryPoints;
     }
 
     Slang::ComPtr<slang::IComponentType> ShaderCompiler::compileAndLink(
@@ -137,56 +184,29 @@ namespace urhi
 
     ShaderReflection ShaderCompiler::extractReflection(
         slang::ProgramLayout* layout,
+        slang::EntryPointReflection* entryPoint,
         const ShaderCompileDesc& desc)
     {
         ShaderReflection reflection;
-        extractEntryPoints(layout, desc, reflection);
-        extractResources(layout, reflection);
-        return reflection;
-    }
 
-    void ShaderCompiler::extractEntryPoints(
-        slang::ProgramLayout* layout,
-        const ShaderCompileDesc& desc,
-        ShaderReflection& reflection)
-    {
-        for (uint32_t i = 0; i < layout->getEntryPointCount(); ++i)
+        if (entryPoint->getStage() == SLANG_STAGE_VERTEX)
         {
-            auto* ep = layout->getEntryPointByIndex(i);
-
-            ShaderReflection::EntryPoint entryPoint;
-            entryPoint.name = ep->getName();
-            entryPoint.stage = convertStage(ep->getStage());
-            reflection.entryPoints.push_back(entryPoint);
-
-            switch (ep->getStage())
-            {
-                case SLANG_STAGE_VERTEX:
-                {
-                    extractVertexInput(ep, desc, reflection);
-                    break;
-                }
-                case SLANG_STAGE_COMPUTE:
-                {
-                    bool isTarget = desc.computeEntryPoint.empty()
-                        || desc.computeEntryPoint == ep->getName();
-
-                    if (isTarget)
-                    {
-                        SlangUInt size[3];
-                        ep->getComputeThreadGroupSize(3, size);
-                        reflection.computeInfo = ShaderReflection::ComputeInfo{
-                            static_cast<uint32_t>(size[0]),
-                            static_cast<uint32_t>(size[1]),
-                            static_cast<uint32_t>(size[2])
-                        };
-                    }
-                    break;
-                }
-                default:
-                    break;
-            }
+            extractVertexInput(entryPoint, desc, reflection);
         }
+        else if (entryPoint->getStage() == SLANG_STAGE_COMPUTE)
+        {
+            SlangUInt size[3];
+            entryPoint->getComputeThreadGroupSize(3, size);
+            reflection.computeInfo = ShaderReflection::ComputeInfo{
+                static_cast<uint32_t>(size[0]),
+                static_cast<uint32_t>(size[1]),
+                static_cast<uint32_t>(size[2])
+            };
+        }
+
+        extractResources(layout, reflection);
+
+        return reflection;
     }
 
     void ShaderCompiler::extractVertexInput(slang::EntryPointReflection* entryPoint, const ShaderCompileDesc& desc, ShaderReflection& reflection)
@@ -262,7 +282,7 @@ namespace urhi
                 break;
             }
 
-            auto kind = type->getKind();
+            const auto kind = type->getKind();
 
             if (kind == slang::TypeReflection::Kind::ConstantBuffer ||
                 kind == slang::TypeReflection::Kind::ParameterBlock)

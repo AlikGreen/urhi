@@ -14,6 +14,7 @@ class VkTexture final : public Texture
 {
 public:
     VkTexture(VkDevice* device, const TextureDesc& desc);
+    VkTexture(VkDevice* device, vk::Image image, PixelFormat format, uint32_t width, uint32_t height);
     [[nodiscard]] uint32_t getWidth() const override;
     [[nodiscard]] uint32_t getHeight() const override;
     [[nodiscard]] uint32_t getDepth() const override;
@@ -26,8 +27,12 @@ public:
 
     [[nodiscard]] vk::Image getHandle() const;
 private:
+    uint32_t m_width, m_height, m_depth;
+    uint32_t m_mipLevels, m_arrayLayers;
+    PixelFormat m_format;
+    TextureType m_type;
+
     VkDevice* m_device;
     vk::Image m_image;
-    VmaAllocation m_allocation;
 };
 }

@@ -18,17 +18,6 @@ namespace urhi
         commandPoolInfo.queueFamilyIndex = m_queueState->family;
 
         auto res = m_device->getHandle().createCommandPool(&commandPoolInfo, nullptr, &m_commandPool);
-
-        vk::SemaphoreTypeCreateInfo typeCreateInfo{};
-        typeCreateInfo.sType = vk::StructureType::eSemaphoreTypeCreateInfo;
-        typeCreateInfo.semaphoreType = vk::SemaphoreType::eTimeline;
-        typeCreateInfo.initialValue = 0;
-
-        vk::SemaphoreCreateInfo createInfo{};
-        createInfo.sType = vk::StructureType::eSemaphoreCreateInfo;
-        createInfo.pNext = &typeCreateInfo;
-
-        res = m_device->getHandle().createSemaphore(&createInfo, nullptr, &m_timeline);
     }
 
 
@@ -60,37 +49,55 @@ namespace urhi
         return cmd;
     }
 
-    void VkCommandListPool::submit(const VkCommandList* cmd)
+    void VkCommandListPool::submit(const VkCommandList* cmd, const vk::Semaphore swapchainImageSemaphore)
     {
         m_recordingCount--;
-        uint64_t signalValue = ++m_nextBufferIndex;
+        uint64_t signalValue = ++m_queueState->nextTimelineValue;
+        m_lastSubmittedValue = signalValue;
 
-        const vk::TimelineSemaphoreSubmitInfo timelineInfo(
-            {},
-            {signalValue}
-        );
+        std::vector<vk::Semaphore> waitSemaphores;
+        std::vector<vk::PipelineStageFlags> waitStages;
+        std::vector<uint64_t> waitValues;
+
+        if (swapchainImageSemaphore)
+        {
+            waitSemaphores.push_back(swapchainImageSemaphore);
+            waitStages.push_back(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+            waitValues.push_back(0);
+        }
+
+        std::vector<uint64_t> signalValues = { signalValue };
+
+        vk::TimelineSemaphoreSubmitInfo timelineInfo{};
+        timelineInfo.waitSemaphoreValueCount = static_cast<uint32_t>(waitValues.size());
+        timelineInfo.pWaitSemaphoreValues = waitValues.data();
+        timelineInfo.signalSemaphoreValueCount = 1;
+        timelineInfo.pSignalSemaphoreValues = signalValues.data();
 
         auto cmdBuffer = cmd->getCmdBuffer();
+        vk::Semaphore signalSemaphore = m_queueState->timeline;
 
-        const vk::SubmitInfo submitInfo(
-            {},
-            {},
-            {cmdBuffer},
-            {m_timeline},
-            &timelineInfo
-        );
+        vk::SubmitInfo submitInfo{};
+        submitInfo.pNext = &timelineInfo;
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+        submitInfo.pWaitSemaphores = waitSemaphores.data();
+        submitInfo.pWaitDstStageMask = waitStages.data();
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &cmdBuffer;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &signalSemaphore;
 
         std::scoped_lock lock(*m_queueState->mutex);
-        auto res = m_queueState->queue.submit(1, &submitInfo, VK_NULL_HANDLE);
+        m_queueState->queue.submit({submitInfo});
     }
 
     bool VkCommandListPool::canReset() const
     {
-        if(m_recordingCount != 0 || m_nextBufferIndex == 0) return false;
+        if(m_recordingCount != 0 || m_lastSubmittedValue == 0) return false;
 
         uint64_t completedValue = 0;
-        auto res = m_device->getHandle().getSemaphoreCounterValue(m_timeline, &completedValue);
+        auto res = m_device->getHandle().getSemaphoreCounterValue(m_queueState->timeline, &completedValue);
 
-        return completedValue >= m_nextBufferIndex;
+        return completedValue >= m_lastSubmittedValue;
     }
 }

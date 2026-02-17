@@ -8,6 +8,7 @@
 #include "vkCommandListPool.h"
 #include "vkStagingBufferPool.h"
 #include "descriptions/deviceDesc.h"
+#include "descriptions/shaderEntryPoint.h"
 #include "enums/queueType.h"
 
 namespace urhi
@@ -20,6 +21,8 @@ struct VkQueueState
     vk::Queue queue = VK_NULL_HANDLE;
     uint32_t family = 0;
     grl::Box<std::mutex> mutex{};
+    vk::Semaphore timeline;
+    uint64_t nextTimelineValue{};
 };
 
 class VkDevice final : public Device
@@ -35,7 +38,7 @@ public:
     grl::Rc<Sampler> createSampler(const SamplerDesc &desc) override;
     grl::Rc<TextureView> createTextureView(const TextureViewDesc &desc) override;
 
-    grl::Rc<Shader> createShader(SpirvShader shader) override;
+    grl::Rc<Shader> createShader(const ShaderEntryPoint& entryPoint) override;
 
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
     void submit(const grl::Rc<CommandList> &cmd) override;
@@ -51,9 +54,7 @@ private:
 
     static constexpr size_t CMD_POOLS_PER_QUEUE = 4;
 
-    uint32_t m_lastFrameIndex = 0;
-    uint32_t m_currentFrameIndex = 0;
-
+    VkContext* m_context;
     std::atomic<uint32_t> m_cmdListIndex;
 
     vk::PhysicalDevice m_physicalDevice;

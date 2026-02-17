@@ -1,21 +1,27 @@
 #include "vkShader.h"
 
+
 namespace urhi
 {
-    VkShader::VkShader(const VkDevice *device, SpirvShader spirv)
+    VkShader::VkShader(VkDevice *device, const ShaderEntryPoint& entryPoint)
+        : m_device(device), m_entryPoint(entryPoint)
     {
-        const vk::ShaderModuleCreateInfo shaderModuleCI{
+        const vk::ShaderModuleCreateInfo shaderModuleInfo
+        {
             vk::ShaderModuleCreateFlags{0},
-            spirv.spirv
+            entryPoint.spirv
         };
 
-        m_reflection = spirv.reflection;
-
-        auto res = device->getHandle().createShaderModule(&shaderModuleCI, nullptr, &m_shaderModule);
+        m_shaderModule = m_device->getHandle().createShaderModule(shaderModuleInfo);
     }
 
-    ShaderReflection VkShader::reflection()
+    ShaderEntryPoint VkShader::entryPoint()
     {
-        return m_reflection;
+        return m_entryPoint;
+    }
+
+    vk::ShaderModule VkShader::getModule() const
+    {
+        return m_shaderModule;
     }
 }

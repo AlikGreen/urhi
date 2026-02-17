@@ -4,6 +4,8 @@ namespace urhi
 {
     enum class PixelFormat
     {
+        Undefined,
+
         R8Unorm,
         R8Snorm,
         R8Uint,

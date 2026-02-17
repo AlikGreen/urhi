@@ -31,6 +31,9 @@ namespace urhi
         if(height <= 0)
             height = static_cast<int>(mode->height * 0.75);
 
+        m_width = width;
+        m_height = height;
+
         GLFWmonitor* monitor = options.fullscreen ? primaryMonitor : nullptr;
         m_handle = glfwCreateWindow(width, height, options.title, monitor, nullptr);
         clogr::ensure(m_handle != nullptr, "Failed to create GLFW window");
@@ -69,12 +72,12 @@ namespace urhi
 
     uint32_t VkWindow::getWidth()
     {
-        clogr::abort("not implemented");
+        return m_width;
     }
 
     uint32_t VkWindow::getHeight()
     {
-        clogr::abort("not implemented");
+        return m_height;
     }
 
     glm::ivec2 VkWindow::getSize()
@@ -175,6 +178,8 @@ namespace urhi
         auto event = Event();
         event.type = Event::Type::WindowResize;
         event.data = Event::WindowResizeEvent{ width, height };
+        window->m_width = width;
+        window->m_height = height;
         window->m_events.emplace_back(event);
     }
 

@@ -205,111 +205,218 @@ namespace urhi
     }
 
     vk::Format VkConvert::pixelFormat(PixelFormat pixelFormat)
-{
-    switch (pixelFormat)
     {
-        // 8-bit R
-        case PixelFormat::R8Unorm:             return vk::Format::eR8Unorm;
-        case PixelFormat::R8Snorm:             return vk::Format::eR8Snorm;
-        case PixelFormat::R8Uint:              return vk::Format::eR8Uint;
-        case PixelFormat::R8Int:               return vk::Format::eR8Sint;
+        switch (pixelFormat)
+        {
+            // 8-bit R
+            case PixelFormat::R8Unorm:             return vk::Format::eR8Unorm;
+            case PixelFormat::R8Snorm:             return vk::Format::eR8Snorm;
+            case PixelFormat::R8Uint:              return vk::Format::eR8Uint;
+            case PixelFormat::R8Int:               return vk::Format::eR8Sint;
 
-        // 16-bit R
-        case PixelFormat::R16Unorm:            return vk::Format::eR16Unorm;
-        case PixelFormat::R16Snorm:            return vk::Format::eR16Snorm;
-        case PixelFormat::R16Uint:             return vk::Format::eR16Uint;
-        case PixelFormat::R16Int:              return vk::Format::eR16Sint;
-        case PixelFormat::R16Float:            return vk::Format::eR16Sfloat;
+            // 16-bit R
+            case PixelFormat::R16Unorm:            return vk::Format::eR16Unorm;
+            case PixelFormat::R16Snorm:            return vk::Format::eR16Snorm;
+            case PixelFormat::R16Uint:             return vk::Format::eR16Uint;
+            case PixelFormat::R16Int:              return vk::Format::eR16Sint;
+            case PixelFormat::R16Float:            return vk::Format::eR16Sfloat;
 
-        // 32-bit R
-        case PixelFormat::R32Float:            return vk::Format::eR32Sfloat;
-        case PixelFormat::R32Uint:             return vk::Format::eR32Uint;
-        case PixelFormat::R32Int:              return vk::Format::eR32Sint;
+            // 32-bit R
+            case PixelFormat::R32Float:            return vk::Format::eR32Sfloat;
+            case PixelFormat::R32Uint:             return vk::Format::eR32Uint;
+            case PixelFormat::R32Int:              return vk::Format::eR32Sint;
 
-        // 8-bit RG
-        case PixelFormat::R8G8Unorm:           return vk::Format::eR8G8Unorm;
-        case PixelFormat::R8G8Snorm:           return vk::Format::eR8G8Snorm;
-        case PixelFormat::R8G8Uint:            return vk::Format::eR8G8Uint;
-        case PixelFormat::R8G8Int:             return vk::Format::eR8G8Sint;
+            // 8-bit RG
+            case PixelFormat::R8G8Unorm:           return vk::Format::eR8G8Unorm;
+            case PixelFormat::R8G8Snorm:           return vk::Format::eR8G8Snorm;
+            case PixelFormat::R8G8Uint:            return vk::Format::eR8G8Uint;
+            case PixelFormat::R8G8Int:             return vk::Format::eR8G8Sint;
 
-        // 16-bit RG
-        case PixelFormat::R16G16Unorm:         return vk::Format::eR16G16Unorm;
-        case PixelFormat::R16G16Snorm:         return vk::Format::eR16G16Snorm;
-        case PixelFormat::R16G16Uint:          return vk::Format::eR16G16Uint;
-        case PixelFormat::R16G16Int:           return vk::Format::eR16G16Sint;
-        case PixelFormat::R16G16Float:         return vk::Format::eR16G16Sfloat;
+            // 16-bit RG
+            case PixelFormat::R16G16Unorm:         return vk::Format::eR16G16Unorm;
+            case PixelFormat::R16G16Snorm:         return vk::Format::eR16G16Snorm;
+            case PixelFormat::R16G16Uint:          return vk::Format::eR16G16Uint;
+            case PixelFormat::R16G16Int:           return vk::Format::eR16G16Sint;
+            case PixelFormat::R16G16Float:         return vk::Format::eR16G16Sfloat;
 
-        // 32-bit RG
-        case PixelFormat::R32G32Float:         return vk::Format::eR32G32Sfloat;
-        case PixelFormat::R32G32Uint:          return vk::Format::eR32G32Uint;
-        case PixelFormat::R32G32Int:           return vk::Format::eR32G32Sint;
+            // 32-bit RG
+            case PixelFormat::R32G32Float:         return vk::Format::eR32G32Sfloat;
+            case PixelFormat::R32G32Uint:          return vk::Format::eR32G32Uint;
+            case PixelFormat::R32G32Int:           return vk::Format::eR32G32Sint;
 
-        // 8-bit RGB / BGR
-        case PixelFormat::R8G8B8Unorm:         return vk::Format::eR8G8B8Unorm;
-        case PixelFormat::R8G8B8Snorm:         return vk::Format::eR8G8B8Snorm;
-        case PixelFormat::R8G8B8Uint:          return vk::Format::eR8G8B8Uint;
-        case PixelFormat::R8G8B8Int:           return vk::Format::eR8G8B8Sint;
-        case PixelFormat::R8G8B8UnormSrgb:     return vk::Format::eR8G8B8Srgb;
-        case PixelFormat::B8G8R8Unorm:         return vk::Format::eB8G8R8Unorm;
-        case PixelFormat::B8G8R8UnormSrgb:     return vk::Format::eB8G8R8Srgb;
+            // 8-bit RGB / BGR
+            case PixelFormat::R8G8B8Unorm:         return vk::Format::eR8G8B8Unorm;
+            case PixelFormat::R8G8B8Snorm:         return vk::Format::eR8G8B8Snorm;
+            case PixelFormat::R8G8B8Uint:          return vk::Format::eR8G8B8Uint;
+            case PixelFormat::R8G8B8Int:           return vk::Format::eR8G8B8Sint;
+            case PixelFormat::R8G8B8UnormSrgb:     return vk::Format::eR8G8B8Srgb;
+            case PixelFormat::B8G8R8Unorm:         return vk::Format::eB8G8R8Unorm;
+            case PixelFormat::B8G8R8UnormSrgb:     return vk::Format::eB8G8R8Srgb;
 
-        // 16-bit RGB
-        case PixelFormat::R16G16B16Unorm:      return vk::Format::eR16G16B16Unorm;
-        case PixelFormat::R16G16B16Snorm:      return vk::Format::eR16G16B16Snorm;
-        case PixelFormat::R16G16B16Uint:       return vk::Format::eR16G16B16Uint;
-        case PixelFormat::R16G16B16Int:        return vk::Format::eR16G16B16Sint;
-        case PixelFormat::R16G16B16Float:      return vk::Format::eR16G16B16Sfloat;
+            // 16-bit RGB
+            case PixelFormat::R16G16B16Unorm:      return vk::Format::eR16G16B16Unorm;
+            case PixelFormat::R16G16B16Snorm:      return vk::Format::eR16G16B16Snorm;
+            case PixelFormat::R16G16B16Uint:       return vk::Format::eR16G16B16Uint;
+            case PixelFormat::R16G16B16Int:        return vk::Format::eR16G16B16Sint;
+            case PixelFormat::R16G16B16Float:      return vk::Format::eR16G16B16Sfloat;
 
-        // 32-bit RGB
-        case PixelFormat::R32G32B32Float:      return vk::Format::eR32G32B32Sfloat;
-        case PixelFormat::R32G32B32Uint:       return vk::Format::eR32G32B32Uint;
-        case PixelFormat::R32G32B32Int:        return vk::Format::eR32G32B32Sint;
+            // 32-bit RGB
+            case PixelFormat::R32G32B32Float:      return vk::Format::eR32G32B32Sfloat;
+            case PixelFormat::R32G32B32Uint:       return vk::Format::eR32G32B32Uint;
+            case PixelFormat::R32G32B32Int:        return vk::Format::eR32G32B32Sint;
 
-        // 8-bit RGBA / BGRA
-        case PixelFormat::R8G8B8A8Unorm:       return vk::Format::eR8G8B8A8Unorm;
-        case PixelFormat::R8G8B8A8Snorm:       return vk::Format::eR8G8B8A8Snorm;
-        case PixelFormat::R8G8B8A8Uint:        return vk::Format::eR8G8B8A8Uint;
-        case PixelFormat::R8G8B8A8Int:         return vk::Format::eR8G8B8A8Sint;
-        case PixelFormat::R8G8B8A8UnormSrgb:   return vk::Format::eR8G8B8A8Srgb;
-        case PixelFormat::B8G8R8A8Unorm:       return vk::Format::eB8G8R8A8Unorm;
-        case PixelFormat::B8G8R8A8UnormSrgb:   return vk::Format::eB8G8R8A8Srgb;
+            // 8-bit RGBA / BGRA
+            case PixelFormat::R8G8B8A8Unorm:       return vk::Format::eR8G8B8A8Unorm;
+            case PixelFormat::R8G8B8A8Snorm:       return vk::Format::eR8G8B8A8Snorm;
+            case PixelFormat::R8G8B8A8Uint:        return vk::Format::eR8G8B8A8Uint;
+            case PixelFormat::R8G8B8A8Int:         return vk::Format::eR8G8B8A8Sint;
+            case PixelFormat::R8G8B8A8UnormSrgb:   return vk::Format::eR8G8B8A8Srgb;
+            case PixelFormat::B8G8R8A8Unorm:       return vk::Format::eB8G8R8A8Unorm;
+            case PixelFormat::B8G8R8A8UnormSrgb:   return vk::Format::eB8G8R8A8Srgb;
 
-        // 16-bit RGBA
-        case PixelFormat::R16G16B16A16Unorm:   return vk::Format::eR16G16B16A16Unorm;
-        case PixelFormat::R16G16B16A16Snorm:   return vk::Format::eR16G16B16A16Snorm;
-        case PixelFormat::R16G16B16A16Uint:    return vk::Format::eR16G16B16A16Uint;
-        case PixelFormat::R16G16B16A16Int:     return vk::Format::eR16G16B16A16Sint;
-        case PixelFormat::R16G16B16A16Float:   return vk::Format::eR16G16B16A16Sfloat;
+            // 16-bit RGBA
+            case PixelFormat::R16G16B16A16Unorm:   return vk::Format::eR16G16B16A16Unorm;
+            case PixelFormat::R16G16B16A16Snorm:   return vk::Format::eR16G16B16A16Snorm;
+            case PixelFormat::R16G16B16A16Uint:    return vk::Format::eR16G16B16A16Uint;
+            case PixelFormat::R16G16B16A16Int:     return vk::Format::eR16G16B16A16Sint;
+            case PixelFormat::R16G16B16A16Float:   return vk::Format::eR16G16B16A16Sfloat;
 
-        // 32-bit RGBA
-        case PixelFormat::R32G32B32A32Float:   return vk::Format::eR32G32B32A32Sfloat;
-        case PixelFormat::R32G32B32A32Uint:    return vk::Format::eR32G32B32A32Uint;
-        case PixelFormat::R32G32B32A32Int:     return vk::Format::eR32G32B32A32Sint;
+            // 32-bit RGBA
+            case PixelFormat::R32G32B32A32Float:   return vk::Format::eR32G32B32A32Sfloat;
+            case PixelFormat::R32G32B32A32Uint:    return vk::Format::eR32G32B32A32Uint;
+            case PixelFormat::R32G32B32A32Int:     return vk::Format::eR32G32B32A32Sint;
 
-        // Packed / Special
-        case PixelFormat::R10G10B10A2Unorm:    return vk::Format::eA2B10G10R10UnormPack32;
-        case PixelFormat::R11G11B10Ufloat:     return vk::Format::eB10G11R11UfloatPack32;
+            // Packed / Special
+            case PixelFormat::R10G10B10A2Unorm:    return vk::Format::eA2B10G10R10UnormPack32;
+            case PixelFormat::R11G11B10Ufloat:     return vk::Format::eB10G11R11UfloatPack32;
 
-        // Block Compressed (BC)
-        case PixelFormat::BC1RgbaUnorm:        return vk::Format::eBc1RgbaUnormBlock;
-        case PixelFormat::BC1RgbaUnormSrgb:    return vk::Format::eBc1RgbaSrgbBlock;
-        case PixelFormat::BC2RgbaUnorm:        return vk::Format::eBc2UnormBlock;
-        case PixelFormat::BC2RgbaUnormSrgb:    return vk::Format::eBc2SrgbBlock;
-        case PixelFormat::BC3RgbaUnorm:        return vk::Format::eBc3UnormBlock;
-        case PixelFormat::BC3RgbaUnormSrgb:    return vk::Format::eBc3SrgbBlock;
-        case PixelFormat::BC4RUnorm:           return vk::Format::eBc4UnormBlock;
-        case PixelFormat::BC5RgUnorm:          return vk::Format::eBc5UnormBlock;
-        case PixelFormat::BC7RgbaUnorm:        return vk::Format::eBc7UnormBlock;
-        case PixelFormat::BC7RgbaUnormSrgb:    return vk::Format::eBc7SrgbBlock;
+            // Block Compressed (BC)
+            case PixelFormat::BC1RgbaUnorm:        return vk::Format::eBc1RgbaUnormBlock;
+            case PixelFormat::BC1RgbaUnormSrgb:    return vk::Format::eBc1RgbaSrgbBlock;
+            case PixelFormat::BC2RgbaUnorm:        return vk::Format::eBc2UnormBlock;
+            case PixelFormat::BC2RgbaUnormSrgb:    return vk::Format::eBc2SrgbBlock;
+            case PixelFormat::BC3RgbaUnorm:        return vk::Format::eBc3UnormBlock;
+            case PixelFormat::BC3RgbaUnormSrgb:    return vk::Format::eBc3SrgbBlock;
+            case PixelFormat::BC4RUnorm:           return vk::Format::eBc4UnormBlock;
+            case PixelFormat::BC5RgUnorm:          return vk::Format::eBc5UnormBlock;
+            case PixelFormat::BC7RgbaUnorm:        return vk::Format::eBc7UnormBlock;
+            case PixelFormat::BC7RgbaUnormSrgb:    return vk::Format::eBc7SrgbBlock;
 
-        // Depth / Stencil
-        case PixelFormat::D24UnormS8Uint:      return vk::Format::eD24UnormS8Uint;
-        case PixelFormat::D32FloatS8Uint:      return vk::Format::eD32SfloatS8Uint;
+            // Depth / Stencil
+            case PixelFormat::D24UnormS8Uint:      return vk::Format::eD24UnormS8Uint;
+            case PixelFormat::D32FloatS8Uint:      return vk::Format::eD32SfloatS8Uint;
 
-        case PixelFormat::Invalid:
-        default:                               return vk::Format::eUndefined;
+            case PixelFormat::Invalid:
+            default:                               return vk::Format::eUndefined;
+        }
     }
-}
+
+    PixelFormat VkConvert::pixelFormat(vk::Format format)
+    {
+        switch (format)
+        {
+            // 8-bit R
+            case vk::Format::eR8Unorm:             return PixelFormat::R8Unorm;
+            case vk::Format::eR8Snorm:             return PixelFormat::R8Snorm;
+            case vk::Format::eR8Uint:              return PixelFormat::R8Uint;
+            case vk::Format::eR8Sint:              return PixelFormat::R8Int;
+
+            // 16-bit R
+            case vk::Format::eR16Unorm:            return PixelFormat::R16Unorm;
+            case vk::Format::eR16Snorm:            return PixelFormat::R16Snorm;
+            case vk::Format::eR16Uint:             return PixelFormat::R16Uint;
+            case vk::Format::eR16Sint:             return PixelFormat::R16Int;
+            case vk::Format::eR16Sfloat:           return PixelFormat::R16Float;
+
+            // 32-bit R
+            case vk::Format::eR32Sfloat:           return PixelFormat::R32Float;
+            case vk::Format::eR32Uint:             return PixelFormat::R32Uint;
+            case vk::Format::eR32Sint:             return PixelFormat::R32Int;
+
+            // 8-bit RG
+            case vk::Format::eR8G8Unorm:           return PixelFormat::R8G8Unorm;
+            case vk::Format::eR8G8Snorm:           return PixelFormat::R8G8Snorm;
+            case vk::Format::eR8G8Uint:            return PixelFormat::R8G8Uint;
+            case vk::Format::eR8G8Sint:            return PixelFormat::R8G8Int;
+
+            // 16-bit RG
+            case vk::Format::eR16G16Unorm:         return PixelFormat::R16G16Unorm;
+            case vk::Format::eR16G16Snorm:         return PixelFormat::R16G16Snorm;
+            case vk::Format::eR16G16Uint:          return PixelFormat::R16G16Uint;
+            case vk::Format::eR16G16Sint:          return PixelFormat::R16G16Int;
+            case vk::Format::eR16G16Sfloat:        return PixelFormat::R16G16Float;
+
+            // 32-bit RG
+            case vk::Format::eR32G32Sfloat:        return PixelFormat::R32G32Float;
+            case vk::Format::eR32G32Uint:          return PixelFormat::R32G32Uint;
+            case vk::Format::eR32G32Sint:          return PixelFormat::R32G32Int;
+
+            // 8-bit RGB / BGR
+            case vk::Format::eR8G8B8Unorm:         return PixelFormat::R8G8B8Unorm;
+            case vk::Format::eR8G8B8Snorm:         return PixelFormat::R8G8B8Snorm;
+            case vk::Format::eR8G8B8Uint:          return PixelFormat::R8G8B8Uint;
+            case vk::Format::eR8G8B8Sint:          return PixelFormat::R8G8B8Int;
+            case vk::Format::eR8G8B8Srgb:          return PixelFormat::R8G8B8UnormSrgb;
+            case vk::Format::eB8G8R8Unorm:         return PixelFormat::B8G8R8Unorm;
+            case vk::Format::eB8G8R8Srgb:          return PixelFormat::B8G8R8UnormSrgb;
+
+            // 16-bit RGB
+            case vk::Format::eR16G16B16Unorm:      return PixelFormat::R16G16B16Unorm;
+            case vk::Format::eR16G16B16Snorm:      return PixelFormat::R16G16B16Snorm;
+            case vk::Format::eR16G16B16Uint:       return PixelFormat::R16G16B16Uint;
+            case vk::Format::eR16G16B16Sint:       return PixelFormat::R16G16B16Int;
+            case vk::Format::eR16G16B16Sfloat:     return PixelFormat::R16G16B16Float;
+
+            // 32-bit RGB
+            case vk::Format::eR32G32B32Sfloat:     return PixelFormat::R32G32B32Float;
+            case vk::Format::eR32G32B32Uint:       return PixelFormat::R32G32B32Uint;
+            case vk::Format::eR32G32B32Sint:       return PixelFormat::R32G32B32Int;
+
+            // 8-bit RGBA / BGRA
+            case vk::Format::eR8G8B8A8Unorm:       return PixelFormat::R8G8B8A8Unorm;
+            case vk::Format::eR8G8B8A8Snorm:       return PixelFormat::R8G8B8A8Snorm;
+            case vk::Format::eR8G8B8A8Uint:        return PixelFormat::R8G8B8A8Uint;
+            case vk::Format::eR8G8B8A8Sint:        return PixelFormat::R8G8B8A8Int;
+            case vk::Format::eR8G8B8A8Srgb:        return PixelFormat::R8G8B8A8UnormSrgb;
+            case vk::Format::eB8G8R8A8Unorm:       return PixelFormat::B8G8R8A8Unorm;
+            case vk::Format::eB8G8R8A8Srgb:        return PixelFormat::B8G8R8A8UnormSrgb;
+
+            // 16-bit RGBA
+            case vk::Format::eR16G16B16A16Unorm:   return PixelFormat::R16G16B16A16Unorm;
+            case vk::Format::eR16G16B16A16Snorm:   return PixelFormat::R16G16B16A16Snorm;
+            case vk::Format::eR16G16B16A16Uint:    return PixelFormat::R16G16B16A16Uint;
+            case vk::Format::eR16G16B16A16Sint:    return PixelFormat::R16G16B16A16Int;
+            case vk::Format::eR16G16B16A16Sfloat:  return PixelFormat::R16G16B16A16Float;
+
+            // 32-bit RGBA
+            case vk::Format::eR32G32B32A32Sfloat:  return PixelFormat::R32G32B32A32Float;
+            case vk::Format::eR32G32B32A32Uint:    return PixelFormat::R32G32B32A32Uint;
+            case vk::Format::eR32G32B32A32Sint:    return PixelFormat::R32G32B32A32Int;
+
+            // Packed / Special
+            case vk::Format::eA2B10G10R10UnormPack32: return PixelFormat::R10G10B10A2Unorm;
+            case vk::Format::eB10G11R11UfloatPack32:  return PixelFormat::R11G11B10Ufloat;
+
+            // Block Compressed (BC)
+            case vk::Format::eBc1RgbaUnormBlock:   return PixelFormat::BC1RgbaUnorm;
+            case vk::Format::eBc1RgbaSrgbBlock:    return PixelFormat::BC1RgbaUnormSrgb;
+            case vk::Format::eBc2UnormBlock:       return PixelFormat::BC2RgbaUnorm;
+            case vk::Format::eBc2SrgbBlock:        return PixelFormat::BC2RgbaUnormSrgb;
+            case vk::Format::eBc3UnormBlock:       return PixelFormat::BC3RgbaUnorm;
+            case vk::Format::eBc3SrgbBlock:        return PixelFormat::BC3RgbaUnormSrgb;
+            case vk::Format::eBc4UnormBlock:       return PixelFormat::BC4RUnorm;
+            case vk::Format::eBc5UnormBlock:       return PixelFormat::BC5RgUnorm;
+            case vk::Format::eBc7UnormBlock:       return PixelFormat::BC7RgbaUnorm;
+            case vk::Format::eBc7SrgbBlock:        return PixelFormat::BC7RgbaUnormSrgb;
+
+            // Depth / Stencil
+            case vk::Format::eD24UnormS8Uint:      return PixelFormat::D24UnormS8Uint;
+            case vk::Format::eD32SfloatS8Uint:     return PixelFormat::D32FloatS8Uint;
+
+            case vk::Format::eUndefined:
+            default:                               return PixelFormat::Invalid;
+        }
+    }
 
     vk::BufferUsageFlags VkConvert::bufferUsage(const BufferUsage bufferUsage)
     {
@@ -354,6 +461,26 @@ namespace urhi
             flags |= vk::ShaderStageFlagBits::eCompute;
 
         return flags;
+    }
+
+    vk::Format VkConvert::format(const ShaderReflection::DataType type)
+    {
+        switch (type)
+        {
+            case ShaderReflection::DataType::Float:  return vk::Format::eR32Sfloat;
+            case ShaderReflection::DataType::Float2: return vk::Format::eR32G32Sfloat;
+            case ShaderReflection::DataType::Float3: return vk::Format::eR32G32B32Sfloat;;
+            case ShaderReflection::DataType::Float4: return vk::Format::eR32G32B32A32Sfloat;;
+            case ShaderReflection::DataType::Int:    return vk::Format::eR32Sint;
+            case ShaderReflection::DataType::Int2:   return vk::Format::eR32G32Sint;
+            case ShaderReflection::DataType::Int3:   return vk::Format::eR32G32B32Sint;
+            case ShaderReflection::DataType::Int4:   return vk::Format::eR32G32B32A32Sint;
+            case ShaderReflection::DataType::UInt:   return vk::Format::eR32Uint;
+            case ShaderReflection::DataType::UInt2:  return vk::Format::eR32G32Uint;
+            case ShaderReflection::DataType::UInt3:  return vk::Format::eR32G32B32Uint;
+            case ShaderReflection::DataType::UInt4:  return vk::Format::eR32G32B32A32Uint;
+            default: return vk::Format::eUndefined;;
+        }
     }
 
     vk::AttachmentLoadOp VkConvert::loadOp(const LoadOp loadOp)
@@ -465,6 +592,132 @@ namespace urhi
                 return vk::ImageViewType::e3D;
             default:
                 return vk::ImageViewType::e2D;
+        }
+    }
+
+    vk::PrimitiveTopology VkConvert::primitiveType(const PrimitiveType type)
+    {
+        switch (type)
+        {
+            case PrimitiveType::TriangleList:
+                return vk::PrimitiveTopology::eTriangleList;
+            case PrimitiveType::TriangleStrip:
+                return vk::PrimitiveTopology::eTriangleStrip;
+            case PrimitiveType::LineList:
+                return vk::PrimitiveTopology::eLineList;
+            case PrimitiveType::LineStrip:
+                return vk::PrimitiveTopology::eLineStrip;
+            case PrimitiveType::PointList:
+                return vk::PrimitiveTopology::ePointList;
+            default:
+                return vk::PrimitiveTopology::eTriangleList;
+        }
+    }
+
+    vk::PolygonMode VkConvert::fillMode(const FillMode fillMode)
+    {
+        switch (fillMode)
+        {
+            case FillMode::Fill:
+                return vk::PolygonMode::eFill;
+            case FillMode::Line:
+                return vk::PolygonMode::eLine;
+            case FillMode::Point:
+                return vk::PolygonMode::ePoint;
+            default:
+                return vk::PolygonMode::eFill;
+        }
+    }
+
+    vk::CullModeFlags VkConvert::cullMode(CullMode cullMode)
+    {
+        switch (cullMode)
+        {
+            case CullMode::None:
+                return vk::CullModeFlagBits::eNone;
+            case CullMode::Front:
+                return vk::CullModeFlagBits::eFront;
+            case CullMode::Back:
+                return vk::CullModeFlagBits::eBack;
+            default:
+                return vk::CullModeFlagBits::eNone;
+        }
+    }
+
+    vk::CompareOp VkConvert::compareOp(const CompareOp compareOp)
+    {
+        switch (compareOp)
+        {
+            case CompareOp::Less:
+                return vk::CompareOp::eLess;
+            case CompareOp::LessOrEqual:
+                return vk::CompareOp::eLessOrEqual;
+            case CompareOp::Greater:
+                return vk::CompareOp::eGreater;
+            case CompareOp::GreaterOrEqual:
+                return vk::CompareOp::eGreaterOrEqual;
+            case CompareOp::Never:
+                return vk::CompareOp::eNever;
+            case CompareOp::Always:
+                return vk::CompareOp::eAlways;
+            case CompareOp::NotEqual:
+                return vk::CompareOp::eNotEqual;
+            case CompareOp::Equal:
+                return vk::CompareOp::eEqual;
+            default:
+                return vk::CompareOp::eLess;
+        }
+    }
+
+    vk::ColorComponentFlags VkConvert::colorWriteMask(const ColorWriteMask mask)
+    {
+        vk::ColorComponentFlags flags{};
+
+        if((mask & ColorWriteMask::A) == ColorWriteMask::A)
+            flags |= vk::ColorComponentFlagBits::eA;
+        if((mask & ColorWriteMask::A) == ColorWriteMask::R)
+            flags |= vk::ColorComponentFlagBits::eR;
+        if((mask & ColorWriteMask::A) == ColorWriteMask::G)
+            flags |= vk::ColorComponentFlagBits::eG;
+        if((mask & ColorWriteMask::A) == ColorWriteMask::B)
+            flags |= vk::ColorComponentFlagBits::eB;
+
+        return flags;
+    }
+
+    vk::BlendFactor VkConvert::blendFactor(const BlendFactor factor)
+    {
+        switch (factor)
+        {
+            case BlendFactor::One:
+                return vk::BlendFactor::eOne;
+            case BlendFactor::Zero:
+                return vk::BlendFactor::eZero;
+            case BlendFactor::SrcAlpha:
+                return vk::BlendFactor::eSrcAlpha;
+            case BlendFactor::InvSrcAlpha:
+                return vk::BlendFactor::eOneMinusSrcAlpha;
+            default:
+                return vk::BlendFactor::eOne;
+        }
+    }
+
+    vk::BlendOp VkConvert::blendOp(const BlendOp op)
+    {
+        switch (op)
+        {
+            case BlendOp::Add:
+                return vk::BlendOp::eAdd;
+            case BlendOp::Subtract:
+                return vk::BlendOp::eSubtract;
+            case BlendOp::Max:
+                return vk::BlendOp::eMax;
+            case BlendOp::Min:
+                return vk::BlendOp::eMin;
+            case BlendOp::RevSubtract:
+                return vk::BlendOp::eReverseSubtract;
+            default:
+                return vk::BlendOp::eAdd;
         }
     }
 }

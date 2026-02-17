@@ -1,5 +1,5 @@
 #pragma once
-#include "descriptions/shaderReflection.h"
+#include "descriptions/shaderEntryPoint.h"
 
 namespace urhi
 {
@@ -12,6 +12,6 @@ public:
     Shader(const Shader&) = delete;
     Shader& operator= (const Shader&) = delete;
 
-    virtual ShaderReflection reflection() = 0;
+    virtual ShaderEntryPoint entryPoint() = 0;
 };
 }

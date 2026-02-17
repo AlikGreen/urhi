@@ -38,6 +38,9 @@ private:
     GLFWwindow* m_handle = nullptr;
     std::vector<Event> m_events{};
 
+    uint32_t m_width{};
+    uint32_t m_height{};
+
     vk::SurfaceKHR m_surface;
 
     static void keyCallback(GLFWwindow* windowGLFW, int key, int scancode, int action, int mods);

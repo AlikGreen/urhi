@@ -13,7 +13,7 @@ public:
     VkCommandListPool(VkDevice *device, const grl::Rc<VkQueueState> &queueState);
 
     vk::CommandBuffer acquire();
-    void submit(const VkCommandList* cmd);
+    void submit(const VkCommandList* cmd, vk::Semaphore swapchainImageSemaphore);
 private:
     friend VkCommandList;
 
@@ -26,10 +26,10 @@ private:
     vk::CommandPool m_commandPool;
     std::vector<vk::CommandBuffer> m_commandBuffers;
     grl::Rc<VkQueueState> m_queueState;
-    vk::Semaphore m_timeline;
 
     uint32_t m_recordingCount = 0;
     uint64_t m_submittedCount = 0;
     uint32_t m_nextBufferIndex = 0;
+    uint32_t m_lastSubmittedValue = 0;
 };
 }

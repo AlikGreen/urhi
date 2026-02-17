@@ -2,6 +2,7 @@
 #include <grl/mem.h>
 
 #include "device.h"
+#include "swapchain.h"
 #include "descriptions/deviceDesc.h"
 #include "descriptions/windowDesc.h"
 #include "enums/backendAPI.h"

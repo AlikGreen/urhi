@@ -4,13 +4,16 @@
 
 namespace urhi
 {
+class VkDevice;
 class VkShader final : public Shader
 {
 public:
-    VkShader(const VkDevice* device, SpirvShader spirv);
-    ShaderReflection reflection() override;
+    VkShader(VkDevice* device, const ShaderEntryPoint& entryPoint);
+    ShaderEntryPoint entryPoint() override;
+    [[nodiscard]] vk::ShaderModule getModule() const;
 private:
+    VkDevice* m_device;
     vk::ShaderModule m_shaderModule;
-    ShaderReflection m_reflection;
+    ShaderEntryPoint m_entryPoint;
 };
 }

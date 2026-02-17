@@ -11,11 +11,13 @@
 #include "vkWindow.h"
 #include "enums/queueType.h"
 #include "vkStagedBuffer.h"
+#include "vkSwapchain.h"
 #include "vkTexture.h"
 
 namespace urhi
 {
     VkDevice::VkDevice(const DeviceDesc& desc, VkContext* context)
+        : m_context(context)
     {
         VkPhysicalDeviceVulkan13Features features13{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
         features13.dynamicRendering = true;
@@ -43,20 +45,29 @@ namespace urhi
         m_handle = vkbDevice.device;
         m_physicalDevice = physicalDevice.physical_device;
 
+        vk::SemaphoreTypeCreateInfo typeCreateInfo
+        {
+            vk::SemaphoreType::eTimeline,
+            0
+        };
+
         m_queueStates[0] = grl::makeRc<VkQueueState>();
         m_queueStates[0]->queue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
         m_queueStates[0]->family = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
         m_queueStates[0]->mutex = grl::makeBox<std::mutex>();
+        m_queueStates[0]->timeline = m_handle.createSemaphore({{}, typeCreateInfo});
 
         m_queueStates[1] = grl::makeRc<VkQueueState>();
         m_queueStates[1]->queue = vkbDevice.get_queue(vkb::QueueType::compute).value();
         m_queueStates[1]->family = vkbDevice.get_queue_index(vkb::QueueType::compute).value();
         m_queueStates[1]->mutex = grl::makeBox<std::mutex>();
+        m_queueStates[1]->timeline = m_handle.createSemaphore({{}, typeCreateInfo});
 
         m_queueStates[2] = grl::makeRc<VkQueueState>();
         m_queueStates[2]->queue = vkbDevice.get_queue(vkb::QueueType::transfer).value();
         m_queueStates[2]->family = vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
         m_queueStates[2]->mutex = grl::makeBox<std::mutex>();
+        m_queueStates[2]->timeline = m_handle.createSemaphore({{}, typeCreateInfo});
 
         VmaVulkanFunctions vkFunctions{
             .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
@@ -115,9 +126,9 @@ namespace urhi
         clogr::abort("not implemented");
     }
 
-    grl::Rc<Shader> VkDevice::createShader(SpirvShader shader)
+    grl::Rc<Shader> VkDevice::createShader(const ShaderEntryPoint &entryPoint)
     {
-        return grl::makeRc<VkShader>(this, shader);
+        return grl::makeRc<VkShader>(this, entryPoint);
     }
 
     grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
@@ -134,7 +145,14 @@ namespace urhi
         const vk::CommandBuffer commandBuffer = vkCmd->getCmdBuffer();
         commandBuffer.end();
 
-        vkCmd->getPool().submit(vkCmd);
+        vk::Semaphore semaphore = nullptr;
+
+        if(vkCmd->getQueueType() == QueueType::Graphics)
+        {
+            semaphore = m_context->getSwapchain()->consumeSemaphore();
+        }
+
+        vkCmd->getPool().submit(vkCmd, semaphore);
 
         m_cmdListIndex = ++m_cmdListIndex % CMD_POOLS_PER_QUEUE;
     }

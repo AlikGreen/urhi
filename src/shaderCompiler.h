@@ -3,9 +3,9 @@
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
+#include "descriptions/shaderEntryPoint.h"
 #include "descriptions/shaderReflection.h"
 
 namespace urhi
@@ -20,27 +20,19 @@ namespace urhi
         bool generateDebugInfo = false;
     };
 
-    struct SpirvShader
-    {
-        std::vector<uint32_t> spirv;
-        ShaderReflection reflection;
-    };
-
     class ShaderCompiler
     {
     public:
-        static SpirvShader compile(const ShaderCompileDesc& desc);
+        static std::vector<ShaderEntryPoint> compile(const ShaderCompileDesc& desc);
     private:
-        static Slang::ComPtr<slang::ISession> createSession(const ShaderCompileDesc& desc);
         static Slang::ComPtr<slang::IComponentType> compileAndLink(slang::ISession* session, const ShaderCompileDesc& desc);
         static std::vector<uint32_t> extractSpirv(slang::IComponentType* linkedProgram);
-        static ShaderReflection extractReflection(slang::ProgramLayout* layout, const ShaderCompileDesc& desc);
+        static ShaderReflection extractReflection(slang::ProgramLayout* layout, slang::EntryPointReflection* entryPoint, const ShaderCompileDesc& desc);
 
-        static void extractEntryPoints(slang::ProgramLayout* layout, const ShaderCompileDesc& desc, ShaderReflection& reflection);
         static void extractVertexInput(slang::EntryPointReflection* entryPoint, const ShaderCompileDesc& desc, ShaderReflection& reflection);
         static void extractResources(slang::ProgramLayout* layout, ShaderReflection& reflection);
         static void extractConstantBuffer(slang::VariableLayoutReflection* param, slang::TypeReflection* type, slang::TypeLayoutReflection* typeLayout, uint32_t set, uint32_t binding, ShaderReflection& reflection);
-        static void extractStructuredBuffer( slang::VariableLayoutReflection* param, slang::TypeReflection* type, uint32_t set, uint32_t binding, ShaderReflection& reflection);
+        static void extractStructuredBuffer(slang::VariableLayoutReflection* param, slang::TypeReflection* type, uint32_t set, uint32_t binding, ShaderReflection& reflection);
         static void extractTexture(slang::VariableLayoutReflection* param, slang::TypeReflection* type, uint32_t set, uint32_t binding, ShaderReflection& reflection);
         static void extractSampler(slang::VariableLayoutReflection* param, uint32_t set, uint32_t binding, ShaderReflection& reflection);
 

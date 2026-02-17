@@ -5,6 +5,8 @@
 
 namespace urhi
 {
+class VkSwapchain;
+
 class VkContext final : public Context
 {
 public:
@@ -15,10 +17,13 @@ public:
 
     [[nodiscard]] vkb::Instance getVkbInstance() const;
     [[nodiscard]] vk::Instance getVkInstance() const;
+    [[nodiscard]] grl::Rc<VkSwapchain> getSwapchain() const;
+
 private:
     vk::Instance m_instance;
     vk::DebugUtilsMessengerEXT m_debugMessenger;
     vkb::Instance m_vkbInstance;
+    grl::Rc<VkSwapchain> m_swapchain;
 };
 
 }

@@ -14,7 +14,7 @@ namespace urhi
         const VkBufferCreateInfo bufferCI{
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .size = desc.size,
-            .usage = static_cast<VkBufferUsageFlags>(VkConvert::bufferUsage(desc.usage))
+            .usage = static_cast<VkBufferUsageFlags>(VkConvert::bufferUsage(desc.usage) | vk::BufferUsageFlagBits::eTransferDst)
         };
 
         constexpr VmaAllocationCreateInfo bufferAllocCI{

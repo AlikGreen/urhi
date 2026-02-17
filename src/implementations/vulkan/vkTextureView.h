@@ -14,9 +14,9 @@ class VkTextureView final : public TextureView
 {
 public:
     VkTextureView(VkDevice* device, const TextureViewDesc& desc);
-    [[nodiscard]] uint32_t getWidth() const override;
-    [[nodiscard]] uint32_t getHeight() const override;
-    [[nodiscard]] uint32_t getDepth() const override;
+    VkTextureView(VkDevice* device, const grl::Rc<VkTexture> &texture, PixelFormat format, vk::ImageView view);
+
+    ~VkTextureView();
 
     [[nodiscard]] uint32_t getMipLevels() const override;
     [[nodiscard]] uint32_t getArrayLayers() const override;
@@ -26,6 +26,10 @@ public:
 
     [[nodiscard]]  vk::ImageView getHandle() const;
 private:
+    VkDevice* m_device;
+    uint32_t m_mipLevels, m_arrayLayers;
+    PixelFormat m_format;
+
     vk::ImageView m_imageView;
     grl::Rc<VkTexture> m_texture;
 };

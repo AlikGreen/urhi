@@ -7,6 +7,7 @@
 namespace urhi
 {
     VkTextureView::VkTextureView(VkDevice *device, const TextureViewDesc &desc)
+        : m_device(device), m_mipLevels(desc.mipLevels), m_arrayLayers(desc.arrayLayers), m_format(desc.format)
     {
         m_texture = std::dynamic_pointer_cast<VkTexture>(desc.texture);
         const vk::ImageViewCreateInfo viewInfo
@@ -25,7 +26,32 @@ namespace urhi
             }
         };
 
-        auto res = device->getHandle().createImageView(&viewInfo, nullptr, &m_imageView);
+        m_imageView = device->getHandle().createImageView(viewInfo);
+    }
+
+    VkTextureView::VkTextureView(VkDevice *device, const grl::Rc<VkTexture> &texture, const PixelFormat format, vk::ImageView view)
+        : m_device(device), m_mipLevels(1), m_arrayLayers(1), m_format(format), m_imageView(view), m_texture(texture)
+    {
+    }
+
+    VkTextureView::~VkTextureView()
+    {
+        m_device->getHandle().destroyImageView(m_imageView);
+    }
+
+    uint32_t VkTextureView::getMipLevels() const
+    {
+        return m_mipLevels;
+    }
+
+    uint32_t VkTextureView::getArrayLayers() const
+    {
+        return m_arrayLayers;
+    }
+
+    PixelFormat VkTextureView::getFormat() const
+    {
+        return m_format;
     }
 
     grl::Rc<Texture> VkTextureView::getTexture() const

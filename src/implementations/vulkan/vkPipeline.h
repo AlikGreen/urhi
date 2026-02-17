@@ -10,11 +10,11 @@ class VkDevice;
 class VkPipeline final : public Pipeline
 {
 public:
-    VkPipeline(VkDevice* device, GraphicsPipelineDesc  desc);
+    VkPipeline(VkDevice* device, const GraphicsPipelineDesc& desc);
+    [[nodiscard]] vk::Pipeline getHandle() const;
 private:
-    vk::DescriptorSetLayout createDescriptorSetLayout() const;
-    vk::PipelineVertexInputStateCreateInfo createVertexInputState() const;
     vk::PipelineLayout m_pipelineLayout;
+    vk::Pipeline m_pipeline;
     VkDevice* m_device;
     GraphicsPipelineDesc m_graphicsDesc;
 };
