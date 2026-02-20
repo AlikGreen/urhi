@@ -8,7 +8,7 @@ int main()
     using namespace urhi;
     using namespace grl;
 
-    auto context = Context::create(BackendAPI::Vulkan);
+    const auto context = Context::create(BackendAPI::Vulkan);
 
     const auto window = context->createWindow({
         .title = "Example",
@@ -65,7 +65,7 @@ int main()
              // float diff = max(dot(n, lightDir), 0.0);
              // float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
              // float3 color = tex.rgb * diff;
-             return float4(1.0, 0.0, 0.0, 1.0);
+             return float4(input.texCoord, 0.0, 1.0);
          }
      )";
 
@@ -82,14 +82,15 @@ int main()
         if(ep.stage == ShaderStage::Fragment) fragmentShader = device->createShader(ep);
     }
 
-    auto pipeline = device->createPipeline({
+    const auto pipeline = device->createPipeline({
         .vertexShader = vertexShader,
         .fragmentShader = fragmentShader,
         .primitiveType = PrimitiveType::TriangleList,
         .rasterizerState = { .cullMode = CullMode::None },
         .depthState = { .enableDepthTest = false },
         .colorAttachments = {
-            ColorAttachmentDesc {
+            ColorAttachmentDesc
+            {
                 .format = PixelFormat::R8G8B8A8Unorm,
                 .blend = BlendState::opaque()
             }
@@ -104,7 +105,8 @@ int main()
         glm::vec2 texCoord;
     };
 
-    const std::vector<Vertex> vertices = {
+    const std::vector<Vertex> vertices =
+        {
         {{-1, -1, 0}, {0, 0, 1}, {0, 0}},
         {{ 1, -1, 0}, {0, 0, 1}, {1, 0}},
         {{ 1,  1, 0}, {0, 0, 1}, {1, 1}},
@@ -114,7 +116,7 @@ int main()
     const std::vector<uint32_t> indices = {0, 1, 2, 0, 2, 3};
 
     const auto vertexBuffer  = device->createBuffer({BufferUsage::Vertex, vertices.size() * sizeof(Vertex)});
-    auto indexBuffer   = device->createBuffer({BufferUsage::Index, indices.size() * sizeof(uint32_t)});
+    const auto indexBuffer   = device->createBuffer({BufferUsage::Index, indices.size() * sizeof(uint32_t)});
     // auto uniformBuffer = device->createBuffer({BufferUsage::Uniform});
 //
 //     auto textureDesc = TextureDesc::Texture2D(512, 512, PixelFormat::R8G8B8A8Unorm);
@@ -134,13 +136,12 @@ int main()
     // };
 
     {
-        const auto cmd = device->acquireCommandList(QueueType::Graphics);
+        const auto cmd = device->acquireCommandList(QueueType::Transfer);
         cmd->begin();
 
         cmd->updateBuffer(vertexBuffer, vertices);
         cmd->updateBuffer(indexBuffer, indices);
 
-        // cmdList->reserveBuffer(uniformBuffer, sizeof(UniformData));
         // UniformData ubo = {glm::mat4(1.0f)};
         // cmdList->updateBuffer(uniformBuffer, ubo);
 
@@ -155,15 +156,15 @@ int main()
         device->submit(cmd);
     }
 
-    device->waitIdle();
-
     // Render loop
 
     bool running = true;
 
     while (running)
     {
-        window->pollEvents([&running, swapchain, window](const Event& event)
+        auto events = window->pollEvents();
+
+        for(const auto& event : events)
         {
             if(event.type == Event::Type::Quit)
             {
@@ -173,7 +174,7 @@ int main()
             {
                 swapchain->resize(window->getWidth(), window->getHeight());
             }
-        });
+        }
 
         auto cmdList = device->acquireCommandList(QueueType::Graphics);
         const uint32_t imageIndex = swapchain->acquireNextImage();

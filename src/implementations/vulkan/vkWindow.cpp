@@ -60,14 +60,11 @@ namespace urhi
         clogr::abort("not implemented");
     }
 
-    void VkWindow::pollEvents(const std::function<void(Event&)> callback)
+    std::vector<Event> VkWindow::pollEvents()
     {
         m_events.clear();
         glfwPollEvents();
-        for(auto& event : m_events)
-        {
-            callback(event);
-        }
+        return m_events;
     }
 
     uint32_t VkWindow::getWidth()
