@@ -4,6 +4,7 @@
 #include "vkConvert.h"
 #include "vkPipeline.h"
 #include "vkTextureView.h"
+#include "vkStagedBuffer.h"
 
 namespace urhi
 {
@@ -77,10 +78,12 @@ namespace urhi
 
         clogr::ensure(desc.renderArea.width > 0 && desc.renderArea.height > 0, "Render area width and height must be grater than 0");
 
+        vk::Rect2D renderArea{{desc.renderArea.x, desc.renderArea.y}, {desc.renderArea.width, desc.renderArea.height}};
+
         const vk::RenderingInfo renderingInfo
         {
             vk::RenderingFlags{0},
-            vk::Rect2D{{desc.renderArea.x, desc.renderArea.y}, {desc.renderArea.width, desc.renderArea.height}},
+            renderArea,
             1,
             0,
             colorAttachments,
@@ -89,18 +92,40 @@ namespace urhi
 
         m_commandBuffer.beginRendering(&renderingInfo);
 
-        // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+        vk::Viewport viewport{static_cast<float>(desc.renderArea.x), static_cast<float>(desc.renderArea.y),
+            static_cast<float>(desc.renderArea.width), static_cast<float>(desc.renderArea.height), 0.0f, 1.0f};
+
+        m_commandBuffer.setViewport(0, {viewport});
+
+        m_commandBuffer.setScissor(0, {renderArea});
     }
 
     void VkRenderPass::setPipeline(const grl::Rc<Pipeline>& pipeline)
     {
-        const auto vkPipeline = dynamic_cast<VkPipeline*>(pipeline.get());
-        m_commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkPipeline->getHandle());
+        m_currentPipeline = dynamic_cast<VkPipeline*>(pipeline.get());
+        m_commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_currentPipeline->getHandle());
     }
 
     void VkRenderPass::setUniformBuffer(std::string_view name, const grl::Rc<Buffer> &buffer)
     {
-        clogr::abort("not implemented");
+        clogr::ensure(m_currentPipeline != nullptr, "No pipeline set");
+
+        const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(buffer.get());
+        vk::DescriptorBufferInfo bufInfo{ vkBuffer->getHandle(), 0, vkBuffer->getSize() };
+
+        const std::array<vk::WriteDescriptorSet, 1> writes{{
+            vk::WriteDescriptorSet
+            {
+                nullptr, 0, 0, vk::DescriptorType::eUniformBuffer, {}, {bufInfo}
+            },
+        }};
+
+        m_commandBuffer.pushDescriptorSetKHR(
+            vk::PipelineBindPoint::eGraphics,
+            m_currentPipeline->getLayout(),
+            0,
+            writes
+        );
     }
 
     void VkRenderPass::setStorageBuffer(std::string_view name, const grl::Rc<Buffer> &buffer)
@@ -125,12 +150,14 @@ namespace urhi
 
     void VkRenderPass::setVertexBuffer(uint32_t index, const grl::Rc<Buffer> &vertexBuffer)
     {
-        clogr::abort("not implemented");
+        const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(vertexBuffer.get());
+        m_commandBuffer.bindVertexBuffers(0, {vkBuffer->getHandle()}, {0});
     }
 
-    void VkRenderPass::setIndexBuffer(const grl::Rc<Buffer> &indexBuffer, IndexFormat indexFormat)
+    void VkRenderPass::setIndexBuffer(const grl::Rc<Buffer> &indexBuffer, const IndexFormat indexFormat)
     {
-        clogr::abort("not implemented");
+        const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(indexBuffer.get());
+        m_commandBuffer.bindIndexBuffer(vkBuffer->getHandle(), 0, VkConvert::indexFormat(indexFormat));
     }
 
     void VkRenderPass::setScissor(Rect2D rect)

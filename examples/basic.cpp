@@ -54,18 +54,18 @@ int main()
          }
 
          // Fragment (pixel) shader
-         Texture2D diffuseTexture;
-         SamplerState samplerState;
+         // Texture2D diffuseTexture;
+         // SamplerState samplerState;
 
          [shader("fragment")]
          float4 fragmentMain(VS_OUTPUT input) : SV_TARGET
          {
-             float3 n = normalize(input.normal);
-             float3 lightDir = normalize(float3(0.57735, 0.57735, 0.57735));
-             float diff = max(dot(n, lightDir), 0.0);
-             float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
-             float3 color = tex.rgb * diff;
-             return float4(color, tex.a);
+             // float3 n = normalize(input.normal);
+             // float3 lightDir = normalize(float3(0.57735, 0.57735, 0.57735));
+             // float diff = max(dot(n, lightDir), 0.0);
+             // float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
+             // float3 color = tex.rgb * diff;
+             return float4(1.0, 0.0, 0.0, 1.0);
          }
      )";
 
@@ -85,16 +85,15 @@ int main()
     auto pipeline = device->createPipeline({
         .vertexShader = vertexShader,
         .fragmentShader = fragmentShader,
-        .primitiveType = PrimitiveType::TriangleStrip,
-        .rasterizerState = { .cullMode = CullMode::Back },
-        .depthState = { .enableDepthTest = true },
+        .primitiveType = PrimitiveType::TriangleList,
+        .rasterizerState = { .cullMode = CullMode::None },
+        .depthState = { .enableDepthTest = false },
         .colorAttachments = {
             ColorAttachmentDesc {
                 .format = PixelFormat::R8G8B8A8Unorm,
                 .blend = BlendState::opaque()
             }
-        },
-        .depthAttachmentFormat = PixelFormat::D32FloatS8Uint,
+        }
     });
 
 
@@ -114,9 +113,9 @@ int main()
 
     const std::vector<uint32_t> indices = {0, 1, 2, 0, 2, 3};
 
-    const auto vertexBuffer  = device->createBuffer({vertices.size() * sizeof(Vertex), BufferUsage::Vertex});
-    auto indexBuffer   = device->createBuffer({indices.size() * sizeof(uint32_t), BufferUsage::Index});
-//     auto uniformBuffer = device->createUniformBuffer();
+    const auto vertexBuffer  = device->createBuffer({BufferUsage::Vertex, vertices.size() * sizeof(Vertex)});
+    auto indexBuffer   = device->createBuffer({BufferUsage::Index, indices.size() * sizeof(uint32_t)});
+    // auto uniformBuffer = device->createBuffer({BufferUsage::Uniform});
 //
 //     auto textureDesc = TextureDesc::Texture2D(512, 512, PixelFormat::R8G8B8A8Unorm);
 //     auto texture = device->createTexture(textureDesc);
@@ -135,7 +134,7 @@ int main()
     // };
 
     {
-        const auto cmd = device->acquireCommandList(QueueType::Transfer);
+        const auto cmd = device->acquireCommandList(QueueType::Graphics);
         cmd->begin();
 
         cmd->updateBuffer(vertexBuffer, vertices);
@@ -155,6 +154,8 @@ int main()
 
         device->submit(cmd);
     }
+
+    device->waitIdle();
 
     // Render loop
 
@@ -195,9 +196,9 @@ int main()
         // renderPass->setTexture("diffuseTexture", textureView);
         // renderPass->setSampler("samplerState", sampler);
         //
-        // renderPass->setVertexBuffer(0, vertexBuffer);
-        // renderPass->setIndexBuffer(indexBuffer, IndexFormat::UInt32);
-        // renderPass->drawIndexed(indices.size());
+        renderPass->setVertexBuffer(0, vertexBuffer);
+        renderPass->setIndexBuffer(indexBuffer, IndexFormat::UInt32);
+        renderPass->drawIndexed(indices.size());
         //
         renderPass->end();
         device->submit(cmdList);

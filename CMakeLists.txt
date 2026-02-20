@@ -38,6 +38,7 @@ file(GLOB_RECURSE
 
 add_library(urhi STATIC ${SRC_FILES})
 
+target_compile_definitions(urhi PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 target_compile_definitions(urhi PRIVATE GLFW_INCLUDE_NONE)
 
 target_include_directories(urhi PUBLIC src/)

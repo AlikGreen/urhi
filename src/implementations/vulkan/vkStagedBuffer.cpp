@@ -26,10 +26,13 @@ namespace urhi
         vmaCreateBuffer(device->getAllocator(), &bufferCI, &bufferAllocCI,reinterpret_cast<VkBuffer *>(&m_buffer), &m_allocation, nullptr);
     }
 
-    void VkStagedBuffer::write(const void *data, const size_t size, const size_t offset, const VkCommandList* cmd) const
+    vk::Buffer VkStagedBuffer::getHandle() const
     {
-        clogr::ensure(offset + size <= m_bufferSize, "Write exceeds buffer size");
+        return m_buffer;
+    }
 
-        m_device->getStagingBufferPool()->upload(data, size, m_buffer, offset, cmd->getCmdBuffer());
+    uint64_t VkStagedBuffer::getSize() const
+    {
+        return m_bufferSize;
     }
 }

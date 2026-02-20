@@ -6,10 +6,10 @@ namespace urhi
 {
 struct BufferDesc
 {
-    BufferDesc(const size_t size, const BufferUsage usage)
-        : size(size), usage(usage) { }
+    BufferDesc(const BufferUsage usage, const size_t size)
+        : usage(usage), size(size) { }
 
-    size_t size; // size in bytes
     BufferUsage usage;
+    size_t size; // size in bytes
 };
 }

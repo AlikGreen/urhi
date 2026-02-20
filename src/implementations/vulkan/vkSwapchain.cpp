@@ -43,6 +43,7 @@ namespace urhi
 
     VkSwapchain::~VkSwapchain()
     {
+        m_device->waitIdle();
         for (const auto& frame : m_frames)
         {
             m_device->getHandle().destroySemaphore(frame.imageAvailableSemaphore);

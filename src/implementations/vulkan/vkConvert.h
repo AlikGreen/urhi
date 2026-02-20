@@ -11,6 +11,7 @@
 #include "enums/compareOp.h"
 #include "enums/cullMode.h"
 #include "enums/fillMode.h"
+#include "enums/indexFormat.h"
 #include "enums/loadOp.h"
 #include "enums/pixelFormat.h"
 #include "enums/presentMode.h"
@@ -60,5 +61,7 @@ public:
     static vk::ColorComponentFlags colorWriteMask(ColorWriteMask mask);
     static vk::BlendFactor blendFactor(BlendFactor factor);
     static vk::BlendOp blendOp(BlendOp op);
+
+    static vk::IndexType indexFormat(IndexFormat format);
 };
 }

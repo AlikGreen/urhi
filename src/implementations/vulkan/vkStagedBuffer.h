@@ -1,10 +1,8 @@
 #pragma once
-#include <grl/mem.h>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
 #include "buffer.h"
-#include "vkStagingBufferPool.h"
 #include "descriptions/bufferDesc.h"
 
 namespace urhi
@@ -17,7 +15,8 @@ class VkStagedBuffer final : public Buffer
 public:
     explicit VkStagedBuffer(VkDevice* device, BufferDesc desc);
 
-    void write(const void* data, size_t size, size_t offset, const VkCommandList* cmd) const;
+    vk::Buffer getHandle() const;
+    uint64_t getSize() const;
 private:
     VkDevice* m_device;
     VmaAllocation m_allocation{};

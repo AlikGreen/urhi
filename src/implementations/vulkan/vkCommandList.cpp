@@ -58,11 +58,11 @@ namespace urhi
         return *m_pool;
     }
 
-    void VkCommandList::updateBufferImpl(const grl::Rc<Buffer> &buffer, void *data, uint32_t size)
+    void VkCommandList::updateBufferImpl(const grl::Rc<Buffer> &buffer, void *data, const uint32_t size)
     {
-        if(auto vkStaged = dynamic_cast<VkStagedBuffer*>(buffer.get()))
+        if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(buffer.get()))
         {
-            vkStaged->write(data, size, 0, this);
+            m_pool->m_linearStagingAllocator->upload(data, size, vkStaged->getHandle(), 0, m_commandBuffer);
         }
     }
 

@@ -675,11 +675,11 @@ namespace urhi
 
         if((mask & ColorWriteMask::A) == ColorWriteMask::A)
             flags |= vk::ColorComponentFlagBits::eA;
-        if((mask & ColorWriteMask::A) == ColorWriteMask::R)
+        if((mask & ColorWriteMask::R) == ColorWriteMask::R)
             flags |= vk::ColorComponentFlagBits::eR;
-        if((mask & ColorWriteMask::A) == ColorWriteMask::G)
+        if((mask & ColorWriteMask::G) == ColorWriteMask::G)
             flags |= vk::ColorComponentFlagBits::eG;
-        if((mask & ColorWriteMask::A) == ColorWriteMask::B)
+        if((mask & ColorWriteMask::B) == ColorWriteMask::B)
             flags |= vk::ColorComponentFlagBits::eB;
 
         return flags;
@@ -718,6 +718,19 @@ namespace urhi
                 return vk::BlendOp::eReverseSubtract;
             default:
                 return vk::BlendOp::eAdd;
+        }
+    }
+
+    vk::IndexType VkConvert::indexFormat(const IndexFormat format)
+    {
+        switch (format)
+        {
+            case IndexFormat::UInt32:
+                return vk::IndexType::eUint32;
+            case IndexFormat::UInt16:
+                return vk::IndexType::eUint16;
+            default:
+                return vk::IndexType::eUint32;
         }
     }
 }

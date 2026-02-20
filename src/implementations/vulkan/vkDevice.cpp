@@ -3,6 +3,9 @@
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
+#include <vulkan/vulkan.hpp>
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+
 #include "clogr.h"
 #include "VkBootstrap.h"
 #include "vkContext.h"
@@ -32,6 +35,7 @@ namespace urhi
 
         vkb::PhysicalDeviceSelector selector { context->getVkbInstance() };
         vkb::PhysicalDevice physicalDevice = selector
+            .add_required_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)
             .set_minimum_version(1, 3)
             .set_required_features_13(features13)
             .set_required_features_12(features12)
@@ -39,11 +43,16 @@ namespace urhi
             .select()
             .value();
 
+
         vkb::DeviceBuilder deviceBuilder { physicalDevice };
         vkb::Device vkbDevice = deviceBuilder.build().value();
 
         m_handle = vkbDevice.device;
         m_physicalDevice = physicalDevice.physical_device;
+
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(context->getVkInstance());
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(m_handle);
 
         vk::SemaphoreTypeCreateInfo typeCreateInfo
         {
@@ -82,8 +91,6 @@ namespace urhi
             .instance = context->getVkInstance()
         };
         vmaCreateAllocator(&allocatorCI, &m_allocator);
-
-        m_stagingBufferPool = grl::makeRc<VkStagingBufferPool>(this);
     }
 
     grl::Rc<Pipeline> VkDevice::createPipeline(const GraphicsPipelineDesc &desc)
@@ -157,6 +164,11 @@ namespace urhi
         m_cmdListIndex = ++m_cmdListIndex % CMD_POOLS_PER_QUEUE;
     }
 
+    void VkDevice::waitIdle()
+    {
+        m_handle.waitIdle();
+    }
+
     vk::PhysicalDevice VkDevice::getPhysicalDevice() const
     {
         return m_physicalDevice;
@@ -170,11 +182,6 @@ namespace urhi
     VmaAllocator VkDevice::getAllocator() const
     {
         return m_allocator;
-    }
-
-    grl::Rc<VkStagingBufferPool> VkDevice::getStagingBufferPool() const
-    {
-        return m_stagingBufferPool;
     }
 
     grl::Rc<VkQueueState> VkDevice::getQueueState(QueueType queueType)

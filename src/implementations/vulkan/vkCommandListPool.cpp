@@ -18,6 +18,8 @@ namespace urhi
         commandPoolInfo.queueFamilyIndex = m_queueState->family;
 
         auto res = m_device->getHandle().createCommandPool(&commandPoolInfo, nullptr, &m_commandPool);
+
+        m_linearStagingAllocator = grl::makeBox<VkLinearStagingAllocator>(m_device);
     }
 
 
@@ -26,6 +28,7 @@ namespace urhi
         if (canReset())
         {
             m_device->getHandle().resetCommandPool(m_commandPool);
+            m_linearStagingAllocator->reset();
             m_nextBufferIndex = 0;
         }
 
@@ -49,10 +52,10 @@ namespace urhi
         return cmd;
     }
 
-    void VkCommandListPool::submit(const VkCommandList* cmd, const vk::Semaphore swapchainImageSemaphore)
+    void VkCommandListPool::submit(VkCommandList* cmd, const vk::Semaphore swapchainImageSemaphore)
     {
         m_recordingCount--;
-        uint64_t signalValue = ++m_queueState->nextTimelineValue;
+        const uint64_t signalValue = ++m_queueState->nextTimelineValue;
         m_lastSubmittedValue = signalValue;
 
         std::vector<vk::Semaphore> waitSemaphores;
@@ -66,16 +69,13 @@ namespace urhi
             waitValues.push_back(0);
         }
 
-        std::vector<uint64_t> signalValues = { signalValue };
-
         vk::TimelineSemaphoreSubmitInfo timelineInfo{};
         timelineInfo.waitSemaphoreValueCount = static_cast<uint32_t>(waitValues.size());
         timelineInfo.pWaitSemaphoreValues = waitValues.data();
         timelineInfo.signalSemaphoreValueCount = 1;
-        timelineInfo.pSignalSemaphoreValues = signalValues.data();
+        timelineInfo.pSignalSemaphoreValues = &signalValue;
 
         auto cmdBuffer = cmd->getCmdBuffer();
-        vk::Semaphore signalSemaphore = m_queueState->timeline;
 
         vk::SubmitInfo submitInfo{};
         submitInfo.pNext = &timelineInfo;
@@ -85,7 +85,7 @@ namespace urhi
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &cmdBuffer;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &signalSemaphore;
+        submitInfo.pSignalSemaphores = &m_queueState->timeline;
 
         std::scoped_lock lock(*m_queueState->mutex);
         m_queueState->queue.submit({submitInfo});
@@ -95,8 +95,7 @@ namespace urhi
     {
         if(m_recordingCount != 0 || m_lastSubmittedValue == 0) return false;
 
-        uint64_t completedValue = 0;
-        auto res = m_device->getHandle().getSemaphoreCounterValue(m_queueState->timeline, &completedValue);
+        const uint64_t completedValue = m_device->getHandle().getSemaphoreCounterValue(m_queueState->timeline);
 
         return completedValue >= m_lastSubmittedValue;
     }

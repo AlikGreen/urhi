@@ -22,7 +22,7 @@ public:
     void present(uint32_t imageIndex) override;
     vk::Semaphore consumeSemaphore();
 private:
-    bool m_semaphoreConsumed = false;
+    bool m_semaphoreConsumed = true;
     grl::Rc<VkDevice> m_device;
     grl::Rc<VkWindow> m_window;
 

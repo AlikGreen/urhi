@@ -56,12 +56,13 @@ namespace urhi
 
         std::vector<vk::DescriptorSetLayoutBinding> layoutBindings;
         layoutBindings.reserve(layoutBindingsMap.size());
-        for (const auto& pair : layoutBindingsMap)
+        for (const auto &val: layoutBindingsMap | std::views::values)
         {
-            layoutBindings.push_back(pair.second);
+            layoutBindings.push_back(val);
         }
 
         vk::DescriptorSetLayoutCreateInfo descriptorLayoutInfo{};
+        descriptorLayoutInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR;
         descriptorLayoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
         descriptorLayoutInfo.pBindings = layoutBindings.data();
 
@@ -170,6 +171,9 @@ namespace urhi
         {
             renderingInfo.depthAttachmentFormat = VkConvert::pixelFormat(m_graphicsDesc.depthAttachmentFormat.value());
             renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
+        }else
+        {
+            renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
         }
 
 
@@ -219,5 +223,10 @@ namespace urhi
     vk::Pipeline VkPipeline::getHandle() const
     {
         return m_pipeline;
+    }
+
+    vk::PipelineLayout VkPipeline::getLayout() const
+    {
+        return m_pipelineLayout;
     }
 }

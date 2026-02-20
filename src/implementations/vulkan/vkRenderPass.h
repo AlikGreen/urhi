@@ -8,6 +8,7 @@
 namespace urhi
 {
 class VkDevice;
+class VkPipeline;
 class VkRenderPass final : public RenderPass
 {
 public:
@@ -34,6 +35,7 @@ protected:
 
 private:
     VkDevice* m_device;
+    VkPipeline* m_currentPipeline = nullptr;
     vk::CommandBuffer m_commandBuffer;
 };
 }

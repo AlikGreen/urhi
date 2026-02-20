@@ -27,6 +27,8 @@ protected:
     void updateBufferImpl(const grl::Rc<Buffer> &buffer, void *data, uint32_t size) override;
     void readTextureImpl(const grl::Rc<TextureView> &texture, const TextureReadDesc &desc, size_t destSize, void *dest) override;
 private:
+    friend class VkCommandListPool;
+
     vk::CommandBuffer m_commandBuffer;
     QueueType m_queueType;
     VkCommandListPool* m_pool;
