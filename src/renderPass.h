@@ -20,12 +20,12 @@ public:
 
   virtual void setPipeline(const grl::Rc<Pipeline>& pipeline) = 0;
 
-  virtual void setUniformBuffer(std::string_view name, const grl::Rc<Buffer>& buffer) = 0;
-  virtual void setStorageBuffer(std::string_view name, const grl::Rc<Buffer>& buffer) = 0;
+  virtual void setUniformBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
+  virtual void setStorageBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
 
-  virtual void setTexture(std::string_view name, const grl::Rc<TextureView>& texture) = 0;
-  virtual void setSampler(std::string_view name, const grl::Rc<Sampler>& sampler) = 0;
-  virtual void setImage(std::string_view name, const grl::Rc<TextureView>& texture, ResourceAccess access) = 0;
+  virtual void setTexture(const std::string& name, const grl::Rc<TextureView>& texture) = 0;
+  virtual void setSampler(const std::string& name, const grl::Rc<Sampler>& sampler) = 0;
+  virtual void setImage(const std::string& name, const grl::Rc<TextureView>& texture, ResourceAccess access) = 0;
 
   virtual void setVertexBuffer(uint32_t index, const grl::Rc<Buffer>& vertexBuffer) = 0;
   virtual void setIndexBuffer(const grl::Rc<Buffer>& indexBuffer, IndexFormat indexFormat) = 0;

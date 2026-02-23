@@ -30,4 +30,8 @@ namespace urhi
         m_handle = device->getHandle().createSampler(samplerCI);
     }
 
+    vk::Sampler VkSampler::getHandle() const
+    {
+        return m_handle;
+    }
 }

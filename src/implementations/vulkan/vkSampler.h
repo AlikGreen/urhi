@@ -11,6 +11,7 @@ class VkSampler final : public Sampler
 {
 public:
     VkSampler(VkDevice* device, const SamplerDesc& desc);
+    [[nodiscard]] vk::Sampler getHandle() const;
 private:
     vk::Sampler m_handle;
 };

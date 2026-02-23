@@ -1,15 +1,18 @@
 #include "vkRenderPass.h"
 
+#include <unordered_set>
+
 #include "clogr.h"
 #include "vkConvert.h"
 #include "vkPipeline.h"
+#include "vkSampler.h"
 #include "vkTextureView.h"
 #include "vkStagedBuffer.h"
 
 namespace urhi
 {
     VkRenderPass::VkRenderPass(VkDevice *device, const vk::CommandBuffer commandBuffer, const RenderPassDesc &desc)
-        : m_device(device), m_commandBuffer(commandBuffer)
+        : m_device(device), m_cmd(commandBuffer)
     {
 
         std::vector<vk::RenderingAttachmentInfo> colorAttachments;
@@ -90,23 +93,23 @@ namespace urhi
             &depthAttachment,
         };
 
-        m_commandBuffer.beginRendering(&renderingInfo);
+        m_cmd.beginRendering(&renderingInfo);
 
         vk::Viewport viewport{static_cast<float>(desc.renderArea.x), static_cast<float>(desc.renderArea.y),
             static_cast<float>(desc.renderArea.width), static_cast<float>(desc.renderArea.height), 0.0f, 1.0f};
 
-        m_commandBuffer.setViewport(0, {viewport});
+        m_cmd.setViewport(0, {viewport});
 
-        m_commandBuffer.setScissor(0, {renderArea});
+        m_cmd.setScissor(0, {renderArea});
     }
 
     void VkRenderPass::setPipeline(const grl::Rc<Pipeline>& pipeline)
     {
         m_currentPipeline = dynamic_cast<VkPipeline*>(pipeline.get());
-        m_commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_currentPipeline->getHandle());
+        m_cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_currentPipeline->getHandle());
     }
 
-    void VkRenderPass::setUniformBuffer(std::string_view name, const grl::Rc<Buffer> &buffer)
+    void VkRenderPass::setUniformBuffer(const std::string& name, const grl::Rc<Buffer> &buffer)
     {
         clogr::ensure(m_currentPipeline != nullptr, "No pipeline set");
 
@@ -120,7 +123,7 @@ namespace urhi
             },
         }};
 
-        m_commandBuffer.pushDescriptorSetKHR(
+        m_cmd.pushDescriptorSetKHR(
             vk::PipelineBindPoint::eGraphics,
             m_currentPipeline->getLayout(),
             0,
@@ -128,22 +131,36 @@ namespace urhi
         );
     }
 
-    void VkRenderPass::setStorageBuffer(std::string_view name, const grl::Rc<Buffer> &buffer)
+    void VkRenderPass::setStorageBuffer(const std::string& name, const grl::Rc<Buffer> &buffer)
     {
         clogr::abort("not implemented");
     }
 
-    void VkRenderPass::setTexture(std::string_view name, const grl::Rc<TextureView> &texture)
+    void VkRenderPass::setTexture(const std::string& name, const grl::Rc<TextureView> &texture)
     {
-        clogr::abort("not implemented");
+        clogr::ensure(m_currentPipeline != nullptr, "Pipeline must be set before setting texture.");
+
+        const auto vkView = dynamic_cast<VkTextureView*>(texture.get());
+
+        m_boundResources[name] = BoundResource{
+            .type = ShaderReflection::ResourceType::Texture,
+            .imageInfo = { nullptr, vkView->getHandle(), vk::ImageLayout::eShaderReadOnlyOptimal }
+        };
     }
 
-    void VkRenderPass::setSampler(std::string_view name, const grl::Rc<Sampler> &sampler)
+    void VkRenderPass::setSampler(const std::string& name, const grl::Rc<Sampler> &sampler)
     {
-        clogr::abort("not implemented");
+        clogr::ensure(m_currentPipeline != nullptr, "Pipeline must be set before setting sampler.");
+
+        const auto vkSampler = dynamic_cast<VkSampler*>(sampler.get());
+
+        m_boundResources[name] = BoundResource{
+            .type = ShaderReflection::ResourceType::Sampler,
+            .imageInfo = { vkSampler->getHandle(), nullptr, vk::ImageLayout::eUndefined }
+        };
     }
 
-    void VkRenderPass::setImage(std::string_view name, const grl::Rc<TextureView> &texture, ResourceAccess access)
+    void VkRenderPass::setImage(const std::string& name, const grl::Rc<TextureView> &texture, ResourceAccess access)
     {
         clogr::abort("not implemented");
     }
@@ -151,41 +168,92 @@ namespace urhi
     void VkRenderPass::setVertexBuffer(uint32_t index, const grl::Rc<Buffer> &vertexBuffer)
     {
         const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(vertexBuffer.get());
-        m_commandBuffer.bindVertexBuffers(0, {vkBuffer->getHandle()}, {0});
+        m_cmd.bindVertexBuffers(0, {vkBuffer->getHandle()}, {0});
     }
 
     void VkRenderPass::setIndexBuffer(const grl::Rc<Buffer> &indexBuffer, const IndexFormat indexFormat)
     {
         const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(indexBuffer.get());
-        m_commandBuffer.bindIndexBuffer(vkBuffer->getHandle(), 0, VkConvert::indexFormat(indexFormat));
+        m_cmd.bindIndexBuffer(vkBuffer->getHandle(), 0, VkConvert::indexFormat(indexFormat));
     }
 
     void VkRenderPass::setScissor(Rect2D rect)
     {
         const vk::Rect2D scissorRect{{rect.x, rect.y}, {rect.width, rect.height}};
-        m_commandBuffer.setScissor(0, 1, &scissorRect);
+        m_cmd.setScissor(0, 1, &scissorRect);
     }
 
     void VkRenderPass::setViewport(const Viewport viewport)
     {
         const vk::Viewport vkViewport{viewport.x, viewport.y, viewport.width, viewport.height, viewport.minDepth, viewport.maxDepth};
-        m_commandBuffer.setViewport(0, 1, &vkViewport);
+        m_cmd.setViewport(0, 1, &vkViewport);
     }
 
     void VkRenderPass::end()
     {
-        m_commandBuffer.endRendering();
+        m_cmd.endRendering();
     }
+
+    void VkRenderPass::pushDescriptors()
+    {
+        std::unordered_set<uint32_t> seenBindings;
+        std::vector<vk::WriteDescriptorSet> writes;
+        writes.reserve(m_boundResources.size());
+
+        auto processStage = [&](const ShaderStage stage)
+        {
+            for (const auto& resource : m_currentPipeline->getReflection(stage).resources)
+            {
+                if (!seenBindings.insert(resource.binding).second) continue;
+
+                auto it = m_boundResources.find(resource.name);
+                if (it == m_boundResources.end())
+                {
+                    clogr::ensure(false, "Resource not bound: {}", resource.name);
+                    continue;
+                }
+
+                vk::WriteDescriptorSet write{};
+                write.dstBinding = resource.binding;
+                write.descriptorCount = 1;
+                write.descriptorType = VkConvert::resourceType(resource.type);
+
+                if (resource.type == ShaderReflection::ResourceType::ConstantBuffer)
+                {
+                    write.pBufferInfo = &it->second.bufferInfo;
+                } else
+                {
+                    write.pImageInfo = &it->second.imageInfo;
+                }
+
+                writes.push_back(write);
+            }
+        };
+
+        // TODO change pipeline to be more modular eg vector of shaders or stages (so i can loop them)
+        processStage(ShaderStage::Fragment);
+        processStage(ShaderStage::Vertex);
+
+        m_cmd.pushDescriptorSetKHR(
+            vk::PipelineBindPoint::eGraphics,
+            m_currentPipeline->getLayout(),
+            0, // always 0 for now might change
+            writes
+        );
+
+        m_boundResources.clear();
+    }
+
 
     void VkRenderPass::drawImpl(const uint32_t vertexCount, const uint32_t instanceCount, const uint32_t firstVertex, const uint32_t firstInstance)
     {
-        // TODO use vkCmdPushDescriptorSetKHR
-        m_commandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
+        pushDescriptors();
+        m_cmd.draw(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void VkRenderPass::drawIndexedImpl(const uint32_t indexCount, const uint32_t instanceCount, const uint32_t firstIndex, const int vertexOffset, const uint32_t firstInstance)
     {
-        // TODO use vkCmdPushDescriptorSetKHR
-        m_commandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+        pushDescriptors();
+        m_cmd.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 }

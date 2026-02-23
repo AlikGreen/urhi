@@ -87,8 +87,8 @@ int main()
          }
 
          // Fragment (pixel) shader
-         // Texture2D diffuseTexture;
-         // SamplerState samplerState;
+         Texture2D diffuseTexture;
+         SamplerState samplerState;
 
          [shader("fragment")]
          float4 fragmentMain(VS_OUTPUT input) : SV_TARGET
@@ -96,9 +96,9 @@ int main()
              // float3 n = normalize(input.normal);
              // float3 lightDir = normalize(float3(0.57735, 0.57735, 0.57735));
              // float diff = max(dot(n, lightDir), 0.0);
-             // float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
+             float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
              // float3 color = tex.rgb * diff;
-             return float4(input.texCoord, 0.0, 1.0);
+             return float4(tex.rgb, 1.0);
          }
      )";
 
@@ -227,8 +227,8 @@ int main()
 
         renderPass->setPipeline(pipeline);
         // renderPass->setUniformBuffer("transformBuffer", uniformBuffer);
-        // renderPass->setTexture("diffuseTexture", textureView);
-        // renderPass->setSampler("samplerState", sampler);
+        renderPass->setTexture("diffuseTexture", textureView);
+        renderPass->setSampler("samplerState", sampler);
         //
         renderPass->setVertexBuffer(0, vertexBuffer);
         renderPass->setIndexBuffer(indexBuffer, IndexFormat::UInt32);

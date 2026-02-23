@@ -13,7 +13,7 @@
 namespace urhi
 {
     VkPipeline::VkPipeline(VkDevice* device, const GraphicsPipelineDesc& desc)
-    : m_device(device), m_graphicsDesc(std::move(desc))
+    : m_device(device)
     {
         std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding> layoutBindingsMap;
         std::vector<vk::PushConstantRange> pushConstants;
@@ -49,10 +49,13 @@ namespace urhi
             }
         };
 
-        if (m_graphicsDesc.vertexShader)
-            processReflection(m_graphicsDesc.vertexShader->entryPoint());
-        if (m_graphicsDesc.fragmentShader)
-            processReflection(m_graphicsDesc.fragmentShader->entryPoint());
+        m_fragmentShader = std::dynamic_pointer_cast<VkShader>(desc.fragmentShader);
+        m_vertexShader = std::dynamic_pointer_cast<VkShader>(desc.vertexShader);
+
+        if (desc.vertexShader)
+            processReflection(desc.vertexShader->entryPoint());
+        if (desc.fragmentShader)
+            processReflection(desc.fragmentShader->entryPoint());
 
         std::vector<vk::DescriptorSetLayoutBinding> layoutBindings;
         layoutBindings.reserve(layoutBindingsMap.size());
@@ -74,12 +77,12 @@ namespace urhi
         pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
         pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
 
-        auto layout = m_device->getHandle().createPipelineLayout(pipelineLayoutInfo);
+        m_layout = m_device->getHandle().createPipelineLayout(pipelineLayoutInfo);
 
         std::vector<vk::VertexInputBindingDescription> vertexBindingDescs{};
         std::vector<vk::VertexInputAttributeDescription> vertexAttributeDescs{};
 
-        for(const auto& input : m_graphicsDesc.vertexShader->entryPoint().reflection.vertexBindings)
+        for(const auto& input : desc.vertexShader->entryPoint().reflection.vertexBindings)
         {
             vk::VertexInputBindingDescription bindingDesc{};
             bindingDesc.binding = input.binding;
@@ -130,7 +133,7 @@ namespace urhi
         depthStencilState.depthCompareOp = VkConvert::compareOp(desc.depthState.compareOp);
 
         std::vector<vk::PipelineColorBlendAttachmentState> blendAttachments;
-        for(const auto& attachment : m_graphicsDesc.colorAttachments)
+        for(const auto& attachment : desc.colorAttachments)
         {
             vk::PipelineColorBlendAttachmentState blendAttachment{};
             blendAttachment.blendEnable = attachment.blend.enableBlend;
@@ -159,7 +162,7 @@ namespace urhi
         dynamicStateInfo.pDynamicStates = dynamicStates.data();
 
         std::vector<vk::Format> colorFormats;
-        for (const auto& attachment : m_graphicsDesc.colorAttachments)
+        for (const auto& attachment : desc.colorAttachments)
         {
             colorFormats.push_back(VkConvert::pixelFormat(attachment.format));
         }
@@ -167,9 +170,9 @@ namespace urhi
         vk::PipelineRenderingCreateInfo renderingInfo{};
         renderingInfo.colorAttachmentCount = static_cast<uint32_t>(colorFormats.size());
         renderingInfo.pColorAttachmentFormats = colorFormats.data();
-        if (m_graphicsDesc.depthAttachmentFormat)
+        if (desc.depthAttachmentFormat)
         {
-            renderingInfo.depthAttachmentFormat = VkConvert::pixelFormat(m_graphicsDesc.depthAttachmentFormat.value());
+            renderingInfo.depthAttachmentFormat = VkConvert::pixelFormat(desc.depthAttachmentFormat.value());
             renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
         }else
         {
@@ -211,7 +214,7 @@ namespace urhi
         pipelineInfo.pDepthStencilState = &depthStencilState;
         pipelineInfo.pColorBlendState = &colorBlendState;
         pipelineInfo.pDynamicState = &dynamicStateInfo;
-        pipelineInfo.layout = layout;
+        pipelineInfo.layout = m_layout;
         pipelineInfo.renderPass = nullptr;
         pipelineInfo.subpass = 0;
 
@@ -227,6 +230,19 @@ namespace urhi
 
     vk::PipelineLayout VkPipeline::getLayout() const
     {
-        return m_pipelineLayout;
+        return m_layout;
+    }
+
+    ShaderReflection VkPipeline::getReflection(const ShaderStage stage) const
+    {
+        switch (stage)
+        {
+            case ShaderStage::Fragment:
+                return m_fragmentShader->entryPoint().reflection;
+            case ShaderStage::Vertex:
+                return m_vertexShader->entryPoint().reflection;
+            default:
+                return ShaderReflection{};
+        }
     }
 }
