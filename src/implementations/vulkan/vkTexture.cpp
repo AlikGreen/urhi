@@ -21,7 +21,7 @@ namespace urhi
             desc.arrayLayers,
             vk::SampleCountFlagBits::e1,
             vk::ImageTiling::eOptimal,
-            VkConvert::textureUsage(desc.usage),
+            VkConvert::textureUsage(desc.usage) | vk::ImageUsageFlagBits::eTransferDst,
             vk::SharingMode::eExclusive,
         };
 
@@ -89,5 +89,96 @@ namespace urhi
     vk::Image VkTexture::getHandle() const
     {
         return m_image;
+    }
+
+    void VkTexture::transitionLayout(const vk::CommandBuffer cmd, const vk::ImageLayout newLayout, const uint32_t baseMipLevel, const uint32_t levelCount, const uint32_t baseArrayLayer, const uint32_t layerCount)
+    {
+        if(m_currentLayout == newLayout) return;
+        
+        vk::ImageMemoryBarrier barrier;
+        barrier.oldLayout = m_currentLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = m_image;
+        barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+        barrier.subresourceRange.baseMipLevel = baseMipLevel;
+        barrier.subresourceRange.levelCount = levelCount;
+        barrier.subresourceRange.baseArrayLayer = baseArrayLayer;
+        barrier.subresourceRange.layerCount = layerCount;
+
+        vk::PipelineStageFlags srcStage = {};
+        vk::PipelineStageFlags dstStage = {};
+
+
+        switch (m_currentLayout)
+        {
+            case vk::ImageLayout::eUndefined:
+                barrier.srcAccessMask = {};
+                srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+                break;
+
+            case vk::ImageLayout::eTransferDstOptimal:
+                barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+                srcStage = vk::PipelineStageFlagBits::eTransfer;
+                break;
+
+            case vk::ImageLayout::eColorAttachmentOptimal:
+                barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+                srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+                break;
+
+            case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+                barrier.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+                srcStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
+                break;
+
+            case vk::ImageLayout::eShaderReadOnlyOptimal:
+                barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
+                srcStage = vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eComputeShader;
+                break;
+
+            default:
+                barrier.srcAccessMask = {};
+                srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+        }
+
+        switch (newLayout)
+        {
+            case vk::ImageLayout::eTransferDstOptimal:
+                barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+                dstStage = vk::PipelineStageFlagBits::eTransfer;
+                break;
+
+            case vk::ImageLayout::eShaderReadOnlyOptimal:
+                barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+                dstStage = vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eComputeShader;
+                break;
+
+            case vk::ImageLayout::eColorAttachmentOptimal:
+                barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+                dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+                break;
+
+            case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+                barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+                dstStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
+                break;
+
+            default:
+                barrier.dstAccessMask = {};
+                dstStage = vk::PipelineStageFlagBits::eBottomOfPipe;
+        }
+
+        cmd.pipelineBarrier(
+            srcStage,
+            dstStage,
+            {},
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
+
+        m_currentLayout = newLayout;
     }
 }

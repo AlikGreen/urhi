@@ -733,4 +733,64 @@ namespace urhi
                 return vk::IndexType::eUint32;
         }
     }
+
+    vk::Filter VkConvert::filter(const TextureFilter filter)
+    {
+        switch (filter)
+        {
+            case TextureFilter::Linear:
+                return vk::Filter::eLinear;
+            case TextureFilter::Nearest:
+                return vk::Filter::eNearest;
+            default:
+                return vk::Filter::eLinear;
+        }
+    }
+
+    vk::SamplerMipmapMode VkConvert::mipmapFilter(const MipmapFilter filter)
+    {
+        switch (filter)
+        {
+            case MipmapFilter::Linear:
+                return vk::SamplerMipmapMode::eLinear;
+            case MipmapFilter::Nearest:
+                return vk::SamplerMipmapMode::eNearest;
+            default:
+                return vk::SamplerMipmapMode::eLinear;
+        }
+    }
+
+    vk::SamplerAddressMode VkConvert::addressMode(const AddressMode mode)
+    {
+        switch (mode)
+        {
+            case AddressMode::Repeat:
+                return vk::SamplerAddressMode::eRepeat;
+            case AddressMode::MirroredRepeat:
+                return vk::SamplerAddressMode::eMirroredRepeat;
+            case AddressMode::ClampToBorder:
+                return vk::SamplerAddressMode::eClampToBorder;
+            case AddressMode::ClampToEdge:
+                return vk::SamplerAddressMode::eClampToEdge;
+            case AddressMode::MirrorClampToEdge:
+                return vk::SamplerAddressMode::eMirrorClampToEdge;
+            default:
+                return vk::SamplerAddressMode::eRepeat;
+        }
+    }
+
+    vk::BorderColor VkConvert::borderColor(const BorderColor color)
+    {
+        switch (color)
+        {
+            case BorderColor::OpaqueBlack:
+                return vk::BorderColor::eFloatOpaqueBlack;
+            case BorderColor::OpaqueWhite:
+                return vk::BorderColor::eFloatOpaqueWhite;
+            case BorderColor::TransparentBlack:
+                return vk::BorderColor::eFloatTransparentBlack;
+            default:
+                return vk::BorderColor::eFloatOpaqueBlack;
+        }
+    }
 }

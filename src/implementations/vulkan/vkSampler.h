@@ -1,9 +1,17 @@
 #pragma once
+#include "sampler.h"
+#include "descriptions/samplerDesc.h"
+
+#include <vulkan/vulkan.hpp>
 
 namespace urhi
 {
-class VkSampler
+class VkDevice;
+class VkSampler final : public Sampler
 {
-
+public:
+    VkSampler(VkDevice* device, const SamplerDesc& desc);
+private:
+    vk::Sampler m_handle;
 };
 }

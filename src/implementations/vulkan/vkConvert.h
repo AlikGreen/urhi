@@ -3,8 +3,10 @@
 
 #include "descriptions/clearValue.h"
 #include "descriptions/shaderReflection.h"
+#include "enums/addressMode.h"
 #include "enums/blendFactor.h"
 #include "enums/blendOp.h"
+#include "enums/borderColor.h"
 #include "enums/bufferUsage.h"
 #include "enums/colorSpace.h"
 #include "enums/colorWriteMask.h"
@@ -13,10 +15,12 @@
 #include "enums/fillMode.h"
 #include "enums/indexFormat.h"
 #include "enums/loadOp.h"
+#include "enums/mipmapFilter.h"
 #include "enums/pixelFormat.h"
 #include "enums/presentMode.h"
 #include "enums/primitiveType.h"
 #include "enums/storeOp.h"
+#include "enums/textureFilter.h"
 #include "enums/textureType.h"
 #include "enums/textureUsage.h"
 #include "input/keyCodes.h"
@@ -63,5 +67,10 @@ public:
     static vk::BlendOp blendOp(BlendOp op);
 
     static vk::IndexType indexFormat(IndexFormat format);
+
+    static vk::Filter filter(TextureFilter filter);
+    static vk::SamplerMipmapMode mipmapFilter(MipmapFilter filter);
+    static vk::SamplerAddressMode addressMode(AddressMode mode);
+    static vk::BorderColor borderColor(BorderColor color);
 };
 }

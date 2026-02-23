@@ -2,6 +2,7 @@
 
 #include "clogr.h"
 #include "vkDevice.h"
+#include "vkTexture.h"
 
 
 namespace urhi
@@ -58,6 +59,51 @@ namespace urhi
 
         cmd.copyBuffer(allocation.buffer, dstBuffer, 1, &region);
     }
+
+    void VkLinearStagingAllocator::uploadToImage(
+        const TextureUploadDesc& uploadDesc,
+        VkTexture* texture,
+        const vk::CommandBuffer cmd)
+    {
+        clogr::ensure(uploadDesc.data != nullptr, "Trying to upload nullptr data to texture.");
+        const uint32_t size = uploadDesc.width*uploadDesc.height*uploadDesc.depth;
+        const StagingAllocation allocation = allocate(size);
+
+        std::memcpy(allocation.mapped, uploadDesc.data, size);
+
+        vmaFlushAllocation(
+            m_device->getAllocator(),
+            m_pages[allocation.pageIndex].allocation,
+            allocation.offset,
+            size
+        );
+
+        texture->transitionLayout(cmd, vk::ImageLayout::eTransferDstOptimal, uploadDesc.mipLevel, 1, uploadDesc.baseArrayLayer, uploadDesc.layerCount);
+
+        vk::BufferImageCopy region;
+        region.bufferOffset = allocation.offset;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+
+        region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        region.imageSubresource.mipLevel = uploadDesc.mipLevel;
+        region.imageSubresource.baseArrayLayer = uploadDesc.baseArrayLayer;
+        region.imageSubresource.layerCount = uploadDesc.layerCount;
+
+        region.imageOffset = vk::Offset3D{ uploadDesc.x, uploadDesc.y, uploadDesc.z };
+        region.imageExtent = vk::Extent3D{ uploadDesc.width, uploadDesc.height, uploadDesc.depth };
+
+        cmd.copyBufferToImage(
+            m_pages[allocation.pageIndex].buffer,
+            texture->getHandle(),
+            vk::ImageLayout::eTransferDstOptimal,
+            1,
+            &region
+        );
+
+        texture->transitionLayout(cmd, vk::ImageLayout::eShaderReadOnlyOptimal, uploadDesc.mipLevel, 1, uploadDesc.baseArrayLayer, uploadDesc.layerCount);
+    }
+
 
     VkLinearStagingAllocator::StagingAllocation VkLinearStagingAllocator::allocate(const size_t size)
     {

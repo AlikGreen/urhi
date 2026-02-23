@@ -26,6 +26,14 @@ public:
     [[nodiscard]] TextureType getType() const override;
 
     [[nodiscard]] vk::Image getHandle() const;
+
+    void transitionLayout(vk::CommandBuffer cmd,
+        vk::ImageLayout newLayout,
+        uint32_t baseMipLevel = 0,
+        uint32_t levelCount = VK_REMAINING_MIP_LEVELS,
+        uint32_t baseArrayLayer = 0,
+        uint32_t layerCount = VK_REMAINING_ARRAY_LAYERS);
+
 private:
     uint32_t m_width, m_height, m_depth;
     uint32_t m_mipLevels, m_arrayLayers;
@@ -34,5 +42,6 @@ private:
 
     VkDevice* m_device;
     vk::Image m_image;
+    vk::ImageLayout m_currentLayout = vk::ImageLayout::eUndefined;
 };
 }

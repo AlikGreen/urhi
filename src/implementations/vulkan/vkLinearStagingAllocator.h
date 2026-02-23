@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkDevice.h"
+#include "vkTexture.h"
 
 namespace urhi
 {
@@ -22,6 +23,9 @@ public:
 
     void reset();
     void upload(const void* srcData, size_t size, vk::Buffer dstBuffer, size_t dstOffset, vk::CommandBuffer cmd);
+
+    void uploadToImage(const TextureUploadDesc &uploadDesc, VkTexture *texture, vk::CommandBuffer cmd);
+
 private:
     static constexpr size_t kDefaultBlockSize = 64 * 1024 * 1024;
     static constexpr size_t kAlignment = 256;

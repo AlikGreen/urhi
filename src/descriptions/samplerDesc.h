@@ -1,8 +1,10 @@
 #pragma once
 
+#include "enums/addressMode.h"
+#include "enums/borderColor.h"
+#include "enums/compareOp.h"
 #include "enums/mipmapFilter.h"
 #include "enums/textureFilter.h"
-#include "enums/textureWrap.h"
 
 namespace urhi
 {
@@ -10,17 +12,19 @@ struct SamplerDesc
 {
     TextureFilter minFilter = TextureFilter::Linear;
     TextureFilter magFilter = TextureFilter::Linear;
-    MipmapFilter mipmapFilter = MipmapFilter::None;
+    MipmapFilter mipmapFilter = MipmapFilter::Linear;
 
-    struct WrapMode
-    {
-        TextureWrap x = TextureWrap::ClampToEdge;
-        TextureWrap y = TextureWrap::ClampToEdge;
-        TextureWrap z = TextureWrap::ClampToEdge;
-    };
+    AddressMode addressModeU = AddressMode::ClampToEdge;
+    AddressMode addressModeV = AddressMode::ClampToEdge;
+    AddressMode addressModeW = AddressMode::ClampToEdge;
 
-    WrapMode wrapMode = WrapMode{};
+    BorderColor borderColor = BorderColor::OpaqueBlack;
 
     float lodBias = 0.0f;
+
+    bool enableCompare = false;
+    CompareOp compareOp = CompareOp::Always;
+
+    bool unnormalizedCoordinates = false;
 };
 }

@@ -46,6 +46,7 @@ public:
     [[nodiscard]] vk::PhysicalDevice getPhysicalDevice() const;
     [[nodiscard]] vk::Device getHandle() const;
     [[nodiscard]] VmaAllocator getAllocator() const;
+    [[nodiscard]] float getMaxAnisotropy() const;
 
     grl::Rc<VkQueueState> getQueueState(QueueType queueType);
 private:
@@ -64,5 +65,7 @@ private:
     std::array<std::array<grl::Box<VkCommandListPool>, QUEUE_TYPES>, CMD_POOLS_PER_QUEUE> m_commandListPools; // 4 command list pools per queue (so they get a chance to be reset)
 
     std::array<grl::Rc<VkQueueState>, 3> m_queueStates{};
+
+    float m_maxAnisotropy = 0.0f;
 };
 }

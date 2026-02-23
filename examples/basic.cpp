@@ -3,6 +3,39 @@
 #include "shaderCompiler.h"
 #include "window.h"
 
+std::vector<uint8_t> generateRadialGradientRgba8(uint32_t width, uint32_t height)
+{
+    std::vector<uint8_t> data;
+    data.resize(static_cast<size_t>(width) * height * 4);
+
+    float cx = (float)width * 0.5f;
+    float cy = (float)height * 0.5f;
+    float maxDist = std::sqrt(cx * cx + cy * cy);
+
+    for (uint32_t y = 0; y < height; ++y)
+    {
+        for (uint32_t x = 0; x < width; ++x)
+        {
+            float dx = (float)x - cx;
+            float dy = (float)y - cy;
+            float d = std::sqrt(dx * dx + dy * dy);
+            float t = d / maxDist; // 0..1
+
+            uint8_t r = static_cast<uint8_t>((1.0f - t) * 255.0f);
+            uint8_t g = static_cast<uint8_t>((t) * 128.0f);
+            uint8_t b = static_cast<uint8_t>((t) * 255.0f);
+
+            size_t idx = (static_cast<size_t>(y) * width + x) * 4;
+            data[idx + 0] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+            data[idx + 3] = 0xFF;
+        }
+    }
+
+    return data;
+}
+
 int main()
 {
     using namespace urhi;
@@ -118,16 +151,16 @@ int main()
     const auto vertexBuffer  = device->createBuffer({BufferUsage::Vertex, vertices.size() * sizeof(Vertex)});
     const auto indexBuffer   = device->createBuffer({BufferUsage::Index, indices.size() * sizeof(uint32_t)});
     // auto uniformBuffer = device->createBuffer({BufferUsage::Uniform});
-//
-//     auto textureDesc = TextureDesc::Texture2D(512, 512, PixelFormat::R8G8B8A8Unorm);
-//     auto texture = device->createTexture(textureDesc);
-//     auto textureView = device->createTextureView(TextureViewDesc(texture));
-//
-//     auto sampler = device->createSampler({
-//         .minFilter = TextureFilter::Linear,
-//         .magFilter = TextureFilter::Linear,
-//         .mipmapFilter = MipmapFilter::Linear,
-//     });
+
+    auto textureDesc = TextureDesc::Texture2D(512, 512, PixelFormat::R8G8B8A8Unorm);
+    auto texture = device->createTexture(textureDesc);
+    auto textureView = device->createTextureView(TextureViewDesc(texture));
+
+    auto sampler = device->createSampler({
+        .minFilter = TextureFilter::Linear,
+        .magFilter = TextureFilter::Linear,
+        .mipmapFilter = MipmapFilter::Linear,
+    });
 
     //
     // struct UniformData
@@ -135,8 +168,10 @@ int main()
     //     glm::mat4 mvp;
     // };
 
+    auto textureData = generateRadialGradientRgba8(512, 512);
+
     {
-        const auto cmd = device->acquireCommandList(QueueType::Transfer);
+        const auto cmd = device->acquireCommandList(QueueType::Graphics);
         cmd->begin();
 
         cmd->updateBuffer(vertexBuffer, vertices);
@@ -145,13 +180,11 @@ int main()
         // UniformData ubo = {glm::mat4(1.0f)};
         // cmdList->updateBuffer(uniformBuffer, ubo);
 
-        // TextureUploadDesc uploadDesc;
-        // uploadDesc.width = 512;
-        // uploadDesc.height = 512;
-        // uploadDesc.pixelLayout = PixelLayout::RGBA;
-        // uploadDesc.pixelType = PixelType::UnsignedByte;
-        // uploadDesc.data = nullptr; // would point to actual data
-        // cmdList->updateTexture(texture, uploadDesc);
+        TextureUploadDesc uploadDesc;
+        uploadDesc.width = 512;
+        uploadDesc.height = 512;
+        uploadDesc.data = textureData.data(); // would point to actual data
+        cmd->updateTexture(texture, uploadDesc);
 
         device->submit(cmd);
     }

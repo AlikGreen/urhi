@@ -16,7 +16,7 @@ public:
     VkTextureView(VkDevice* device, const TextureViewDesc& desc);
     VkTextureView(VkDevice* device, const grl::Rc<VkTexture> &texture, PixelFormat format, vk::ImageView view);
 
-    ~VkTextureView();
+    ~VkTextureView() override;
 
     [[nodiscard]] uint32_t getMipLevels() const override;
     [[nodiscard]] uint32_t getArrayLayers() const override;

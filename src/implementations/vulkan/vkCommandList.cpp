@@ -7,6 +7,7 @@
 #include "vkDevice.h"
 #include "vkStagedBuffer.h"
 #include "vkRenderPass.h"
+#include "vkTexture.h"
 
 namespace urhi
 {
@@ -30,7 +31,8 @@ namespace urhi
 
     void VkCommandList::updateTexture(const grl::Rc<Texture> &texture, const TextureUploadDesc &desc)
     {
-        clogr::ensure(false, "not implemented");
+        const auto vkTex = dynamic_cast<VkTexture*>(texture.get());
+        m_pool->m_linearStagingAllocator->uploadToImage(desc, vkTex, m_commandBuffer);
     }
 
     void VkCommandList::generateMipmaps(const grl::Rc<Texture> &texture)

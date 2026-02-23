@@ -76,8 +76,8 @@ namespace urhi
 
         auto layout = m_device->getHandle().createPipelineLayout(pipelineLayoutInfo);
 
-        std::vector<vk::VertexInputBindingDescription> vertexBindingDescs;
-        std::vector<vk::VertexInputAttributeDescription> vertexAttributeDescs;
+        std::vector<vk::VertexInputBindingDescription> vertexBindingDescs{};
+        std::vector<vk::VertexInputAttributeDescription> vertexAttributeDescs{};
 
         for(const auto& input : m_graphicsDesc.vertexShader->entryPoint().reflection.vertexBindings)
         {

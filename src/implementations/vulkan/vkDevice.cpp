@@ -4,6 +4,8 @@
 #include <vma/vk_mem_alloc.h>
 
 #include <vulkan/vulkan.hpp>
+
+#include "vkTextureView.h"
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 #include "clogr.h"
@@ -16,6 +18,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include "vkStagedBuffer.h"
 #include "vkSwapchain.h"
 #include "vkTexture.h"
+#include "vkSampler.h"
 
 namespace urhi
 {
@@ -25,6 +28,9 @@ namespace urhi
         VkPhysicalDeviceVulkan13Features features13{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
         features13.dynamicRendering = true;
         features13.synchronization2 = true;
+
+        VkPhysicalDeviceFeatures requiredFeatures{};
+        requiredFeatures.samplerAnisotropy = VK_TRUE;
 
         VkPhysicalDeviceVulkan12Features features12{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
         features12.bufferDeviceAddress = true;
@@ -39,6 +45,7 @@ namespace urhi
             .set_minimum_version(1, 3)
             .set_required_features_13(features13)
             .set_required_features_12(features12)
+            .set_required_features(requiredFeatures)
             .set_surface(vkWindow->getSurface())
             .select()
             .value();
@@ -91,6 +98,11 @@ namespace urhi
             .instance = context->getVkInstance()
         };
         vmaCreateAllocator(&allocatorCI, &m_allocator);
+
+        VkPhysicalDeviceProperties physProps;
+        vkGetPhysicalDeviceProperties(m_physicalDevice, &physProps);
+
+        m_maxAnisotropy = physProps.limits.maxSamplerAnisotropy;
     }
 
     grl::Rc<Pipeline> VkDevice::createPipeline(const GraphicsPipelineDesc &desc)
@@ -125,12 +137,12 @@ namespace urhi
 
     grl::Rc<Sampler> VkDevice::createSampler(const SamplerDesc &desc)
     {
-        clogr::abort("not implemented");
+        return grl::makeRc<VkSampler>(this, desc);
     }
 
     grl::Rc<TextureView> VkDevice::createTextureView(const TextureViewDesc &desc)
     {
-        clogr::abort("not implemented");
+        return grl::makeRc<VkTextureView>(this, desc);
     }
 
     grl::Rc<Shader> VkDevice::createShader(const ShaderEntryPoint &entryPoint)
@@ -187,5 +199,10 @@ namespace urhi
     grl::Rc<VkQueueState> VkDevice::getQueueState(QueueType queueType)
     {
         return m_queueStates[static_cast<size_t>(queueType)];
+    }
+
+    float VkDevice::getMaxAnisotropy() const
+    {
+        return m_maxAnisotropy;
     }
 }

@@ -2,11 +2,12 @@
 
 namespace urhi
 {
-    enum class TextureWrap
+    enum class AddressMode
     {
         Repeat,
         MirroredRepeat,
         ClampToEdge,
-        ClampToBorder
+        ClampToBorder,
+        MirrorClampToEdge
     };
 }

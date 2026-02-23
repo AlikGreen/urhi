@@ -29,7 +29,7 @@ namespace urhi
         m_imageView = device->getHandle().createImageView(viewInfo);
     }
 
-    VkTextureView::VkTextureView(VkDevice *device, const grl::Rc<VkTexture> &texture, const PixelFormat format, vk::ImageView view)
+    VkTextureView::VkTextureView(VkDevice *device, const grl::Rc<VkTexture> &texture, const PixelFormat format, const vk::ImageView view)
         : m_device(device), m_mipLevels(1), m_arrayLayers(1), m_format(format), m_imageView(view), m_texture(texture)
     {
     }

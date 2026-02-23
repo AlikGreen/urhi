@@ -179,11 +179,13 @@ namespace urhi
 
     void VkRenderPass::drawImpl(const uint32_t vertexCount, const uint32_t instanceCount, const uint32_t firstVertex, const uint32_t firstInstance)
     {
+        // TODO use vkCmdPushDescriptorSetKHR
         m_commandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void VkRenderPass::drawIndexedImpl(const uint32_t indexCount, const uint32_t instanceCount, const uint32_t firstIndex, const int vertexOffset, const uint32_t firstInstance)
     {
+        // TODO use vkCmdPushDescriptorSetKHR
         m_commandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 }
