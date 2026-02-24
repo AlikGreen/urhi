@@ -793,4 +793,118 @@ namespace urhi
                 return vk::BorderColor::eFloatOpaqueBlack;
         }
     }
+
+    uint32_t VkConvert::pixelFormatBytes(PixelFormat format)
+    {
+        switch (format)
+        {
+            case PixelFormat::R8Unorm:
+            case PixelFormat::R8Snorm:
+            case PixelFormat::R8Uint:
+            case PixelFormat::R8Int:
+                return 1;
+
+            case PixelFormat::R16Unorm:
+            case PixelFormat::R16Snorm:
+            case PixelFormat::R16Uint:
+            case PixelFormat::R16Int:
+            case PixelFormat::R16Float:
+                return 2;
+
+            case PixelFormat::R8G8Unorm:
+            case PixelFormat::R8G8Snorm:
+            case PixelFormat::R8G8Uint:
+            case PixelFormat::R8G8Int:
+                return 2;
+
+            case PixelFormat::R16G16Unorm:
+            case PixelFormat::R16G16Snorm:
+            case PixelFormat::R16G16Uint:
+            case PixelFormat::R16G16Int:
+            case PixelFormat::R16G16Float:
+                return 4;
+
+            case PixelFormat::R32G32Float:
+            case PixelFormat::R32G32Uint:
+            case PixelFormat::R32G32Int:
+                return 8;
+
+            case PixelFormat::R32Float:
+            case PixelFormat::R32Uint:
+            case PixelFormat::R32Int:
+                return 4;
+
+            case PixelFormat::R8G8B8Unorm:
+            case PixelFormat::R8G8B8Snorm:
+            case PixelFormat::R8G8B8Uint:
+            case PixelFormat::R8G8B8Int:
+            case PixelFormat::R8G8B8UnormSrgb:
+            case PixelFormat::B8G8R8Unorm:
+            case PixelFormat::B8G8R8UnormSrgb:
+                return 3;
+
+            case PixelFormat::R16G16B16Unorm:
+            case PixelFormat::R16G16B16Snorm:
+            case PixelFormat::R16G16B16Uint:
+            case PixelFormat::R16G16B16Int:
+            case PixelFormat::R16G16B16Float:
+                return 6;
+
+            case PixelFormat::R32G32B32Float:
+            case PixelFormat::R32G32B32Uint:
+            case PixelFormat::R32G32B32Int:
+                return 12;
+
+            case PixelFormat::R8G8B8A8Unorm:
+            case PixelFormat::R8G8B8A8Snorm:
+            case PixelFormat::R8G8B8A8Uint:
+            case PixelFormat::R8G8B8A8Int:
+            case PixelFormat::R8G8B8A8UnormSrgb:
+            case PixelFormat::B8G8R8A8Unorm:
+            case PixelFormat::B8G8R8A8UnormSrgb:
+                return 4;
+
+            case PixelFormat::R16G16B16A16Unorm:
+            case PixelFormat::R16G16B16A16Snorm:
+            case PixelFormat::R16G16B16A16Uint:
+            case PixelFormat::R16G16B16A16Int:
+            case PixelFormat::R16G16B16A16Float:
+                return 8;
+
+            case PixelFormat::R32G32B32A32Float:
+            case PixelFormat::R32G32B32A32Uint:
+            case PixelFormat::R32G32B32A32Int:
+                return 16;
+
+            case PixelFormat::R10G10B10A2Unorm:
+            case PixelFormat::R11G11B10Ufloat:
+                return 4;
+
+            /* Block-compressed formats: return bytes per 4x4 block (not per pixel) */
+            case PixelFormat::BC1RgbaUnorm:
+            case PixelFormat::BC1RgbaUnormSrgb:
+            case PixelFormat::BC4RUnorm:
+                return 8;  // 8 bytes per 4x4 block
+
+            case PixelFormat::BC2RgbaUnorm:
+            case PixelFormat::BC2RgbaUnormSrgb:
+            case PixelFormat::BC3RgbaUnorm:
+            case PixelFormat::BC3RgbaUnormSrgb:
+            case PixelFormat::BC5RgUnorm:
+            case PixelFormat::BC7RgbaUnorm:
+            case PixelFormat::BC7RgbaUnormSrgb:
+                return 16; // 16 bytes per 4x4 block
+
+            case PixelFormat::D24UnormS8Uint:
+                return 4;  // 24-bit depth + 8-bit stencil packed into 32 bits
+
+            case PixelFormat::D32FloatS8Uint:
+                return 8;  // 32-bit float depth + 8-bit stencil (typically 64 bits total)
+
+            case PixelFormat::Undefined:
+            case PixelFormat::Invalid:
+            default:
+                return 0;
+        }
+    }
 }

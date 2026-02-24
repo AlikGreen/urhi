@@ -72,5 +72,6 @@ public:
     static vk::SamplerMipmapMode mipmapFilter(MipmapFilter filter);
     static vk::SamplerAddressMode addressMode(AddressMode mode);
     static vk::BorderColor borderColor(BorderColor color);
+    static uint32_t pixelFormatBytes(PixelFormat format);
 };
 }
