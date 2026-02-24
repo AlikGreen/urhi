@@ -33,7 +33,13 @@ namespace urhi
             frame.inFlightFence = m_device->getHandle().createFence({vk::FenceCreateFlagBits::eSignaled});
         }
 
-        resize(desc.width, desc.height);
+        uint32_t width = desc.width;
+        uint32_t height = desc.height;
+
+        if(width == 0) width = m_window->getWidth();
+        if(height == 0) height = m_window->getHeight();
+
+        resize(width, height);
 
         for (size_t i = 0; i < m_textureViews.size(); i++)
         {
@@ -134,27 +140,10 @@ namespace urhi
 
         const auto queueState = m_device->getQueueState(QueueType::Graphics);
 
-        vk::ImageMemoryBarrier2 barrier
-        {
-            vk::PipelineStageFlagBits2::eTopOfPipe,
-            vk::AccessFlagBits2::eNone,
-            vk::PipelineStageFlagBits2::eBottomOfPipe,
-            vk::AccessFlagBits2::eNone,
-            vk::ImageLayout::eColorAttachmentOptimal,
-            vk::ImageLayout::ePresentSrcKHR,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            dynamic_cast<VkTexture*>(m_textures[m_imageIndex].get())->getHandle(),
-            { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
-        };
-
-        vk::DependencyInfo depInfo{};
-        depInfo.setImageMemoryBarriers(barrier);
-
         m_device->getHandle().resetCommandPool(m_frames[m_frameIndex].transitionPool, {});
         const auto& cmd = m_frames[m_frameIndex].transitionCmd;
         cmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-        cmd.pipelineBarrier2(depInfo);
+        dynamic_cast<VkTexture*>(m_textures[m_imageIndex].get())->transitionLayout(cmd, vk::ImageLayout::ePresentSrcKHR);
         cmd.end();
 
         vk::SubmitInfo bridgeSubmit{};

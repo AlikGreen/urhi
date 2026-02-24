@@ -19,14 +19,22 @@ namespace urhi
         std::vector<vk::RenderingAttachmentInfo> colorAttachments;
         colorAttachments.reserve(desc.colorAttachments.size());
 
+        Rect2D renderArea = desc.renderArea;
+
         for(const auto& attachment : desc.colorAttachments)
         {
             auto vkTex = dynamic_cast<VkTextureView*>(attachment.target.get());
 
-            clogr::ensure(vkTex->getTexture()->getWidth() >= desc.renderArea.x + desc.renderArea.width || vkTex->getTexture()->getHeight() >= desc.renderArea.y + desc.renderArea.height,
+            if(renderArea.width == 0 && renderArea.height == 0)
+            {
+                renderArea.width = vkTex->getTexture()->getWidth();
+                renderArea.height = vkTex->getTexture()->getHeight();
+            }
+
+            clogr::ensure(vkTex->getTexture()->getWidth() >= renderArea.x + renderArea.width || vkTex->getTexture()->getHeight() >= renderArea.y + renderArea.height,
                 "Render area outside the bounds of render target\nRender target size: ({}, {})\nRender area: ({}, {}, {}, {})",
                 vkTex->getTexture()->getWidth(), vkTex->getTexture()->getHeight(),
-                desc.renderArea.x, desc.renderArea.y, desc.renderArea.width, desc.renderArea.height);
+                renderArea.x, renderArea.y, renderArea.width, renderArea.height);
 
             vk::RenderingAttachmentInfo colorAttachment
             {
@@ -40,23 +48,7 @@ namespace urhi
                 VkConvert::clearValue(attachment.clearValue)
             };
 
-            vk::ImageMemoryBarrier2 barrier{
-                vk::PipelineStageFlagBits2::eTopOfPipe,
-                vk::AccessFlagBits2::eNone,
-                vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                vk::AccessFlagBits2::eColorAttachmentWrite,
-                vk::ImageLayout::eUndefined,
-                vk::ImageLayout::eColorAttachmentOptimal,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                dynamic_cast<VkTexture*>(vkTex->getTexture().get())->getHandle(),
-                { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
-            };
-
-            vk::DependencyInfo depInfo{};
-            depInfo.setImageMemoryBarriers(barrier);
-            commandBuffer.pipelineBarrier2(depInfo);
-
+            dynamic_cast<VkTexture*>(vkTex->getTexture().get())->transitionLayout(m_cmd, vk::ImageLayout::eColorAttachmentOptimal);
             colorAttachments.push_back(colorAttachment);
         }
 
@@ -80,14 +72,12 @@ namespace urhi
             };
         }
 
-        clogr::ensure(desc.renderArea.width > 0 && desc.renderArea.height > 0, "Render area width and height must be grater than 0");
-
-        vk::Rect2D renderArea{{desc.renderArea.x, desc.renderArea.y}, {desc.renderArea.width, desc.renderArea.height}};
+        vk::Rect2D vkRenderArea{{renderArea.x, renderArea.y}, {renderArea.width, renderArea.height}};
 
         const vk::RenderingInfo renderingInfo
         {
             vk::RenderingFlags{0},
-            renderArea,
+            vkRenderArea,
             1,
             0,
             colorAttachments,
@@ -96,12 +86,11 @@ namespace urhi
 
         m_cmd.beginRendering(&renderingInfo);
 
-        vk::Viewport viewport{static_cast<float>(desc.renderArea.x), static_cast<float>(desc.renderArea.y),
-            static_cast<float>(desc.renderArea.width), static_cast<float>(desc.renderArea.height), 0.0f, 1.0f};
+        vk::Viewport viewport{static_cast<float>(renderArea.x), static_cast<float>(renderArea.y),
+            static_cast<float>(renderArea.width), static_cast<float>(renderArea.height), 0.0f, 1.0f};
 
         m_cmd.setViewport(0, {viewport});
-
-        m_cmd.setScissor(0, {renderArea});
+        m_cmd.setScissor(0, {vkRenderArea});
     }
 
     void VkRenderPass::setPipeline(const grl::Rc<Pipeline>& pipeline)

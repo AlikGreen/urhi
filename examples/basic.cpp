@@ -58,8 +58,6 @@ int main()
         .window = window,
         .device = device,
         .presentMode = PresentMode::NoVSync,
-        .width = 800,
-        .height = 600,
     });
 
      const auto shaderSource = R"(
@@ -176,7 +174,7 @@ int main()
     auto textureData = generateRadialGradientRgba8(kTextureSize, kTextureSize);
 
     {
-        const auto cmd = device->acquireCommandList(QueueType::Graphics);
+        const auto cmd = device->acquireCommandList(QueueType::Graphics); // TODO add cross queue sync
         cmd->begin();
 
         cmd->updateBuffer(vertexBuffer, vertices);
@@ -185,11 +183,7 @@ int main()
         UniformData ubo = {glm::mat4(1.0f), glm::vec4(0.5f)};
         cmd->updateBuffer(uniformBuffer, ubo);
 
-        TextureUploadDesc uploadDesc;
-        uploadDesc.width = kTextureSize;
-        uploadDesc.height = kTextureSize;
-        uploadDesc.data = textureData.data();
-        cmd->updateTexture(texture, uploadDesc);
+        cmd->updateTexture(texture, {.data = textureData.data(), .width = kTextureSize, .height = kTextureSize});
 
         device->submit(cmd);
     }
@@ -219,7 +213,6 @@ int main()
         cmd->begin();
 
         RenderPassDesc renderPassDesc;
-        renderPassDesc.renderArea = {0, 0, window->getWidth(), window->getHeight()};
         renderPassDesc.colorAttachments.push_back({
             backBuffer,
             LoadOp::Clear,
