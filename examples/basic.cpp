@@ -1,7 +1,8 @@
-
+#include "clogr.h"
 #include "context.h"
 #include "shaderCompiler.h"
 #include "window.h"
+#include "timers/scopeTimer.h"
 
 std::vector<uint8_t> generateRadialGradientRgba8(uint32_t width, uint32_t height)
 {
@@ -56,8 +57,9 @@ int main()
     auto swapchain = context->createSwapchain({
         .window = window,
         .device = device,
+        .presentMode = PresentMode::NoVSync,
         .width = 800,
-        .height = 600
+        .height = 600,
     });
 
      const auto shaderSource = R"(
@@ -76,11 +78,17 @@ int main()
              float3 normal : NORMAL;
          };
 
+        cbuffer UniformData
+        {
+            float4x4 modelMat;
+            float4 tint;
+        }
+
          [shader("vertex")]
          VS_OUTPUT vertexMain(VS_INPUT input)
          {
              VS_OUTPUT output;
-             output.position = float4(input.position, 1.0);
+             output.position = mul(modelMat, float4(input.position, 1.0));
              output.texCoord = input.texCoord;
              output.normal = input.normal;
              return output;
@@ -93,12 +101,8 @@ int main()
          [shader("fragment")]
          float4 fragmentMain(VS_OUTPUT input) : SV_TARGET
          {
-             // float3 n = normalize(input.normal);
-             // float3 lightDir = normalize(float3(0.57735, 0.57735, 0.57735));
-             // float diff = max(dot(n, lightDir), 0.0);
              float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
-             // float3 color = tex.rgb * diff;
-             return float4(tex.rgb, 1.0);
+             return float4(tex.rgb*tint.rgb, 1.0);
          }
      )";
 
@@ -148,27 +152,28 @@ int main()
 
     const std::vector<uint32_t> indices = {0, 1, 2, 0, 2, 3};
 
+    struct UniformData
+    {
+        glm::mat4 mvp;
+        glm::vec4 tint;
+    };
+
     const auto vertexBuffer  = device->createBuffer({BufferUsage::Vertex, vertices.size() * sizeof(Vertex)});
     const auto indexBuffer   = device->createBuffer({BufferUsage::Index, indices.size() * sizeof(uint32_t)});
-    // auto uniformBuffer = device->createBuffer({BufferUsage::Uniform});
+    auto uniformBuffer = device->createBuffer({BufferUsage::Uniform, sizeof(UniformData)});
 
-    auto textureDesc = TextureDesc::Texture2D(512, 512, PixelFormat::R8G8B8A8Unorm);
+    constexpr uint32_t kTextureSize = 16;
+
+    auto textureDesc = TextureDesc::Texture2D(kTextureSize, kTextureSize, PixelFormat::R8G8B8A8Unorm);
     auto texture = device->createTexture(textureDesc);
     auto textureView = device->createTextureView(TextureViewDesc(texture));
 
     auto sampler = device->createSampler({
         .minFilter = TextureFilter::Linear,
         .magFilter = TextureFilter::Linear,
-        .mipmapFilter = MipmapFilter::Linear,
     });
 
-    //
-    // struct UniformData
-    // {
-    //     glm::mat4 mvp;
-    // };
-
-    auto textureData = generateRadialGradientRgba8(512, 512);
+    auto textureData = generateRadialGradientRgba8(kTextureSize, kTextureSize);
 
     {
         const auto cmd = device->acquireCommandList(QueueType::Graphics);
@@ -177,19 +182,18 @@ int main()
         cmd->updateBuffer(vertexBuffer, vertices);
         cmd->updateBuffer(indexBuffer, indices);
 
-        // UniformData ubo = {glm::mat4(1.0f)};
-        // cmdList->updateBuffer(uniformBuffer, ubo);
+        UniformData ubo = {glm::mat4(1.0f), glm::vec4(0.5f)};
+        cmd->updateBuffer(uniformBuffer, ubo);
 
         TextureUploadDesc uploadDesc;
-        uploadDesc.width = 512;
-        uploadDesc.height = 512;
-        uploadDesc.data = textureData.data(); // would point to actual data
+        uploadDesc.width = kTextureSize;
+        uploadDesc.height = kTextureSize;
+        uploadDesc.data = textureData.data();
         cmd->updateTexture(texture, uploadDesc);
 
         device->submit(cmd);
     }
 
-    // Render loop
 
     bool running = true;
 
@@ -209,34 +213,37 @@ int main()
             }
         }
 
-        auto cmdList = device->acquireCommandList(QueueType::Graphics);
-        const uint32_t imageIndex = swapchain->acquireNextImage();
+        auto cmd = device->acquireCommandList(QueueType::Graphics);
+        auto backBuffer = swapchain->acquireNextImage();
 
-        cmdList->begin();
-        // // Begin render pass - implicit state management
+        cmd->begin();
+
         RenderPassDesc renderPassDesc;
         renderPassDesc.renderArea = {0, 0, window->getWidth(), window->getHeight()};
         renderPassDesc.colorAttachments.push_back({
-            swapchain->getTextureViews()[imageIndex],
+            backBuffer,
             LoadOp::Clear,
             StoreOp::Store,
             ClearColorFloat{0.39f, 0.58f, 0.93f, 1.0f}
         });
 
-        auto renderPass = cmdList->beginRenderPass(renderPassDesc);
+        auto renderPass = cmd->beginRenderPass(renderPassDesc);
 
         renderPass->setPipeline(pipeline);
-        // renderPass->setUniformBuffer("transformBuffer", uniformBuffer);
+
+        renderPass->setUniformBuffer("UniformData", uniformBuffer);
         renderPass->setTexture("diffuseTexture", textureView);
         renderPass->setSampler("samplerState", sampler);
-        //
+
         renderPass->setVertexBuffer(0, vertexBuffer);
         renderPass->setIndexBuffer(indexBuffer, IndexFormat::UInt32);
         renderPass->drawIndexed(indices.size());
-        //
-        renderPass->end();
-        device->submit(cmdList);
 
-        swapchain->present(imageIndex);
+        renderPass->end();
+        device->submit(cmd);
+
+        swapchain->present();
     }
+
+    device->waitIdle();
 }

@@ -5,6 +5,7 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkMappedBuffer.h"
 #include "vkTextureView.h"
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -152,8 +153,8 @@ namespace urhi
 
     grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
     {
-        // if (desc.usage == BufferUsage::Uniform && desc.size < 64 * 1024)
-        //     return grl::makeRc<VkPersistentMappedBuffer>(this, desc);
+       if (desc.usage == BufferUsage::Uniform && desc.size < 1024)
+           return grl::makeRc<VkMappedBuffer>(this, desc);
 
         return grl::makeRc<VkStagedBuffer>(this, desc);
     }

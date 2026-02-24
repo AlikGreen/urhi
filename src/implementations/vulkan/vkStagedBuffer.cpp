@@ -11,19 +11,21 @@ namespace urhi
     VkStagedBuffer::VkStagedBuffer(VkDevice* device, const BufferDesc desc)
         : m_device(device), m_bufferSize(desc.size)
     {
-        const VkBufferCreateInfo bufferCI{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size = desc.size,
-            .usage = static_cast<VkBufferUsageFlags>(VkConvert::bufferUsage(desc.usage) | vk::BufferUsageFlagBits::eTransferDst)
+        const vk::BufferCreateInfo bufferCI{
+            {},
+            desc.size,
+            VkConvert::bufferUsage(desc.usage) | vk::BufferUsageFlagBits::eTransferDst
         };
 
-        constexpr VmaAllocationCreateInfo bufferAllocCI{
+        constexpr VmaAllocationCreateInfo bufferAllocCI
+        {
             .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-                     VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-            .usage = VMA_MEMORY_USAGE_AUTO
+                     VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
+            .usage = VMA_MEMORY_USAGE_GPU_ONLY
         };
 
-        vmaCreateBuffer(device->getAllocator(), &bufferCI, &bufferAllocCI,reinterpret_cast<VkBuffer *>(&m_buffer), &m_allocation, nullptr);
+        VmaAllocation allocation;
+        vmaCreateBuffer(device->getAllocator(), reinterpret_cast<const VkBufferCreateInfo*>(&bufferCI), &bufferAllocCI, reinterpret_cast<::VkBuffer*>(&m_buffer), &allocation, nullptr);
     }
 
     vk::Buffer VkStagedBuffer::getHandle() const

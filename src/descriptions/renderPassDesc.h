@@ -36,7 +36,7 @@ struct DepthStencilAttachment
 struct RenderPassDesc
 {
     std::optional<DepthStencilAttachment> depthAttachment{};
-    std::vector<ColorAttachment> colorAttachments{};
+    grl::StaticVector<ColorAttachment, 8> colorAttachments{};
     Rect2D renderArea;
 };
 }

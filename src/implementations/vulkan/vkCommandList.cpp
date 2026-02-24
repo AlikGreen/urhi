@@ -5,6 +5,7 @@
 #include "clogr.h"
 #include "renderPass.h"
 #include "vkDevice.h"
+#include "vkMappedBuffer.h"
 #include "vkStagedBuffer.h"
 #include "vkRenderPass.h"
 #include "vkTexture.h"
@@ -65,6 +66,13 @@ namespace urhi
         if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(buffer.get()))
         {
             m_pool->m_linearStagingAllocator->upload(data, size, vkStaged->getHandle(), 0, m_commandBuffer);
+        }
+        else if(const auto vkMapped = dynamic_cast<VkMappedBuffer*>(buffer.get()))
+        {
+            vkMapped->upload(data, size);
+        }else
+        {
+            clogr::abort("Buffer was not a VkStagedBuffer or VkMappedBuffer");
         }
     }
 

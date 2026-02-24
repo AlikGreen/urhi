@@ -98,7 +98,7 @@ namespace urhi
         }
     }
 
-    uint32_t VkSwapchain::acquireNextImage()
+    grl::Rc<TextureView> VkSwapchain::acquireNextImage()
     {
         const auto& frame = m_frames[m_frameIndex];
 
@@ -116,15 +116,11 @@ namespace urhi
 
         m_semaphoreConsumed = false;
 
-        return result.value;
+        m_imageIndex = result.value;
+        return m_textureViews[m_imageIndex];
     }
 
-    const std::vector<grl::Rc<TextureView>> & VkSwapchain::getTextureViews() const
-    {
-        return m_textureViews;
-    }
-
-    void VkSwapchain::present(const uint32_t imageIndex)
+    void VkSwapchain::present()
     {
         auto& frame = m_frames[m_frameIndex];
         if(frame.maxTimelineValue > 0)
@@ -148,7 +144,7 @@ namespace urhi
             vk::ImageLayout::ePresentSrcKHR,
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
-            dynamic_cast<VkTexture*>(m_textures[imageIndex].get())->getHandle(),
+            dynamic_cast<VkTexture*>(m_textures[m_imageIndex].get())->getHandle(),
             { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
         };
 
@@ -169,7 +165,7 @@ namespace urhi
         if (queueState->nextTimelineValue > 0)
         {
             const vk::Semaphore waitSemaphore = queueState->timeline;
-            const vk::Semaphore signalSemaphore = m_renderFinishedSemaphores[imageIndex];
+            const vk::Semaphore signalSemaphore = m_renderFinishedSemaphores[m_imageIndex];
             constexpr vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
 
             vk::TimelineSemaphoreSubmitInfo timelineWaitInfo{};
@@ -188,10 +184,10 @@ namespace urhi
 
         vk::PresentInfoKHR presentInfo{};
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[imageIndex];
+        presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[m_imageIndex];
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &m_handle;
-        presentInfo.pImageIndices = &imageIndex;
+        presentInfo.pImageIndices = &m_imageIndex;
 
         auto res = queueState->queue.presentKHR(presentInfo);
 

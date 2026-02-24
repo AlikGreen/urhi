@@ -16,13 +16,13 @@ public:
     ~VkSwapchain() override;
     void resize(uint32_t width, uint32_t height) override;
 
-    [[nodiscard]] uint32_t acquireNextImage() override;
-    [[nodiscard]] const std::vector<grl::Rc<TextureView>> & getTextureViews() const override;
+    [[nodiscard]] grl::Rc<TextureView> acquireNextImage() override;
 
-    void present(uint32_t imageIndex) override;
+    void present() override;
     vk::Semaphore consumeSemaphore();
 private:
     bool m_semaphoreConsumed = true;
+    uint32_t m_imageIndex = 0;
     grl::Rc<VkDevice> m_device;
     grl::Rc<VkWindow> m_window;
 

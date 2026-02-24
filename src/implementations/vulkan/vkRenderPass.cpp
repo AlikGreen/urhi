@@ -4,6 +4,7 @@
 
 #include "clogr.h"
 #include "vkConvert.h"
+#include "vkMappedBuffer.h"
 #include "vkPipeline.h"
 #include "vkSampler.h"
 #include "vkTextureView.h"
@@ -113,22 +114,12 @@ namespace urhi
     {
         clogr::ensure(m_currentPipeline != nullptr, "No pipeline set");
 
-        const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(buffer.get());
-        vk::DescriptorBufferInfo bufInfo{ vkBuffer->getHandle(), 0, vkBuffer->getSize() };
+        const auto vkBuffer = dynamic_cast<VkBuffer*>(buffer.get());
 
-        const std::array<vk::WriteDescriptorSet, 1> writes{{
-            vk::WriteDescriptorSet
-            {
-                nullptr, 0, 0, vk::DescriptorType::eUniformBuffer, {}, {bufInfo}
-            },
-        }};
-
-        m_cmd.pushDescriptorSetKHR(
-            vk::PipelineBindPoint::eGraphics,
-            m_currentPipeline->getLayout(),
-            0,
-            writes
-        );
+        m_boundResources[name] = BoundResource{
+            .type = ShaderReflection::ResourceType::ConstantBuffer,
+            .bufferInfo = { vkBuffer->getHandle(), 0, vkBuffer->getSize() }
+        };
     }
 
     void VkRenderPass::setStorageBuffer(const std::string& name, const grl::Rc<Buffer> &buffer)
