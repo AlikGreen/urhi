@@ -17,7 +17,6 @@ public:
     grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc &desc) override;
     void updateTexture(const grl::Rc<Texture> &texture, const TextureUploadDesc &desc) override;
     void generateMipmaps(const grl::Rc<Texture> &texture) override;
-    void reserveBuffer(const grl::Rc<Buffer> &buffer, size_t size) override;
 
     [[nodiscard]] vk::CommandBuffer getCmdBuffer() const;
     [[nodiscard]] QueueType getQueueType() const;

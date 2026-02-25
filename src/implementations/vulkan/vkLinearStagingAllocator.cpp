@@ -79,7 +79,7 @@ namespace urhi
             size
         );
 
-        texture->transitionLayout(cmd, vk::ImageLayout::eTransferDstOptimal, uploadDesc.mipLevel, 1, uploadDesc.baseArrayLayer, uploadDesc.layerCount);
+        texture->transitionLayout(cmd, vk::ImageLayout::eTransferDstOptimal);
 
         vk::BufferImageCopy region;
         region.bufferOffset = allocation.offset;
@@ -102,7 +102,7 @@ namespace urhi
             &region
         );
 
-        texture->transitionLayout(cmd, vk::ImageLayout::eShaderReadOnlyOptimal, uploadDesc.mipLevel, 1, uploadDesc.baseArrayLayer, uploadDesc.layerCount);
+        texture->transitionLayout(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 
 

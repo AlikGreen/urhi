@@ -7,21 +7,26 @@ namespace urhi
 {
     VkTexture::VkTexture(VkDevice* device, const TextureDesc &desc)
         : m_width(desc.width), m_height(desc.height), m_depth(desc.depth),
-        m_mipLevels(desc.numMipmaps), m_arrayLayers(desc.arrayLayers),
+        m_arrayLayers(desc.arrayLayers),
         m_format(desc.format), m_type(desc.type),
         m_device(device)
     {
+        m_mipLevels = std::min(desc.maxMipLevels, static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1);
+
+        auto usageFlags = VkConvert::textureUsage(desc.usage) | vk::ImageUsageFlagBits::eTransferDst;
+        if(m_mipLevels > 1) usageFlags |= vk::ImageUsageFlagBits::eTransferSrc;
+
         vk::ImageCreateInfo imageInfo
         {
             vk::ImageCreateFlags{0},
             VkConvert::textureType(desc.type),
             VkConvert::pixelFormat(desc.format),
             {desc.width, desc.height, desc.depth},
-            desc.numMipmaps,
+            m_mipLevels,
             desc.arrayLayers,
             vk::SampleCountFlagBits::e1,
             vk::ImageTiling::eOptimal,
-            VkConvert::textureUsage(desc.usage) | vk::ImageUsageFlagBits::eTransferDst,
+            usageFlags,
             vk::SharingMode::eExclusive,
         };
 
@@ -91,7 +96,7 @@ namespace urhi
         return m_image;
     }
 
-    void VkTexture::transitionLayout(const vk::CommandBuffer cmd, const vk::ImageLayout newLayout, const uint32_t baseMipLevel, const uint32_t levelCount, const uint32_t baseArrayLayer, const uint32_t layerCount)
+    void VkTexture::transitionLayout(const vk::CommandBuffer cmd, const vk::ImageLayout newLayout)
     {
         if(m_currentLayout == newLayout) return;
         
@@ -102,10 +107,10 @@ namespace urhi
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = m_image;
         barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        barrier.subresourceRange.baseMipLevel = baseMipLevel;
-        barrier.subresourceRange.levelCount = levelCount;
-        barrier.subresourceRange.baseArrayLayer = baseArrayLayer;
-        barrier.subresourceRange.layerCount = layerCount;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
         vk::PipelineStageFlags srcStage = {};
         vk::PipelineStageFlags dstStage = {};
@@ -120,6 +125,11 @@ namespace urhi
 
             case vk::ImageLayout::eTransferDstOptimal:
                 barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+                srcStage = vk::PipelineStageFlagBits::eTransfer;
+                break;
+
+            case vk::ImageLayout::eTransferSrcOptimal:
+                barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
                 srcStage = vk::PipelineStageFlagBits::eTransfer;
                 break;
 

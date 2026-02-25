@@ -117,21 +117,22 @@ int main()
         if(ep.stage == ShaderStage::Fragment) fragmentShader = device->createShader(ep);
     }
 
-    const auto pipeline = device->createPipeline({
-        .vertexShader = vertexShader,
-        .fragmentShader = fragmentShader,
-        .primitiveType = PrimitiveType::TriangleList,
-        .rasterizerState = { .cullMode = CullMode::None },
-        .depthState = { .enableDepthTest = false },
-        .colorAttachments = {
-            ColorAttachmentDesc
-            {
-                .format = PixelFormat::R8G8B8A8Unorm,
-                .blend = BlendState::opaque()
-            }
+    GraphicsPipelineDesc desc{};
+    desc.vertexShader = vertexShader;
+    desc.vertexShader = vertexShader,
+    desc.fragmentShader = fragmentShader,
+    desc.primitiveType = PrimitiveType::TriangleList,
+    desc.rasterizerState = { .cullMode = CullMode::None },
+    desc.depthState = { .enableDepthTest = false },
+    desc.colorAttachments = {
+        ColorAttachmentDesc
+        {
+            .format = PixelFormat::R8G8B8A8Unorm,
+            .blend = BlendState::opaque()
         }
-    });
+    };
 
+    const auto pipeline = device->createPipeline(desc);
 
     struct Vertex
     {
@@ -160,11 +161,11 @@ int main()
     const auto indexBuffer   = device->createBuffer({BufferUsage::Index, indices.size() * sizeof(uint32_t)});
     auto uniformBuffer = device->createBuffer({BufferUsage::Uniform, sizeof(UniformData)});
 
-    constexpr uint32_t kTextureSize = 16;
+    constexpr uint32_t kTextureSize = 512;
 
-    auto textureDesc = TextureDesc::Texture2D(kTextureSize, kTextureSize, PixelFormat::R8G8B8A8Unorm);
+    auto textureDesc = TextureDesc::Texture2D(kTextureSize, kTextureSize, PixelFormat::R8G8B8A8Unorm, TextureUsage::Sampled, ~0u);
     auto texture = device->createTexture(textureDesc);
-    auto textureView = device->createTextureView(TextureViewDesc(texture));
+    auto textureView = device->createTextureView(texture);
 
     auto sampler = device->createSampler({
         .minFilter = TextureFilter::Linear,
@@ -184,6 +185,7 @@ int main()
         cmd->updateBuffer(uniformBuffer, ubo);
 
         cmd->updateTexture(texture, {.data = textureData.data(), .width = kTextureSize, .height = kTextureSize});
+        cmd->generateMipmaps(texture);
 
         device->submit(cmd);
     }

@@ -121,6 +121,8 @@ namespace urhi
         clogr::ensure(m_currentPipeline != nullptr, "Pipeline must be set before setting texture.");
 
         const auto vkView = dynamic_cast<VkTextureView*>(texture.get());
+        const auto vkTex = dynamic_cast<VkTexture*>(vkView->getTexture().get());
+        vkTex->transitionLayout(m_cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
 
         m_boundResources[name] = BoundResource{
             .type = ShaderReflection::ResourceType::Texture,

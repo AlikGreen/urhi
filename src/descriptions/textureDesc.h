@@ -19,13 +19,13 @@ struct TextureDesc
     TextureUsage usage = TextureUsage::Sampled;
     TextureType type = TextureType::Texture2D;
 
-    uint32_t numMipmaps{};
+    uint32_t maxMipLevels = 1;
 
     static TextureDesc Texture1D(
         const uint32_t width,
         const PixelFormat format,
         const TextureUsage usage = TextureUsage::Sampled,
-        const uint32_t numMipmaps = 1,
+        const uint32_t maxMipLevels = 1,
         const uint32_t arrayLayers = 1)
     {
         TextureDesc desc;
@@ -34,7 +34,7 @@ struct TextureDesc
         desc.arrayLayers = arrayLayers;
         desc.format = format;
         desc.usage = usage;
-        desc.numMipmaps = numMipmaps;
+        desc.maxMipLevels = maxMipLevels;
         return desc;
     }
 
@@ -43,7 +43,7 @@ struct TextureDesc
         const uint32_t height,
         const PixelFormat format,
         const TextureUsage usage = TextureUsage::Sampled,
-        const uint32_t numMipmaps = 1,
+        const uint32_t maxMipLevels = 1,
         const uint32_t arrayLayers = 1)
     {
         TextureDesc desc;
@@ -53,7 +53,7 @@ struct TextureDesc
         desc.arrayLayers = arrayLayers;
         desc.format = format;
         desc.usage = usage;
-        desc.numMipmaps = numMipmaps;
+        desc.maxMipLevels = maxMipLevels;
         return desc;
     }
 
@@ -63,7 +63,7 @@ struct TextureDesc
         const uint32_t depth,
         const PixelFormat format,
         const TextureUsage usage = TextureUsage::Sampled,
-        const uint32_t numMipmaps = 1,
+        const uint32_t maxMipLevels = 1,
         const uint32_t arrayLayers = 1)
     {
         TextureDesc desc;
@@ -74,7 +74,7 @@ struct TextureDesc
         desc.arrayLayers = arrayLayers;
         desc.format = format;
         desc.usage = usage;
-        desc.numMipmaps = numMipmaps;
+        desc.maxMipLevels = maxMipLevels;
         return desc;
     }
 
@@ -84,7 +84,7 @@ struct TextureDesc
     const uint32_t arrayLayers,
     const PixelFormat format,
     const TextureUsage usage = TextureUsage::Sampled,
-    const uint32_t numMipmaps = 1)
+    const uint32_t maxMipLevels = 1)
     {
         TextureDesc desc;
         desc.type = TextureType::Texture2DArray;
@@ -94,7 +94,7 @@ struct TextureDesc
         desc.arrayLayers = arrayLayers;
         desc.format = format;
         desc.usage = usage;
-        desc.numMipmaps = numMipmaps;
+        desc.maxMipLevels = maxMipLevels;
         return desc;
     }
 
@@ -102,7 +102,7 @@ struct TextureDesc
     const uint32_t size,
     const PixelFormat format,
     const TextureUsage usage = TextureUsage::Sampled,
-    const uint32_t numMipmaps = 1)
+    const uint32_t maxMipLevels = 1)
     {
         TextureDesc desc;
         desc.type = TextureType::TextureCube;
@@ -112,7 +112,7 @@ struct TextureDesc
         desc.arrayLayers = 6;
         desc.format = format;
         desc.usage = usage;
-        desc.numMipmaps = numMipmaps;
+        desc.maxMipLevels = maxMipLevels;
         return desc;
     }
 
@@ -121,7 +121,7 @@ struct TextureDesc
         const uint32_t cubeCount,
         const PixelFormat format,
         const TextureUsage usage = TextureUsage::Sampled,
-        const uint32_t numMipmaps = 1)
+        const uint32_t maxMipLevels = 1)
     {
         TextureDesc desc;
         desc.type = TextureType::TextureCubeArray;
@@ -131,7 +131,7 @@ struct TextureDesc
         desc.arrayLayers = 6 * cubeCount;
         desc.format = format;
         desc.usage = usage;
-        desc.numMipmaps = numMipmaps;
+        desc.maxMipLevels = maxMipLevels;
         return desc;
     }
 };

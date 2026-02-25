@@ -25,13 +25,10 @@ public:
     virtual void begin() = 0;
 
     virtual grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc& desc) = 0;
+    // TODO add beginComputePass
 
     virtual void updateTexture(const grl::Rc<Texture>& texture, const TextureUploadDesc& desc) = 0;
     virtual void generateMipmaps(const grl::Rc<Texture>& texture) = 0;
-
-    virtual void reserveBuffer(const grl::Rc<Buffer>& buffer, size_t size) = 0;
-
-    // virtual void dispatch(const glm::ivec3& numGroups) = 0; put in compute pass
 
     template<typename T>
     void readTexture(const grl::Rc<TextureView>& texture, const TextureReadDesc& desc, std::vector<T>& dest) { readTextureImpl(texture, desc, dest.size() * sizeof(T), dest.data()); }

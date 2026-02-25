@@ -32,6 +32,8 @@ public:
 
     virtual grl::Rc<Texture> createTexture(const TextureDesc& desc) = 0;
     virtual grl::Rc<Sampler> createSampler(const SamplerDesc& desc) = 0;
+
+    grl::Rc<TextureView> createTextureView(const grl::Rc<Texture> &texture) { return createTextureView(TextureViewDesc(texture)); }
     virtual grl::Rc<TextureView> createTextureView(const TextureViewDesc& desc) = 0;
 
     virtual grl::Rc<Shader> createShader(const ShaderEntryPoint& entryPoint) = 0;
