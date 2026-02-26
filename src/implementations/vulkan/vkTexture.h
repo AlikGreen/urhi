@@ -26,6 +26,7 @@ public:
     [[nodiscard]] TextureType getType() const override;
 
     [[nodiscard]] vk::Image getHandle() const;
+    [[nodiscard]] vk::ImageLayout getLayout() const;
 
     void transitionLayout(vk::CommandBuffer cmd, vk::ImageLayout newLayout);
 

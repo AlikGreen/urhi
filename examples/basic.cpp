@@ -184,10 +184,33 @@ int main()
         UniformData ubo = {glm::mat4(1.0f), glm::vec4(0.5f)};
         cmd->updateBuffer(uniformBuffer, ubo);
 
-        cmd->updateTexture(texture, {.data = textureData.data(), .width = kTextureSize, .height = kTextureSize});
+        cmd->updateTexture({.texture = texture, .data = textureData.data(), .width = kTextureSize, .height = kTextureSize});
         cmd->generateMipmaps(texture);
 
         device->submit(cmd);
+    }
+
+    // Readback test
+    {
+        const auto cmd = device->acquireCommandList(QueueType::Graphics);
+        cmd->begin();
+
+        TextureReadbackDesc readbackDesc{};
+        readbackDesc.texture = texture;
+        readbackDesc.width = 1;
+        readbackDesc.height = 1;
+        readbackDesc.x = 256;
+        readbackDesc.y = 256;
+        auto readbackRes = cmd->readback(readbackDesc);
+
+        device->submit(cmd);
+
+        readbackRes->wait();
+        uint8_t r = readbackRes->at<uint8_t>(0);
+        uint8_t g = readbackRes->at<uint8_t>(1);
+        uint8_t b = readbackRes->at<uint8_t>(2);
+
+        clogr::info("Color: {}, {}, {}", r, g, b);
     }
 
 

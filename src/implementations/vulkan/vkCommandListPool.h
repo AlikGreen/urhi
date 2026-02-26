@@ -1,7 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
 
-#include "vkCommandList.h"
 #include "vkLinearStagingAllocator.h"
 
 namespace urhi
@@ -22,8 +21,8 @@ private:
 
     [[nodiscard]] bool canReset() const;
 
-    static constexpr size_t WARN_THRESHOLD = 64;
-    static constexpr size_t ERROR_THRESHOLD = 256;
+    static constexpr size_t kWarnThreshold = 64;
+    static constexpr size_t kErrorThreshold = 256;
 
     VkDevice* m_device{};
     vk::CommandPool m_commandPool;

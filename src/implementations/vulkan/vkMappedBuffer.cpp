@@ -1,6 +1,7 @@
 #include "vkMappedBuffer.h"
 
 #include "vkConvert.h"
+#include "vkDevice.h"
 #include "vkLinearStagingAllocator.h"
 
 namespace urhi

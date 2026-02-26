@@ -2,6 +2,7 @@
 #include "commandList.h"
 #include <vulkan/vulkan.hpp>
 
+#include "VkReadbackRequest.h"
 #include "enums/queueType.h"
 
 namespace urhi
@@ -15,8 +16,12 @@ public:
     void begin() override;
 
     grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc &desc) override;
-    void updateTexture(const grl::Rc<Texture> &texture, const TextureUploadDesc &desc) override;
+    void updateTexture(const TextureUploadDesc &desc) override;
     void generateMipmaps(const grl::Rc<Texture> &texture) override;
+
+    grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc) override;
+
+    void onSubmit(uint64_t submittedValue);
 
     [[nodiscard]] vk::CommandBuffer getCmdBuffer() const;
     [[nodiscard]] QueueType getQueueType() const;
@@ -24,14 +29,16 @@ public:
     [[nodiscard]] VkCommandListPool& getPool() const;
 protected:
     void updateBufferImpl(const grl::Rc<Buffer> &buffer, void *data, uint32_t size) override;
-    void readTextureImpl(const grl::Rc<TextureView> &texture, const TextureReadDesc &desc, size_t destSize, void *dest) override;
 private:
     friend class VkCommandListPool;
 
-    vk::CommandBuffer m_commandBuffer;
+    VkDevice* m_device;
+
+    vk::CommandBuffer m_cmd;
     QueueType m_queueType;
     VkCommandListPool* m_pool;
-    VkDevice* m_device;
+
+    std::vector<grl::Rc<VkReadbackRequest>> m_readbackRequests{};
 };
 }
 

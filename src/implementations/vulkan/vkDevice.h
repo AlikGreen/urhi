@@ -5,14 +5,15 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "device.h"
-#include "vkCommandListPool.h"
 #include "descriptions/deviceDesc.h"
 #include "descriptions/shaderEntryPoint.h"
 #include "enums/queueType.h"
+#include "vkCommandListPool.h"
 
 namespace urhi
 {
-class VkContext;
+    class VkCommandListPool;
+    class VkContext;
 
 struct VkQueueState
 {

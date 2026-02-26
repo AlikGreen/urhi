@@ -1,14 +1,14 @@
 #pragma once
 
-#include <grl/grl.h>
 
 #include "buffer.h"
+#include "readbackRequest.h"
 #include "renderPass.h"
 
 #include "texture.h"
 #include "textureView.h"
 #include "descriptions/renderPassDesc.h"
-#include "descriptions/textureReadDesc.h"
+#include "descriptions/textureReadbackDesc.h"
 #include "descriptions/textureUploadDesc.h"
 
 namespace urhi
@@ -27,11 +27,13 @@ public:
     virtual grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc& desc) = 0;
     // TODO add beginComputePass
 
-    virtual void updateTexture(const grl::Rc<Texture>& texture, const TextureUploadDesc& desc) = 0;
+    virtual void updateTexture(const TextureUploadDesc& desc) = 0;
     virtual void generateMipmaps(const grl::Rc<Texture>& texture) = 0;
 
-    template<typename T>
-    void readTexture(const grl::Rc<TextureView>& texture, const TextureReadDesc& desc, std::vector<T>& dest) { readTextureImpl(texture, desc, dest.size() * sizeof(T), dest.data()); }
+    grl::Rc<ReadbackRequest> readback(const grl::Rc<Texture>& texture) { return readback(TextureReadbackDesc{texture}); }
+    virtual grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc) = 0;
+    // TODO add reading back buffers
+
     template<typename T>
     void updateBuffer(const grl::Rc<Buffer>& buffer, T& data) { updateBufferImpl(buffer, &data, sizeof(T)); }
     template<typename T>
@@ -40,6 +42,5 @@ public:
     void updateBuffer(const grl::Rc<Buffer>& buffer, T* data) { updateBufferImpl(buffer, data, sizeof(T)); }
 protected:
     virtual void updateBufferImpl(const grl::Rc<Buffer>& buffer, void* data, uint32_t size) = 0;
-    virtual void readTextureImpl(const grl::Rc<TextureView>& texture, const TextureReadDesc& desc, size_t destSize, void* dest) = 0;
 };
 }

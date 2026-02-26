@@ -1,9 +1,11 @@
 #pragma once
+#include <grl/mem.h>
 
 namespace urhi
 {
     struct TextureUploadDesc
     {
+        grl::Rc<Texture> texture;
         const void* data = nullptr;
 
         int32_t x = 0;

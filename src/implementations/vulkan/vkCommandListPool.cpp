@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "clogr.h"
+#include "vkCommandList.h"
 #include "vkDevice.h"
 
 namespace urhi
@@ -37,7 +38,7 @@ namespace urhi
             return m_commandBuffers[m_nextBufferIndex++];
         }
 
-        clogr::ensure(m_commandBuffers.size() < ERROR_THRESHOLD, "Too many command buffers allocated. You may have forgot to submit command buffers.");
+        clogr::ensure(m_commandBuffers.size() < kErrorThreshold, "Too many command buffers allocated. You may have forgot to submit command buffers.");
 
         const vk::CommandBufferAllocateInfo info(
             m_commandPool,
@@ -89,6 +90,7 @@ namespace urhi
 
         std::scoped_lock lock(*m_queueState->mutex);
         m_queueState->queue.submit({submitInfo});
+        cmd->onSubmit(signalValue);
     }
 
     bool VkCommandListPool::canReset() const

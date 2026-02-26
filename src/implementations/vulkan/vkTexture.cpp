@@ -13,9 +13,6 @@ namespace urhi
     {
         m_mipLevels = std::min(desc.maxMipLevels, static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1);
 
-        auto usageFlags = VkConvert::textureUsage(desc.usage) | vk::ImageUsageFlagBits::eTransferDst;
-        if(m_mipLevels > 1) usageFlags |= vk::ImageUsageFlagBits::eTransferSrc;
-
         vk::ImageCreateInfo imageInfo
         {
             vk::ImageCreateFlags{0},
@@ -26,7 +23,7 @@ namespace urhi
             desc.arrayLayers,
             vk::SampleCountFlagBits::e1,
             vk::ImageTiling::eOptimal,
-            usageFlags,
+            VkConvert::textureUsage(desc.usage) | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc,
             vk::SharingMode::eExclusive,
         };
 

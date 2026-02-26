@@ -17,6 +17,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include "vkWindow.h"
 #include "enums/queueType.h"
 #include "vkStagedBuffer.h"
+#include "vkCommandList.h"
 #include "vkSwapchain.h"
 #include "vkTexture.h"
 #include "vkSampler.h"
@@ -153,7 +154,7 @@ namespace urhi
 
     grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
     {
-       if (desc.usage == BufferUsage::Uniform && desc.size < 1024)
+       if (desc.usage == BufferUsage::Uniform && desc.size < 1024 * 8) // if < 8 MB use persistent mapped buffer
            return grl::makeRc<VkMappedBuffer>(this, desc);
 
         return grl::makeRc<VkStagedBuffer>(this, desc);
