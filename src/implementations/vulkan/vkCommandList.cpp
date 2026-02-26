@@ -42,14 +42,14 @@ namespace urhi
 
     void VkCommandList::generateMipmaps(const grl::Rc<Texture> &texture)
     {
-        const uint32_t mipLevels = texture->getMipLevels();
+        const uint32_t mipLevels = texture->mipLevelCount();
 
-        const vk::FormatProperties formatProperties = m_device->getPhysicalDevice().getFormatProperties(VkConvert::pixelFormat(texture->getFormat()));
+        const vk::FormatProperties formatProperties = m_device->getPhysicalDevice().getFormatProperties(VkConvert::pixelFormat(texture->format()));
         clogr::ensure(static_cast<bool>(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear), "Texture format is not blitable (so cannot generate mipmaps) if mipmaps are needed generate them manually");
 
         const auto vkTex = dynamic_cast<VkTexture*>(texture.get());
-        int32_t mipWidth = vkTex->getWidth();
-        int32_t mipHeight = vkTex->getHeight();
+        int32_t mipWidth = vkTex->width();
+        int32_t mipHeight = vkTex->height();
 
         vkTex->transitionLayout(m_cmd, vk::ImageLayout::eTransferDstOptimal);
 
@@ -65,7 +65,7 @@ namespace urhi
                 VK_QUEUE_FAMILY_IGNORED,
                 VK_QUEUE_FAMILY_IGNORED,
                 vkTex->getHandle(),
-                { vk::ImageAspectFlagBits::eColor, i - 1, 1, 0, vkTex->getArrayLayers() }
+                { vk::ImageAspectFlagBits::eColor, i - 1, 1, 0, vkTex->arrayLayerCount() }
             };
 
             m_cmd.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(srcBarrier));
@@ -77,7 +77,7 @@ namespace urhi
                 vk::ImageAspectFlagBits::eColor,
                 i - 1,
                 0,
-                vkTex->getArrayLayers()
+                vkTex->arrayLayerCount()
             };
 
             blit.dstOffsets = std::array{ vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 } };
@@ -86,7 +86,7 @@ namespace urhi
                 vk::ImageAspectFlagBits::eColor,
                 i,
                 0,
-                vkTex->getArrayLayers()
+                vkTex->arrayLayerCount()
             };
 
             vk::BlitImageInfo2 blitInfo
@@ -115,7 +115,7 @@ namespace urhi
                 VK_QUEUE_FAMILY_IGNORED,
                 VK_QUEUE_FAMILY_IGNORED,
                 vkTex->getHandle(),
-                { vk::ImageAspectFlagBits::eColor, i - 1, 1, 0, vkTex->getArrayLayers() }
+                { vk::ImageAspectFlagBits::eColor, i - 1, 1, 0, vkTex->arrayLayerCount() }
             };
 
             m_cmd.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(dstBarrier));
@@ -131,7 +131,7 @@ namespace urhi
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
             vkTex->getHandle(),
-            { vk::ImageAspectFlagBits::eColor, mipLevels - 1, 1, 0, vkTex->getArrayLayers() }
+            { vk::ImageAspectFlagBits::eColor, mipLevels - 1, 1, 0, vkTex->arrayLayerCount() }
         };
 
         m_cmd.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(dstBarrier));
@@ -142,9 +142,9 @@ namespace urhi
     grl::Rc<ReadbackRequest> VkCommandList::readback(const TextureReadbackDesc &desc)
     {
         const auto vkTex = dynamic_cast<VkTexture*>(desc.texture.get());
-        const uint32_t width = std::min(vkTex->getWidth(), desc.width);
-        const uint32_t height = std::min(vkTex->getHeight(), desc.height);
-        const uint32_t depth = std::min(vkTex->getDepth(), desc.depth);
+        const uint32_t width = std::min(vkTex->width(), desc.width);
+        const uint32_t height = std::min(vkTex->height(), desc.height);
+        const uint32_t depth = std::min(vkTex->depth(), desc.depth);
 
         vk::BufferImageCopy region = {};
         region.bufferOffset = 0;
@@ -157,7 +157,7 @@ namespace urhi
         region.imageOffset = vk::Offset3D{ desc.x, desc.y, desc.z };
         region.imageExtent = vk::Extent3D{ width, height, depth };
 
-        const uint32_t size = width * height * depth * VkConvert::pixelFormatBytes(vkTex->getFormat());
+        const uint32_t size = width * height * depth * VkConvert::pixelFormatBytes(vkTex->format());
 
         // create buffer
         const VkBufferCreateInfo bufferInfo = {

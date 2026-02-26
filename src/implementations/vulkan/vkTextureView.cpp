@@ -7,14 +7,15 @@
 namespace urhi
 {
     VkTextureView::VkTextureView(VkDevice *device, const TextureViewDesc &desc)
-        : m_device(device), m_mipLevels(desc.mipLevels), m_arrayLayers(desc.arrayLayers), m_format(desc.format)
+        : m_device(device), m_baseMipLevel(desc.baseMipLevel), m_baseArrayLayer(desc.baseArrayLayer),
+        m_mipLevels(desc.mipLevels), m_arrayLayers(desc.arrayLayers), m_format(desc.format)
     {
         m_texture = std::dynamic_pointer_cast<VkTexture>(desc.texture);
         const vk::ImageViewCreateInfo viewInfo
         {
             vk::ImageViewCreateFlags{0},
             m_texture->getHandle(),
-            VkConvert::textureViewType(desc.texture->getType()),
+            VkConvert::textureViewType(desc.texture->type()),
             VkConvert::pixelFormat(desc.format),
             {},
             {
@@ -30,7 +31,7 @@ namespace urhi
     }
 
     VkTextureView::VkTextureView(VkDevice *device, const grl::Rc<VkTexture> &texture, const PixelFormat format, const vk::ImageView view)
-        : m_device(device), m_mipLevels(1), m_arrayLayers(1), m_format(format), m_imageView(view), m_texture(texture)
+        : m_device(device), m_baseMipLevel(0), m_baseArrayLayer(0), m_mipLevels(1), m_arrayLayers(1), m_format(format), m_imageView(view), m_texture(texture)
     {
     }
 
@@ -39,22 +40,32 @@ namespace urhi
         m_device->getHandle().destroyImageView(m_imageView);
     }
 
-    uint32_t VkTextureView::getMipLevels() const
+    uint32_t VkTextureView::baseMipLevel() const
+    {
+        return m_baseMipLevel;
+    }
+
+    uint32_t VkTextureView::mipLevelCount() const
     {
         return m_mipLevels;
     }
 
-    uint32_t VkTextureView::getArrayLayers() const
+    uint32_t VkTextureView::baseArrayLayer() const
+    {
+        return m_baseArrayLayer;
+    }
+
+    uint32_t VkTextureView::arrayLayerCount() const
     {
         return m_arrayLayers;
     }
 
-    PixelFormat VkTextureView::getFormat() const
+    PixelFormat VkTextureView::format() const
     {
         return m_format;
     }
 
-    grl::Rc<Texture> VkTextureView::getTexture() const
+    grl::Rc<Texture> VkTextureView::texture() const
     {
         return m_texture;
     }

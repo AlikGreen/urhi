@@ -15,13 +15,13 @@ public:
     Texture(const Texture&) = delete;
     Texture& operator= (const Texture&) = delete;
 
-    [[nodiscard]] virtual uint32_t getWidth() const = 0;
-    [[nodiscard]] virtual uint32_t getHeight() const = 0;
-    [[nodiscard]] virtual uint32_t getDepth() const = 0;
+    [[nodiscard]] virtual uint32_t width() const = 0;
+    [[nodiscard]] virtual uint32_t height() const = 0;
+    [[nodiscard]] virtual uint32_t depth() const = 0;
 
-    [[nodiscard]] virtual uint32_t getMipLevels() const = 0;
-    [[nodiscard]] virtual uint32_t getArrayLayers() const = 0;
-    [[nodiscard]] virtual PixelFormat getFormat() const = 0;
-    [[nodiscard]] virtual TextureType getType() const = 0;
+    [[nodiscard]] virtual uint32_t mipLevelCount() const = 0;
+    [[nodiscard]] virtual uint32_t arrayLayerCount() const = 0;
+    [[nodiscard]] virtual PixelFormat format() const = 0;
+    [[nodiscard]] virtual TextureType type() const = 0;
 };
 }

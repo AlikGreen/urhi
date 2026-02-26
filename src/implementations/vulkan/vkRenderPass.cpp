@@ -27,13 +27,13 @@ namespace urhi
 
             if(renderArea.width == 0 && renderArea.height == 0)
             {
-                renderArea.width = vkTex->getTexture()->getWidth();
-                renderArea.height = vkTex->getTexture()->getHeight();
+                renderArea.width = vkTex->texture()->width();
+                renderArea.height = vkTex->texture()->height();
             }
 
-            clogr::ensure(vkTex->getTexture()->getWidth() >= renderArea.x + renderArea.width || vkTex->getTexture()->getHeight() >= renderArea.y + renderArea.height,
+            clogr::ensure(vkTex->texture()->width() >= renderArea.x + renderArea.width || vkTex->texture()->height() >= renderArea.y + renderArea.height,
                 "Render area outside the bounds of render target\nRender target size: ({}, {})\nRender area: ({}, {}, {}, {})",
-                vkTex->getTexture()->getWidth(), vkTex->getTexture()->getHeight(),
+                vkTex->texture()->width(), vkTex->texture()->height(),
                 renderArea.x, renderArea.y, renderArea.width, renderArea.height);
 
             vk::RenderingAttachmentInfo colorAttachment
@@ -48,7 +48,7 @@ namespace urhi
                 VkConvert::clearValue(attachment.clearValue)
             };
 
-            dynamic_cast<VkTexture*>(vkTex->getTexture().get())->transitionLayout(m_cmd, vk::ImageLayout::eColorAttachmentOptimal);
+            dynamic_cast<VkTexture*>(vkTex->texture().get())->transitionLayout(m_cmd, vk::ImageLayout::eColorAttachmentOptimal);
             colorAttachments.push_back(colorAttachment);
         }
 
@@ -121,7 +121,7 @@ namespace urhi
         clogr::ensure(m_currentPipeline != nullptr, "Pipeline must be set before setting texture.");
 
         const auto vkView = dynamic_cast<VkTextureView*>(texture.get());
-        const auto vkTex = dynamic_cast<VkTexture*>(vkView->getTexture().get());
+        const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
         vkTex->transitionLayout(m_cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
 
         m_boundResources[name] = BoundResource{

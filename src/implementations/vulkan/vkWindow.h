@@ -19,27 +19,29 @@ public:
 
     std::vector<Event> pollEvents() override;
 
-    uint32_t getWidth() override;
-    uint32_t getHeight() override;
-    glm::ivec2 getSize() override;
+    int32_t width() override;
+    int32_t height() override;
 
-    void setWidth(uint32_t width) override;
-    void setHeight(uint32_t height) override;
-    void setSize(glm::ivec2 size) override;
+    void width(int32_t width) override;
+    void height(int32_t height) override;
 
-    std::string getTitle() override;
-    void setTitle(std::string title) override;
+    std::string title() override;
+    void title(const std::string& title) override;
 
     void setCursorLocked(bool locked) override;
     void setCursorVisible(bool visible) override;
 
     [[nodiscard]] vk::SurfaceKHR getSurface() const;
 private:
+    void updateCursorState() const;
     GLFWwindow* m_handle = nullptr;
     std::vector<Event> m_events{};
 
-    uint32_t m_width{};
-    uint32_t m_height{};
+    int32_t m_width{};
+    int32_t m_height{};
+
+    bool m_locked = false;
+    bool m_visible = true;
 
     vk::SurfaceKHR m_surface;
 

@@ -18,15 +18,19 @@ public:
 
     ~VkTextureView() override;
 
-    [[nodiscard]] uint32_t getMipLevels() const override;
-    [[nodiscard]] uint32_t getArrayLayers() const override;
+    [[nodiscard]] uint32_t baseMipLevel() const override;
+    [[nodiscard]] uint32_t mipLevelCount() const override;
 
-    [[nodiscard]] PixelFormat getFormat() const override;
-    [[nodiscard]] grl::Rc<Texture> getTexture() const override;
+    [[nodiscard]] uint32_t baseArrayLayer() const override;
+    [[nodiscard]] uint32_t arrayLayerCount() const override;
+
+    [[nodiscard]] PixelFormat format() const override;
+    [[nodiscard]] grl::Rc<Texture> texture() const override;
 
     [[nodiscard]]  vk::ImageView getHandle() const;
 private:
     VkDevice* m_device;
+    uint32_t m_baseMipLevel, m_baseArrayLayer;
     uint32_t m_mipLevels, m_arrayLayers;
     PixelFormat m_format;
 

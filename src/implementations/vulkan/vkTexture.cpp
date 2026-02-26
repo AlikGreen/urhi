@@ -53,37 +53,37 @@ namespace urhi
     {
     }
 
-    uint32_t VkTexture::getWidth() const
+    uint32_t VkTexture::width() const
     {
         return m_width;
     }
 
-    uint32_t VkTexture::getHeight() const
+    uint32_t VkTexture::height() const
     {
         return m_height;
     }
 
-    uint32_t VkTexture::getDepth() const
+    uint32_t VkTexture::depth() const
     {
         return m_depth;
     }
 
-    uint32_t VkTexture::getMipLevels() const
+    uint32_t VkTexture::mipLevelCount() const
     {
         return m_mipLevels;
     }
 
-    uint32_t VkTexture::getArrayLayers() const
+    uint32_t VkTexture::arrayLayerCount() const
     {
         return m_arrayLayers;
     }
 
-    PixelFormat VkTexture::getFormat() const
+    PixelFormat VkTexture::format() const
     {
         return m_format;
     }
 
-    TextureType VkTexture::getType() const
+    TextureType VkTexture::type() const
     {
         return m_type;
     }

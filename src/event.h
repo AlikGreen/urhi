@@ -43,5 +43,11 @@ namespace urhi
 
         Type type = Quit;
         Data data;
+
+        template<typename T>
+        T& as()
+        {
+            return std::get<T>(data);
+        }
     };
 }

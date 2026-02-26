@@ -67,59 +67,63 @@ namespace urhi
         return m_events;
     }
 
-    uint32_t VkWindow::getWidth()
+    int32_t VkWindow::width()
     {
         return m_width;
     }
 
-    uint32_t VkWindow::getHeight()
+    int32_t VkWindow::height()
     {
         return m_height;
     }
 
-    glm::ivec2 VkWindow::getSize()
+    void VkWindow::width(const int32_t width)
     {
-        clogr::abort("not implemented");
+        glfwSetWindowSize(m_handle, width, m_height);
     }
 
-    void VkWindow::setWidth(uint32_t width)
+    void VkWindow::height(const int32_t height)
     {
-        clogr::abort("not implemented");
+        glfwSetWindowSize(m_handle, m_width, height);
     }
 
-    void VkWindow::setHeight(uint32_t height)
+    std::string VkWindow::title()
     {
-        clogr::abort("not implemented");
+        return glfwGetWindowTitle(m_handle);
     }
 
-    void VkWindow::setSize(glm::ivec2 size)
+    void VkWindow::title(const std::string& title)
     {
-        clogr::abort("not implemented");
+        glfwSetWindowTitle(m_handle, title.c_str());
     }
 
-    std::string VkWindow::getTitle()
+    void VkWindow::setCursorLocked(const bool locked)
     {
-        clogr::abort("not implemented");
-    }
-
-    void VkWindow::setTitle(std::string title)
-    {
-        clogr::ensure(false, "not implemented");
-    }
-
-    void VkWindow::setCursorLocked(bool locked)
-    {
-        clogr::ensure(false, "not implemented");
+        m_locked = locked;
+        updateCursorState();
     }
 
     void VkWindow::setCursorVisible(bool visible)
     {
-        clogr::ensure(false, "not implemented");
+        m_visible = visible;
+        updateCursorState();
     }
 
     vk::SurfaceKHR VkWindow::getSurface() const
     {
         return m_surface;
+    }
+
+    void VkWindow::updateCursorState() const
+    {
+        if(m_locked && m_visible)
+            glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_CAPTURED);
+        if(m_locked && !m_visible)
+            glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        if(!m_locked && m_visible)
+            glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        if(!m_locked && !m_visible)
+            glfwSetInputMode(m_handle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     }
 
     void VkWindow::keyCallback(GLFWwindow* windowGLFW, int key, int scancode, int action, int mods)

@@ -36,8 +36,8 @@ namespace urhi
         uint32_t width = desc.width;
         uint32_t height = desc.height;
 
-        if(width == 0) width = m_window->getWidth();
-        if(height == 0) height = m_window->getHeight();
+        if(width == 0) width = m_window->width();
+        if(height == 0) height = m_window->height();
 
         resize(width, height);
 

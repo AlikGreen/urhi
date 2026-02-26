@@ -15,18 +15,17 @@ class VkTexture final : public Texture
 public:
     VkTexture(VkDevice* device, const TextureDesc& desc);
     VkTexture(VkDevice* device, vk::Image image, PixelFormat format, uint32_t width, uint32_t height);
-    [[nodiscard]] uint32_t getWidth() const override;
-    [[nodiscard]] uint32_t getHeight() const override;
-    [[nodiscard]] uint32_t getDepth() const override;
+    [[nodiscard]] uint32_t width() const override;
+    [[nodiscard]] uint32_t height() const override;
+    [[nodiscard]] uint32_t depth() const override;
 
-    [[nodiscard]] uint32_t getMipLevels() const override;
-    [[nodiscard]] uint32_t getArrayLayers() const override;
+    [[nodiscard]] uint32_t mipLevelCount() const override;
+    [[nodiscard]] uint32_t arrayLayerCount() const override;
 
-    [[nodiscard]] PixelFormat getFormat() const override;
-    [[nodiscard]] TextureType getType() const override;
+    [[nodiscard]] PixelFormat format() const override;
+    [[nodiscard]] TextureType type() const override;
 
     [[nodiscard]] vk::Image getHandle() const;
-    [[nodiscard]] vk::ImageLayout getLayout() const;
 
     void transitionLayout(vk::CommandBuffer cmd, vk::ImageLayout newLayout);
 

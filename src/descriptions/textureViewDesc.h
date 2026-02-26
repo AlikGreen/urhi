@@ -21,19 +21,19 @@ struct TextureViewDesc
     {
         this->texture = texture;
         baseMipLevel = 0;
-        mipLevels = texture->getMipLevels();
+        mipLevels = texture->mipLevelCount();
         baseArrayLayer = 0;
-        arrayLayers = texture->getArrayLayers();
-        format = texture->getFormat();
+        arrayLayers = texture->arrayLayerCount();
+        format = texture->format();
     }
 
     TextureViewDesc(const grl::Rc<Texture>& texture, const PixelFormat format)
     {
         this->texture = texture;
         baseMipLevel = 0;
-        mipLevels = texture->getMipLevels();
+        mipLevels = texture->mipLevelCount();
         baseArrayLayer = 0;
-        arrayLayers = texture->getArrayLayers();
+        arrayLayers = texture->arrayLayerCount();
         this->format = format;
     }
 
@@ -44,7 +44,7 @@ struct TextureViewDesc
         this->mipLevels = mipLevels;
         this->baseArrayLayer = baseArrayLayer;
         this->arrayLayers = arrayLayers;
-        format = texture->getFormat();
+        format = texture->format();
     }
 
     TextureViewDesc(const grl::Rc<Texture>& texture, const PixelFormat format, const uint32_t baseMipLevel, const uint32_t mipLevels, const uint32_t baseArrayLayer, const uint32_t arrayLayers)

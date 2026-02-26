@@ -220,7 +220,7 @@ int main()
     {
         auto events = window->pollEvents();
 
-        for(const auto& event : events)
+        for(auto& event : events)
         {
             if(event.type == Event::Type::Quit)
             {
@@ -228,7 +228,13 @@ int main()
             }
             if(event.type == Event::Type::WindowResize)
             {
-                swapchain->resize(window->getWidth(), window->getHeight());
+                swapchain->resize(window->width(), window->height());
+            }
+            if(event.type == Event::Type::MouseMotion)
+            {
+                auto motion = event.as<Event::MouseMotionEvent>();
+                // motion.x;
+                // motion.y;
             }
         }
 

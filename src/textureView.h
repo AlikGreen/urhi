@@ -16,10 +16,14 @@ public:
     TextureView(const TextureView&) = delete;
     TextureView& operator= (const TextureView&) = delete;
 
-    [[nodiscard]] virtual uint32_t getMipLevels() const = 0;
-    [[nodiscard]] virtual uint32_t getArrayLayers() const = 0;
-    [[nodiscard]] virtual PixelFormat getFormat() const = 0;
+    [[nodiscard]] virtual uint32_t baseMipLevel() const = 0;
+    [[nodiscard]] virtual uint32_t mipLevelCount() const = 0;
 
-    [[nodiscard]] virtual grl::Rc<Texture> getTexture() const = 0;
+    [[nodiscard]] virtual uint32_t baseArrayLayer() const = 0;
+    [[nodiscard]] virtual uint32_t arrayLayerCount() const = 0;
+
+    [[nodiscard]] virtual PixelFormat format() const = 0;
+
+    [[nodiscard]] virtual grl::Rc<Texture> texture() const = 0;
 };
 }

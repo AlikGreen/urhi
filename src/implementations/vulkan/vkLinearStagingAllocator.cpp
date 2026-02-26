@@ -67,7 +67,7 @@ namespace urhi
         const vk::CommandBuffer cmd)
     {
         clogr::ensure(uploadDesc.data != nullptr, "Trying to upload nullptr data to texture.");
-        const uint32_t size = uploadDesc.width*uploadDesc.height*uploadDesc.depth*VkConvert::pixelFormatBytes(texture->getFormat());
+        const uint32_t size = uploadDesc.width*uploadDesc.height*uploadDesc.depth*VkConvert::pixelFormatBytes(texture->format());
         const StagingAllocation allocation = allocate(size);
 
         std::memcpy(allocation.mapped, uploadDesc.data, size);
