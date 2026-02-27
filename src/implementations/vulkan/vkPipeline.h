@@ -17,9 +17,13 @@ public:
     [[nodiscard]] vk::PipelineLayout getLayout() const;
     [[nodiscard]] ShaderReflection getReflection(ShaderStage stage) const;
 private:
+    friend class VkRenderPass;
+
     vk::PipelineLayout m_layout;
     vk::Pipeline m_pipeline;
     VkDevice* m_device;
+
+    vk::PushConstantRange* m_pushConstantRange{};
 
     grl::Rc<VkShader> m_fragmentShader{};
     grl::Rc<VkShader> m_vertexShader{};

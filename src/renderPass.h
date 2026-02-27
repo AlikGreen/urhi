@@ -27,6 +27,10 @@ public:
   virtual void setSampler(const std::string& name, const grl::Rc<Sampler>& sampler) = 0;
   virtual void setImage(const std::string& name, const grl::Rc<TextureView>& texture, ResourceAccess access) = 0;
 
+  template<typename T>
+  void pushConstants(T& data) { pushConstants(&data, sizeof(T)); }
+  virtual void pushConstants(void* data, size_t size) = 0;
+
   virtual void setVertexBuffer(uint32_t index, const grl::Rc<Buffer>& vertexBuffer) = 0;
   virtual void setIndexBuffer(const grl::Rc<Buffer>& indexBuffer, IndexFormat indexFormat) = 0;
 

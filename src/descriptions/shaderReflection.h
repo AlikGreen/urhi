@@ -20,7 +20,6 @@ struct ShaderReflection
         Texture,
         Sampler,
         StorageImage,
-        PushConstant,
     };
 
     enum class DataType
@@ -79,6 +78,12 @@ struct ShaderReflection
         }
     };
 
+    struct PushConstant
+    {
+        std::string name;
+        uint32_t size;
+        uint32_t offset;
+    };
 
     struct VertexAttribute
     {
@@ -107,6 +112,7 @@ struct ShaderReflection
 
     std::vector<Resource> resources;
     std::vector<VertexBinding> vertexBindings;
+    std::optional<PushConstant> pushConstant;
     std::optional<ComputeInfo> computeInfo;
 };
 

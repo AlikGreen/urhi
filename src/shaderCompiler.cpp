@@ -284,7 +284,11 @@ namespace urhi
 
             const auto kind = type->getKind();
 
-            if (kind == slang::TypeReflection::Kind::ConstantBuffer ||
+            if(typeLayout->getParameterCategory() == slang::ParameterCategory::PushConstantBuffer)
+            {
+                extractPushConstants(param, typeLayout, reflection);
+            }
+            else if (kind == slang::TypeReflection::Kind::ConstantBuffer ||
                 kind == slang::TypeReflection::Kind::ParameterBlock)
             {
                 extractConstantBuffer(param, type, typeLayout, set, binding, reflection);
@@ -402,6 +406,15 @@ namespace urhi
         resource.binding = binding;
 
         reflection.resources.push_back(std::move(resource));
+    }
+
+    void ShaderCompiler::extractPushConstants(slang::VariableLayoutReflection *param, slang::TypeLayoutReflection* typeLayout, ShaderReflection &reflection)
+    {
+        ShaderReflection::PushConstant pc{};
+        pc.name = param->getName();
+        pc.size = typeLayout->getElementTypeLayout()->getSize();
+        pc.offset = param->getOffset();
+        reflection.pushConstant = pc;
     }
 
     std::vector<ShaderReflection::Member> ShaderCompiler::extractMembers(

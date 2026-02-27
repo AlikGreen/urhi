@@ -35,6 +35,7 @@ namespace urhi
         static void extractStructuredBuffer(slang::VariableLayoutReflection* param, slang::TypeReflection* type, uint32_t set, uint32_t binding, ShaderReflection& reflection);
         static void extractTexture(slang::VariableLayoutReflection* param, slang::TypeReflection* type, uint32_t set, uint32_t binding, ShaderReflection& reflection);
         static void extractSampler(slang::VariableLayoutReflection* param, uint32_t set, uint32_t binding, ShaderReflection& reflection);
+        static void extractPushConstants(slang::VariableLayoutReflection* param, slang::TypeLayoutReflection* typeLayout, ShaderReflection& reflection);
 
         // Type helpers
         static ShaderReflection::DataType convertDataType(slang::TypeReflection* type);

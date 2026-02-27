@@ -147,6 +147,13 @@ namespace urhi
         clogr::abort("not implemented");
     }
 
+    void VkRenderPass::pushConstants(void* data, const size_t size)
+    {
+        clogr::ensure(data != nullptr, "data is nullptr");
+        clogr::ensure(m_currentPipeline->m_pushConstantRange->size == size, "Size of uploaded data doesnt match shader");
+        m_cmd.pushConstants(m_currentPipeline->getLayout(), m_currentPipeline->m_pushConstantRange->stageFlags, m_currentPipeline->m_pushConstantRange->offset, size, data);
+    }
+
     void VkRenderPass::setVertexBuffer(uint32_t index, const grl::Rc<Buffer> &vertexBuffer)
     {
         const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(vertexBuffer.get());

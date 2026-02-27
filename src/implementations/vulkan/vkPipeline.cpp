@@ -16,22 +16,28 @@ namespace urhi
     : m_device(device)
     {
         std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding> layoutBindingsMap;
-        std::vector<vk::PushConstantRange> pushConstants;
 
         auto processReflection = [&](const ShaderEntryPoint& entryPoint)
         {
+            if(entryPoint.reflection.pushConstant.has_value())
+            {
+                const auto pc = entryPoint.reflection.pushConstant.value();
+                if(m_pushConstantRange != nullptr)
+                {
+                    m_pushConstantRange->stageFlags |= VkConvert::shaderStage(entryPoint.stage);
+                }
+                else
+                {
+                    const auto range = new vk::PushConstantRange();
+                    range->stageFlags = VkConvert::shaderStage(entryPoint.stage);
+                    range->size = pc.size;
+                    range->offset = pc.offset;
+                    m_pushConstantRange = range;
+                }
+            }
+
             for (const auto& resource : entryPoint.reflection.resources)
             {
-                if (resource.type == ShaderReflection::ResourceType::PushConstant)
-                {
-                    vk::PushConstantRange range;
-                    range.stageFlags = VkConvert::shaderStage(entryPoint.stage);
-                    range.offset = 0;
-                    range.size = resource.totalSize;
-                    pushConstants.push_back(range);
-                    continue;
-                }
-
                 auto it = layoutBindingsMap.find(resource.binding);
                 if (it != layoutBindingsMap.end())
                 {
@@ -64,6 +70,7 @@ namespace urhi
             layoutBindings.push_back(val);
         }
 
+
         vk::DescriptorSetLayoutCreateInfo descriptorLayoutInfo{};
         descriptorLayoutInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR;
         descriptorLayoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
@@ -74,8 +81,8 @@ namespace urhi
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-        pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
-        pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = m_pushConstantRange;
 
         m_layout = m_device->getHandle().createPipelineLayout(pipelineLayoutInfo);
 
@@ -95,7 +102,7 @@ namespace urhi
                 vk::VertexInputAttributeDescription attribDesc{};
                 attribDesc.location = attrib.location;
                 attribDesc.binding = input.binding;
-                attribDesc.format = static_cast<vk::Format>(VkConvert::format(attrib.type));
+                attribDesc.format = VkConvert::format(attrib.type);
                 attribDesc.offset = attrib.offset;
                 vertexAttributeDescs.push_back(attribDesc);
             }

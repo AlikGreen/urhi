@@ -24,6 +24,8 @@ public:
     void setSampler(const std::string& name, const grl::Rc<Sampler> &sampler) override;
     void setImage(const std::string& name, const grl::Rc<TextureView> &texture, ResourceAccess access) override;
 
+    void pushConstants(void* data, size_t size) override;
+
     void setVertexBuffer(uint32_t index, const grl::Rc<Buffer> &vertexBuffer) override;
     void setIndexBuffer(const grl::Rc<Buffer> &indexBuffer, IndexFormat indexFormat) override;
 

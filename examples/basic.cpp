@@ -76,17 +76,19 @@ int main()
              float3 normal : NORMAL;
          };
 
-        cbuffer UniformData
+        struct UniformData
         {
             float4x4 modelMat;
             float4 tint;
         }
 
+        ConstantBuffer<UniformData> data;
+
          [shader("vertex")]
          VS_OUTPUT vertexMain(VS_INPUT input)
          {
              VS_OUTPUT output;
-             output.position = mul(modelMat, float4(input.position, 1.0));
+             output.position = mul(data.modelMat, float4(input.position, 1.0));
              output.texCoord = input.texCoord;
              output.normal = input.normal;
              return output;
@@ -96,11 +98,19 @@ int main()
          Texture2D diffuseTexture;
          SamplerState samplerState;
 
+        struct PushConstants
+        {
+            float green;
+        }
+
+        [[vk::push_constant]]
+        PushConstants pc;
+
          [shader("fragment")]
          float4 fragmentMain(VS_OUTPUT input) : SV_TARGET
          {
              float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
-             return float4(tex.rgb*tint.rgb, 1.0);
+             return float4(tex.r*data.tint.r, pc.green, tex.b*data.tint.b, 1.0);
          }
      )";
 
@@ -213,8 +223,14 @@ int main()
         clogr::info("Color: {}, {}, {}", r, g, b);
     }
 
+    struct PushConstants
+    {
+        float green;
+    };
+
 
     bool running = true;
+    float mouseX = 0.0f;
 
     while (running)
     {
@@ -233,8 +249,7 @@ int main()
             if(event.type == Event::Type::MouseMotion)
             {
                 auto motion = event.as<Event::MouseMotionEvent>();
-                // motion.x;
-                // motion.y;
+                mouseX = motion.x;
             }
         }
 
@@ -255,9 +270,13 @@ int main()
 
         renderPass->setPipeline(pipeline);
 
-        renderPass->setUniformBuffer("UniformData", uniformBuffer);
+        renderPass->setUniformBuffer("data", uniformBuffer);
         renderPass->setTexture("diffuseTexture", textureView);
         renderPass->setSampler("samplerState", sampler);
+
+        PushConstants pc{};
+        pc.green = mouseX/static_cast<float>(window->width());
+        renderPass->pushConstants(pc);
 
         renderPass->setVertexBuffer(0, vertexBuffer);
         renderPass->setIndexBuffer(indexBuffer, IndexFormat::UInt32);

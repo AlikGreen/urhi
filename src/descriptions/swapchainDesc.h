@@ -13,8 +13,8 @@ namespace urhi
         grl::Rc<Device> device;
 
         PresentMode presentMode = PresentMode::VSync;
-        PixelFormat format     = PixelFormat::B8G8R8A8Unorm;
-        ColorSpace colorSpace  = ColorSpace::Srgb;
+        PixelFormat format      = PixelFormat::B8G8R8A8Unorm;
+        ColorSpace colorSpace   = ColorSpace::Srgb;
 
         uint32_t preferredImageCount = 3;
 
