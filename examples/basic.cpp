@@ -27,9 +27,6 @@ int main()
         .presentMode = PresentMode::NoVSync,
     });
 
-    // -------------------------------------------------------------------------
-    // Compute shader - generates a radial gradient into a storage image
-    // -------------------------------------------------------------------------
     const auto computeSource = R"(
         struct PushConstants
         {
@@ -71,9 +68,7 @@ int main()
     computeDesc.shader = computeShader;
     const auto computePipeline = device->createPipeline(computeDesc);
 
-    // -------------------------------------------------------------------------
-    // Graphics shader (unchanged from before)
-    // -------------------------------------------------------------------------
+
     const auto shaderSource = R"(
         struct VS_INPUT
         {
@@ -145,9 +140,6 @@ int main()
 
     const auto pipeline = device->createPipeline(desc);
 
-    // -------------------------------------------------------------------------
-    // Geometry & buffers
-    // -------------------------------------------------------------------------
     struct Vertex { glm::vec3 pos, normal; glm::vec2 texCoord; };
 
     const std::vector<Vertex> vertices = {
@@ -164,9 +156,6 @@ int main()
     const auto indexBuffer   = device->createBuffer({BufferUsage::Index,   indices.size()  * sizeof(uint32_t)});
     auto       uniformBuffer = device->createBuffer({BufferUsage::Uniform, sizeof(UniformData)});
 
-    // -------------------------------------------------------------------------
-    // Texture - Storage | Sampled so compute can write, graphics can sample
-    // -------------------------------------------------------------------------
     constexpr uint32_t kTextureSize = 512;
 
     auto textureDesc = TextureDesc::Texture2D(
@@ -183,9 +172,6 @@ int main()
         .magFilter = TextureFilter::Linear,
     });
 
-    // -------------------------------------------------------------------------
-    // Upload geometry, uniforms; generate texture via compute
-    // -------------------------------------------------------------------------
     {
         const auto cmd = device->acquireCommandList(QueueType::Graphics);
         cmd->begin();
@@ -196,7 +182,6 @@ int main()
         UniformData ubo = {glm::mat4(1.0f), glm::vec4(0.5f)};
         cmd->updateBuffer(uniformBuffer, ubo);
 
-        // --- compute pass writes the radial gradient into the texture ---
         struct ComputePush { uint32_t width, height; };
 
         auto computePass = cmd->beginComputePass();
@@ -206,22 +191,19 @@ int main()
         ComputePush cp{ kTextureSize, kTextureSize };
         computePass->pushConstants(&cp, sizeof(cp));
 
-        // 8x8 thread groups, ceil(512/8) = 64 groups each axis
         computePass->dispatch(
             (kTextureSize + 7) / 8,
             (kTextureSize + 7) / 8,
             1
         );
+
         computePass->end();
 
-        cmd->generateMipmaps(texture); // mips from the compute-written base level
+        cmd->generateMipmaps(texture);
 
         device->submit(cmd);
     }
 
-    // -------------------------------------------------------------------------
-    // Render loop
-    // -------------------------------------------------------------------------
     struct PushConstants { float green; };
 
     bool  running = true;
