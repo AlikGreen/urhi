@@ -28,7 +28,7 @@ if(WIN32)
 #    set(SLANG_LIB_DIR "${DEPS_DIR}/slang/bin/linux-x64")
 endif()
 
-### NEON RHI
+### URHI
 file(GLOB_RECURSE
         SRC_FILES
         CONFIGURE_DEPENDS
