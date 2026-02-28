@@ -44,6 +44,7 @@ public:
 
     static vk::DescriptorType resourceType(ShaderReflection::ResourceType type);
     static vk::ShaderStageFlags shaderStage(ShaderStage stage);
+    static vk::ShaderStageFlagBits shaderStageBits(ShaderStage stage);
     static vk::Format format(ShaderReflection::DataType type);
 
     static vk::AttachmentLoadOp loadOp(LoadOp loadOp);

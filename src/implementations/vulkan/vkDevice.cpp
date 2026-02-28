@@ -5,6 +5,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkComputePipeline.h"
+#include "vkGraphicsPipeline.h"
 #include "vkMappedBuffer.h"
 #include "vkTextureView.h"
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -109,12 +111,12 @@ namespace urhi
 
     grl::Rc<Pipeline> VkDevice::createPipeline(const GraphicsPipelineDesc &desc)
     {
-        return grl::makeRc<VkPipeline>(this, desc);
+        return grl::makeRc<VkGraphicsPipeline>(this, desc);
     }
 
     grl::Rc<Pipeline> VkDevice::createPipeline(const ComputePipelineDesc &desc)
     {
-        clogr::abort("not implemented");
+        return grl::makeRc<VkComputePipeline>(this, desc);
     }
 
     grl::Rc<CommandList> VkDevice::acquireCommandList(QueueType queueType)

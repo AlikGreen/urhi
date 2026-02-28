@@ -463,6 +463,18 @@ namespace urhi
         return flags;
     }
 
+    vk::ShaderStageFlagBits VkConvert::shaderStageBits(ShaderStage stage)
+    {
+        if (stage == ShaderStage::Vertex)
+            return vk::ShaderStageFlagBits::eVertex;
+        if (stage == ShaderStage::Fragment)
+            return vk::ShaderStageFlagBits::eFragment;
+        if (stage == ShaderStage::Compute)
+            return vk::ShaderStageFlagBits::eCompute;
+
+        return vk::ShaderStageFlagBits::eAll;
+    }
+
     vk::Format VkConvert::format(const ShaderReflection::DataType type)
     {
         switch (type)

@@ -4,39 +4,6 @@
 #include "window.h"
 #include "timers/scopeTimer.h"
 
-std::vector<uint8_t> generateRadialGradientRgba8(uint32_t width, uint32_t height)
-{
-    std::vector<uint8_t> data;
-    data.resize(static_cast<size_t>(width) * height * 4);
-
-    float cx = (float)width * 0.5f;
-    float cy = (float)height * 0.5f;
-    float maxDist = std::sqrt(cx * cx + cy * cy);
-
-    for (uint32_t y = 0; y < height; ++y)
-    {
-        for (uint32_t x = 0; x < width; ++x)
-        {
-            float dx = (float)x - cx;
-            float dy = (float)y - cy;
-            float d = std::sqrt(dx * dx + dy * dy);
-            float t = d / maxDist; // 0..1
-
-            uint8_t r = static_cast<uint8_t>((1.0f - t) * 255.0f);
-            uint8_t g = static_cast<uint8_t>((t) * 128.0f);
-            uint8_t b = static_cast<uint8_t>((t) * 255.0f);
-
-            size_t idx = (static_cast<size_t>(y) * width + x) * 4;
-            data[idx + 0] = r;
-            data[idx + 1] = g;
-            data[idx + 2] = b;
-            data[idx + 3] = 0xFF;
-        }
-    }
-
-    return data;
-}
-
 int main()
 {
     using namespace urhi;
@@ -60,121 +27,155 @@ int main()
         .presentMode = PresentMode::NoVSync,
     });
 
-     const auto shaderSource = R"(
-         // Vertex shader
-         struct VS_INPUT
-         {
-             float3 position : POSITION;
-             float3 normal : NORMAL;
-             float2 texCoord : TEXCOORD0;
-         };
-
-         struct VS_OUTPUT
-         {
-             float4 position : SV_POSITION;
-             float2 texCoord : TEXCOORD0;
-             float3 normal : NORMAL;
-         };
-
-        struct UniformData
-        {
-            float4x4 modelMat;
-            float4 tint;
-        }
-
-        ConstantBuffer<UniformData> data;
-
-         [shader("vertex")]
-         VS_OUTPUT vertexMain(VS_INPUT input)
-         {
-             VS_OUTPUT output;
-             output.position = mul(data.modelMat, float4(input.position, 1.0));
-             output.texCoord = input.texCoord;
-             output.normal = input.normal;
-             return output;
-         }
-
-         // Fragment (pixel) shader
-         Texture2D diffuseTexture;
-         SamplerState samplerState;
-
+    // -------------------------------------------------------------------------
+    // Compute shader - generates a radial gradient into a storage image
+    // -------------------------------------------------------------------------
+    const auto computeSource = R"(
         struct PushConstants
         {
-            float green;
+            uint width;
+            uint height;
         }
 
         [[vk::push_constant]]
         PushConstants pc;
 
-         [shader("fragment")]
-         float4 fragmentMain(VS_OUTPUT input) : SV_TARGET
-         {
-             float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
-             return float4(tex.r*data.tint.r, pc.green, tex.b*data.tint.b, 1.0);
-         }
-     )";
+        RWTexture2D<float4> outputImage;
 
-     const auto entryPoints = ShaderCompiler::compile({
-         .source = shaderSource
-     });
+        [shader("compute")]
+        [numthreads(8, 8, 1)]
+        void computeMain(uint3 id : SV_DispatchThreadID)
+        {
+            if (id.x >= pc.width || id.y >= pc.height)
+                return;
 
-     Rc<Shader> vertexShader{};
-     Rc<Shader> fragmentShader{};
+            float cx = (float)pc.width  * 0.5;
+            float cy = (float)pc.height * 0.5;
+            float maxDist = sqrt(cx * cx + cy * cy);
 
-    for(const auto& ep : entryPoints)
+            float dx = (float)id.x - cx;
+            float dy = (float)id.y - cy;
+            float t  = sqrt(dx * dx + dy * dy) / maxDist;
+
+            outputImage[id.xy] = float4(1.0 - t, t * 0.5, t, 1.0);
+        }
+    )";
+
+    const auto computeEntryPoints = ShaderCompiler::compile({ .source = computeSource });
+
+    Rc<Shader> computeShader{};
+    for (const auto& ep : computeEntryPoints)
+        if (ep.stage == ShaderStage::Compute) computeShader = device->createShader(ep);
+
+    ComputePipelineDesc computeDesc{};
+    computeDesc.shader = computeShader;
+    const auto computePipeline = device->createPipeline(computeDesc);
+
+    // -------------------------------------------------------------------------
+    // Graphics shader (unchanged from before)
+    // -------------------------------------------------------------------------
+    const auto shaderSource = R"(
+        struct VS_INPUT
+        {
+            float3 position : POSITION;
+            float3 normal   : NORMAL;
+            float2 texCoord : TEXCOORD0;
+        };
+
+        struct VS_OUTPUT
+        {
+            float4 position : SV_POSITION;
+            float2 texCoord : TEXCOORD0;
+            float3 normal   : NORMAL;
+        };
+
+        struct UniformData
+        {
+            float4x4 modelMat;
+            float4   tint;
+        }
+
+        ConstantBuffer<UniformData> data;
+
+        [shader("vertex")]
+        VS_OUTPUT vertexMain(VS_INPUT input)
+        {
+            VS_OUTPUT output;
+            output.position = mul(data.modelMat, float4(input.position, 1.0));
+            output.texCoord = input.texCoord;
+            output.normal   = input.normal;
+            return output;
+        }
+
+        Texture2D    diffuseTexture;
+        SamplerState samplerState;
+
+        struct PushConstants { float green; }
+        [[vk::push_constant]]
+        PushConstants pc;
+
+        [shader("fragment")]
+        float4 fragmentMain(VS_OUTPUT input) : SV_TARGET
+        {
+            float4 tex = diffuseTexture.Sample(samplerState, input.texCoord);
+            return float4(tex.r * data.tint.r, pc.green, tex.b * data.tint.b, 1.0);
+        }
+    )";
+
+    const auto entryPoints = ShaderCompiler::compile({ .source = shaderSource });
+
+    Rc<Shader> vertexShader{}, fragmentShader{};
+    for (const auto& ep : entryPoints)
     {
-        if(ep.stage == ShaderStage::Vertex)   vertexShader = device->createShader(ep);
-        if(ep.stage == ShaderStage::Fragment) fragmentShader = device->createShader(ep);
+        if (ep.stage == ShaderStage::Vertex)   vertexShader   = device->createShader(ep);
+        if (ep.stage == ShaderStage::Fragment) fragmentShader = device->createShader(ep);
     }
 
     GraphicsPipelineDesc desc{};
-    desc.vertexShader = vertexShader;
-    desc.vertexShader = vertexShader,
-    desc.fragmentShader = fragmentShader,
-    desc.primitiveType = PrimitiveType::TriangleList,
-    desc.rasterizerState = { .cullMode = CullMode::None },
-    desc.depthState = { .enableDepthTest = false },
+    desc.shaders        = { vertexShader, fragmentShader };
+    desc.primitiveType  = PrimitiveType::TriangleList;
+    desc.rasterizerState = { .cullMode = CullMode::None };
+    desc.depthState     = { .enableDepthTest = false };
     desc.colorAttachments = {
-        ColorAttachmentDesc
-        {
+        ColorAttachmentDesc{
             .format = PixelFormat::R8G8B8A8Unorm,
-            .blend = BlendState::opaque()
+            .blend  = BlendState::opaque()
         }
     };
 
     const auto pipeline = device->createPipeline(desc);
 
-    struct Vertex
-    {
-        glm::vec3 pos;
-        glm::vec3 normal;
-        glm::vec2 texCoord;
+    // -------------------------------------------------------------------------
+    // Geometry & buffers
+    // -------------------------------------------------------------------------
+    struct Vertex { glm::vec3 pos, normal; glm::vec2 texCoord; };
+
+    const std::vector<Vertex> vertices = {
+        {{-1,-1,0},{0,0,1},{0,0}},
+        {{ 1,-1,0},{0,0,1},{1,0}},
+        {{ 1, 1,0},{0,0,1},{1,1}},
+        {{-1, 1,0},{0,0,1},{0,1}},
     };
+    const std::vector<uint32_t> indices = {0,1,2, 0,2,3};
 
-    const std::vector<Vertex> vertices =
-        {
-        {{-1, -1, 0}, {0, 0, 1}, {0, 0}},
-        {{ 1, -1, 0}, {0, 0, 1}, {1, 0}},
-        {{ 1,  1, 0}, {0, 0, 1}, {1, 1}},
-        {{-1,  1, 0}, {0, 0, 1}, {0, 1}},
-    };
+    struct UniformData { glm::mat4 mvp; glm::vec4 tint; };
 
-    const std::vector<uint32_t> indices = {0, 1, 2, 0, 2, 3};
+    const auto vertexBuffer  = device->createBuffer({BufferUsage::Vertex,  vertices.size() * sizeof(Vertex)});
+    const auto indexBuffer   = device->createBuffer({BufferUsage::Index,   indices.size()  * sizeof(uint32_t)});
+    auto       uniformBuffer = device->createBuffer({BufferUsage::Uniform, sizeof(UniformData)});
 
-    struct UniformData
-    {
-        glm::mat4 mvp;
-        glm::vec4 tint;
-    };
-
-    const auto vertexBuffer  = device->createBuffer({BufferUsage::Vertex, vertices.size() * sizeof(Vertex)});
-    const auto indexBuffer   = device->createBuffer({BufferUsage::Index, indices.size() * sizeof(uint32_t)});
-    auto uniformBuffer = device->createBuffer({BufferUsage::Uniform, sizeof(UniformData)});
-
+    // -------------------------------------------------------------------------
+    // Texture - Storage | Sampled so compute can write, graphics can sample
+    // -------------------------------------------------------------------------
     constexpr uint32_t kTextureSize = 512;
 
-    auto textureDesc = TextureDesc::Texture2D(kTextureSize, kTextureSize, PixelFormat::R8G8B8A8Unorm, TextureUsage::Sampled, ~0u);
-    auto texture = device->createTexture(textureDesc);
+    auto textureDesc = TextureDesc::Texture2D(
+        kTextureSize, kTextureSize,
+        PixelFormat::R8G8B8A8Unorm,
+        TextureUsage::Sampled | TextureUsage::Storage,
+        ~0u
+    );
+    auto texture     = device->createTexture(textureDesc);
     auto textureView = device->createTextureView(texture);
 
     auto sampler = device->createSampler({
@@ -182,100 +183,82 @@ int main()
         .magFilter = TextureFilter::Linear,
     });
 
-    auto textureData = generateRadialGradientRgba8(kTextureSize, kTextureSize);
-
-    {
-        const auto cmd = device->acquireCommandList(QueueType::Graphics); // TODO add cross queue sync
-        cmd->begin();
-
-        cmd->updateBuffer(vertexBuffer, vertices);
-        cmd->updateBuffer(indexBuffer, indices);
-
-        UniformData ubo = {glm::mat4(1.0f), glm::vec4(0.5f)};
-        cmd->updateBuffer(uniformBuffer, ubo);
-
-        cmd->updateTexture({.texture = texture, .data = textureData.data(), .width = kTextureSize, .height = kTextureSize});
-        cmd->generateMipmaps(texture);
-
-        device->submit(cmd);
-    }
-
-    // Readback test
+    // -------------------------------------------------------------------------
+    // Upload geometry, uniforms; generate texture via compute
+    // -------------------------------------------------------------------------
     {
         const auto cmd = device->acquireCommandList(QueueType::Graphics);
         cmd->begin();
 
-        TextureReadbackDesc readbackDesc{};
-        readbackDesc.texture = texture;
-        readbackDesc.width = 1;
-        readbackDesc.height = 1;
-        readbackDesc.x = 256;
-        readbackDesc.y = 256;
-        auto readbackRes = cmd->readback(readbackDesc);
+        cmd->updateBuffer(vertexBuffer, vertices);
+        cmd->updateBuffer(indexBuffer,  indices);
+
+        UniformData ubo = {glm::mat4(1.0f), glm::vec4(0.5f)};
+        cmd->updateBuffer(uniformBuffer, ubo);
+
+        // --- compute pass writes the radial gradient into the texture ---
+        struct ComputePush { uint32_t width, height; };
+
+        auto computePass = cmd->beginComputePass();
+        computePass->setPipeline(computePipeline);
+        computePass->setImage("outputImage", textureView, ResourceAccess::WriteOnly);
+
+        ComputePush cp{ kTextureSize, kTextureSize };
+        computePass->pushConstants(&cp, sizeof(cp));
+
+        // 8x8 thread groups, ceil(512/8) = 64 groups each axis
+        computePass->dispatch(
+            (kTextureSize + 7) / 8,
+            (kTextureSize + 7) / 8,
+            1
+        );
+        computePass->end();
+
+        cmd->generateMipmaps(texture); // mips from the compute-written base level
 
         device->submit(cmd);
-
-        readbackRes->wait();
-        uint8_t r = readbackRes->at<uint8_t>(0);
-        uint8_t g = readbackRes->at<uint8_t>(1);
-        uint8_t b = readbackRes->at<uint8_t>(2);
-
-        clogr::info("Color: {}, {}, {}", r, g, b);
     }
 
-    struct PushConstants
-    {
-        float green;
-    };
+    // -------------------------------------------------------------------------
+    // Render loop
+    // -------------------------------------------------------------------------
+    struct PushConstants { float green; };
 
-
-    bool running = true;
-    float mouseX = 0.0f;
+    bool  running = true;
+    float mouseX  = 0.0f;
 
     while (running)
     {
         auto events = window->pollEvents();
-
-        for(auto& event : events)
+        for (auto& event : events)
         {
-            if(event.type == Event::Type::Quit)
-            {
+            if (event.type == Event::Type::Quit)
                 running = false;
-            }
-            if(event.type == Event::Type::WindowResize)
-            {
+            if (event.type == Event::Type::WindowResize)
                 swapchain->resize(window->width(), window->height());
-            }
-            if(event.type == Event::Type::MouseMotion)
-            {
-                auto motion = event.as<Event::MouseMotionEvent>();
-                mouseX = motion.x;
-            }
+            if (event.type == Event::Type::MouseMotion)
+                mouseX = event.as<Event::MouseMotionEvent>().x;
         }
 
-        auto cmd = device->acquireCommandList(QueueType::Graphics);
+        auto cmd        = device->acquireCommandList(QueueType::Graphics);
         auto backBuffer = swapchain->acquireNextImage();
 
         cmd->begin();
 
         RenderPassDesc renderPassDesc;
         renderPassDesc.colorAttachments.push_back({
-            backBuffer,
-            LoadOp::Clear,
-            StoreOp::Store,
+            backBuffer, LoadOp::Clear, StoreOp::Store,
             ClearColorFloat{0.39f, 0.58f, 0.93f, 1.0f}
         });
 
         auto renderPass = cmd->beginRenderPass(renderPassDesc);
 
         renderPass->setPipeline(pipeline);
+        renderPass->setUniformBuffer("data",           uniformBuffer);
+        renderPass->setTexture("diffuseTexture",       textureView);
+        renderPass->setSampler("samplerState",         sampler);
 
-        renderPass->setUniformBuffer("data", uniformBuffer);
-        renderPass->setTexture("diffuseTexture", textureView);
-        renderPass->setSampler("samplerState", sampler);
-
-        PushConstants pc{};
-        pc.green = mouseX/static_cast<float>(window->width());
+        PushConstants pc{ mouseX / static_cast<float>(window->width()) };
         renderPass->pushConstants(pc);
 
         renderPass->setVertexBuffer(0, vertexBuffer);

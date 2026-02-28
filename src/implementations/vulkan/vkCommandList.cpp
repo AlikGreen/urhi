@@ -5,6 +5,7 @@
 #include "clogr.h"
 #include "renderPass.h"
 #include "vkCommandListPool.h"
+#include "vkComputePass.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 #include "vkMappedBuffer.h"
@@ -32,6 +33,11 @@ namespace urhi
     grl::Rc<RenderPass> VkCommandList::beginRenderPass(const RenderPassDesc &desc)
     {
         return grl::makeRc<VkRenderPass>(m_device, m_cmd, desc);
+    }
+
+    grl::Rc<ComputePass> VkCommandList::beginComputePass()
+    {
+        return grl::makeRc<VkComputePass>(m_device, m_cmd);
     }
 
     void VkCommandList::updateTexture(const TextureUploadDesc &desc)

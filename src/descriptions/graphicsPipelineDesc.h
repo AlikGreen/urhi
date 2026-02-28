@@ -11,8 +11,7 @@ namespace urhi
 {
     struct GraphicsPipelineDesc
     {
-        grl::Rc<Shader> vertexShader = nullptr;
-        grl::Rc<Shader> fragmentShader = nullptr;
+        std::vector<grl::Rc<Shader>> shaders{};
         PrimitiveType primitiveType = PrimitiveType::TriangleList;
 
         RasterizerState rasterizerState{};

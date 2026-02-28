@@ -2,6 +2,7 @@
 #include "renderPass.h"
 #include <vulkan/vulkan.hpp>
 
+#include "vkBasePass.h"
 #include "descriptions/renderPassDesc.h"
 #include "descriptions/shaderReflection.h"
 
@@ -11,7 +12,7 @@ namespace urhi
 class VkDevice;
 class VkPipeline;
 class VkTexture;
-class VkRenderPass final : public RenderPass
+class VkRenderPass final : public RenderPass, VkPassBase
 {
 public:
     VkRenderPass(VkDevice* device, vk::CommandBuffer commandBuffer, const RenderPassDesc &desc);
@@ -36,20 +37,7 @@ public:
 protected:
     void drawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void drawIndexedImpl(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int vertexOffset, uint32_t firstInstance) override;
-private:
-    void pushDescriptors();
 
     VkDevice* m_device;
-    VkPipeline* m_currentPipeline = nullptr;
-    vk::CommandBuffer m_cmd;
-
-    struct BoundResource
-    {
-        ShaderReflection::ResourceType type;
-        vk::DescriptorBufferInfo bufferInfo;
-        vk::DescriptorImageInfo imageInfo;
-    };
-
-    std::unordered_map<std::string, BoundResource> m_boundResources;
 };
 }

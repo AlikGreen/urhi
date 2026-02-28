@@ -8,24 +8,24 @@
 namespace urhi
 {
 class VkDevice;
-class VkPipeline final : public Pipeline
+class VkPipeline : public Pipeline
 {
 public:
-    VkPipeline(VkDevice* device, const GraphicsPipelineDesc& desc);
+    VkPipeline(VkDevice* device, const std::vector<grl::Rc<Shader>> &shaders);
+    ~VkPipeline() override = default;
 
     [[nodiscard]] vk::Pipeline getHandle() const;
     [[nodiscard]] vk::PipelineLayout getLayout() const;
     [[nodiscard]] ShaderReflection getReflection(ShaderStage stage) const;
-private:
-    friend class VkRenderPass;
+protected:
+    friend class VkPassBase;
 
     vk::PipelineLayout m_layout;
     vk::Pipeline m_pipeline;
     VkDevice* m_device;
 
-    vk::PushConstantRange* m_pushConstantRange{};
+    std::unordered_map<ShaderStage, grl::Rc<VkShader>> m_shaderMap{};
 
-    grl::Rc<VkShader> m_fragmentShader{};
-    grl::Rc<VkShader> m_vertexShader{};
+    vk::PushConstantRange* m_pushConstantRange{};
 };
 }

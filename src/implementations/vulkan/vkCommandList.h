@@ -16,6 +16,8 @@ public:
     void begin() override;
 
     grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc &desc) override;
+    grl::Rc<ComputePass> beginComputePass() override;
+
     void updateTexture(const TextureUploadDesc &desc) override;
     void generateMipmaps(const grl::Rc<Texture> &texture) override;
 

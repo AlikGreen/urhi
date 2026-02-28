@@ -2,6 +2,7 @@
 
 
 #include "buffer.h"
+#include "computePass.h"
 #include "readbackRequest.h"
 #include "renderPass.h"
 
@@ -25,7 +26,7 @@ public:
     virtual void begin() = 0;
 
     virtual grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc& desc) = 0;
-    // TODO add beginComputePass
+    virtual grl::Rc<ComputePass> beginComputePass() = 0;
 
     virtual void updateTexture(const TextureUploadDesc& desc) = 0;
     virtual void generateMipmaps(const grl::Rc<Texture>& texture) = 0;
