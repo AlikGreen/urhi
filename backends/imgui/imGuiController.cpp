@@ -95,7 +95,13 @@ namespace urhi
         cmdList->updateBuffer(m_indexBuffer, indices);
 
         RenderPassDesc renderPassDesc{};
-        renderPassDesc.colorAttachments.push_back({m_renderTexture, LoadOp::Load, StoreOp::Store});
+        ColorAttachment attachment{};
+        attachment.target   = m_renderTexture;
+        attachment.loadOp   = LoadOp::Clear;
+        attachment.storeOp  = StoreOp::Store;
+        attachment.clearValue = ClearColorFloat{ 0.0f, 0.0f, 0.0f, 1.0f }; // red
+
+        renderPassDesc.colorAttachments.push_back(attachment);
 
         const auto renderPass = cmdList->beginRenderPass(renderPassDesc);
 

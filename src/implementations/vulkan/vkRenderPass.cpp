@@ -50,7 +50,11 @@ namespace urhi
 
     void VkRenderPass::pushConstants(void *data, const size_t size)
     {
-        m_commands.push_back(CmdPushConstants{data, size});
+        std::vector<uint8_t> vec{};
+        vec.resize(size);
+        std::memcpy(vec.data(), data, size);
+
+        m_commands.push_back(CmdPushConstants{vec});
     }
 
     void VkRenderPass::setVertexBuffer(const uint32_t index, const grl::Rc<Buffer> &vertexBuffer)

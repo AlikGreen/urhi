@@ -31,7 +31,7 @@ struct CmdSetImage         { std::string name; grl::Rc<TextureView> texture; Res
 
 struct CmdSetUniformBuffer { std::string name; grl::Rc<Buffer> buffer; };
 struct CmdSetStorageBuffer { std::string name; grl::Rc<Buffer> buffer; };
-struct CmdPushConstants    { void* data; size_t size; };
+struct CmdPushConstants    { std::vector<uint8_t> data; };
 
 struct CmdSetVertexBuffer  { uint32_t slot; grl::Rc<Buffer> buffer; };
 struct CmdSetIndexBuffer   { grl::Rc<Buffer> buffer; IndexFormat format; };

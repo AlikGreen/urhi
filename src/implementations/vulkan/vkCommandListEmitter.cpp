@@ -90,7 +90,6 @@ namespace urhi
                 VkConvert::clearValue(attachment.clearValue)
             };
 
-            dynamic_cast<VkTexture*>(vkTex->texture().get())->transitionLayout(m_cmd, vk::ImageLayout::eColorAttachmentOptimal);
             colorAttachments.push_back(colorAttachment);
         }
 
@@ -263,9 +262,9 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdPushConstants &c)
     {
-        clogr::ensure(c.data != nullptr, "data is nullptr");
-        clogr::ensure(m_currentPipeline->m_pushConstantRange->size == c.size, "Size of uploaded data doesnt match shader");
-        m_cmd.pushConstants(m_currentPipeline->getLayout(), m_currentPipeline->m_pushConstantRange->stageFlags, m_currentPipeline->m_pushConstantRange->offset, c.size, c.data);
+        clogr::ensure(c.data.size() != 0, "No data uploaded");
+        clogr::ensure(m_currentPipeline->m_pushConstantRange->size == c.data.size(), "Size of uploaded data doesnt match shader");
+        m_cmd.pushConstants(m_currentPipeline->getLayout(), m_currentPipeline->m_pushConstantRange->stageFlags, m_currentPipeline->m_pushConstantRange->offset, c.data.size(), c.data.data());
 
         m_idx++;
     }

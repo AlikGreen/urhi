@@ -44,7 +44,11 @@ namespace urhi
 
     void VkComputePass::pushConstants(void *data, const size_t size)
     {
-        m_commands.push_back(CmdPushConstants{ data, size });
+        std::vector<uint8_t> vec{};
+        vec.resize(size);
+        std::memcpy(vec.data(), data, size);
+
+        m_commands.push_back(CmdPushConstants{ vec });
     }
 
     void VkComputePass::dispatch(const uint32_t groupsX, const uint32_t groupsY, const uint32_t groupsZ)
