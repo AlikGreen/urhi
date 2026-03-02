@@ -81,12 +81,10 @@ namespace urhi
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pushConstantRangeCount = m_pushConstantRange ? 1 : 0;
         pipelineLayoutInfo.pPushConstantRanges = m_pushConstantRange;
 
         m_layout = m_device->getHandle().createPipelineLayout(pipelineLayoutInfo);
-
-
     }
 
     vk::Pipeline VkPipeline::getHandle() const

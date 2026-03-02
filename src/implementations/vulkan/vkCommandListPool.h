@@ -15,9 +15,10 @@ public:
     VkCommandListPool(VkDevice *device, const grl::Rc<VkQueueState> &queueState);
 
     vk::CommandBuffer acquire();
-    void submit(VkCommandList* cmd, vk::Semaphore swapchainImageSemaphore);
+    void submit(vk::CommandBuffer cmd, vk::Semaphore swapchainImageSemaphore);
 private:
     friend VkCommandList;
+    friend VkDevice;
 
     [[nodiscard]] bool canReset() const;
 
@@ -28,9 +29,8 @@ private:
     vk::CommandPool m_commandPool;
     std::vector<vk::CommandBuffer> m_commandBuffers;
     grl::Rc<VkQueueState> m_queueState;
-    grl::Box<VkLinearStagingAllocator> m_linearStagingAllocator;
+    grl::Rc<VkLinearStagingAllocator> m_linearStagingAllocator;
 
-    uint32_t m_recordingCount = 0;
     uint64_t m_submittedCount = 0;
     uint32_t m_nextBufferIndex = 0;
     uint32_t m_lastSubmittedValue = 0;

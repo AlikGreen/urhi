@@ -1,11 +1,9 @@
 #pragma once
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include <grl/grl.h>
+#include <urhi/urhi.h>
 
-#include <neonRHI/neonRHI.h>
-
-namespace NeonGui
+namespace ImGui
 {
     void ClearTextureCache();
 

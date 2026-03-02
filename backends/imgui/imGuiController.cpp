@@ -3,6 +3,7 @@
 #include <ImGuizmo.h>
 
 #include <clogr.h>
+
 #include "imGuiExtensions.h"
 #include "imguiShader.h"
 #include "shaderCompiler.h"
@@ -16,31 +17,21 @@ namespace urhi
         m_device = initInfo.device;
         m_window = initInfo.window;
 
-        m_projUniformBuffer = m_device->createUniformBuffer();
-
-        const grl::Rc<CommandList> commandList = m_device->createCommandList();
-
-        commandList->begin();
-        commandList->reserveBuffer(m_projUniformBuffer, sizeof(glm::mat4));
-        m_device->submit(commandList);
-
         ImGuiIO &io = ImGui::GetIO();
-        io.BackendPlatformName = "neonRHI_Platform";
+        io.BackendPlatformName = "urhi_Platform";
         io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
         io.Fonts->TexDesiredFormat = ImTextureFormat_RGBA32;
+        io.DisplaySize = ImVec2(
+            static_cast<float>(m_window->width()),
+            static_cast<float>(m_window->height())
+        );
 
         createPipeline();
     }
 
-    ImGuiController::~ImGuiController() = default;
-
     void ImGuiController::newFrame()
     {
         ImGuiIO& io = ImGui::GetIO();
-        // io.DisplaySize = ImVec2(
-        //     static_cast<float>(m_window->getWidth()),
-        //     static_cast<float>(m_window->getHeight())
-        // );
 
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
         io.MouseWheel = m_mouseWheel;
@@ -48,7 +39,7 @@ namespace urhi
 
         ImGui::NewFrame();
         ImGuizmo::BeginFrame();
-        NeonGui::ClearTextureCache();
+        ImGui::ClearTextureCache();
     }
 
 
@@ -56,18 +47,21 @@ namespace urhi
     {
         ImGui::Render();
         m_drawData = ImGui::GetDrawData();
-        const auto &io = ImGui::GetIO();
+
+        updateTextures(m_drawData);
+        const ImGuiIO& io = ImGui::GetIO();
+        const auto width = static_cast<uint32_t>(io.DisplaySize.x);
+        const auto height = static_cast<uint32_t>(io.DisplaySize.y);
+        resizeRenderTexture(width, height);
 
         if(m_drawData == nullptr || m_drawData->TotalVtxCount == 0)
             return;
 
-        updateTextures(m_drawData);
-
-        const grl::Rc<CommandList> cmdList = m_device->createCommandList();
+        const grl::Rc<CommandList> cmdList = m_device->acquireCommandList(QueueType::Graphics);
 
         cmdList->begin();
 
-        updateBuffers(cmdList);
+        updateBuffers();
 
         std::vector<ImDrawVert> vertices{};
         vertices.reserve(m_drawData->TotalVtxCount);
@@ -97,35 +91,29 @@ namespace urhi
             indexOffset  += cmdListImGui->IdxBuffer.Size;
         }
 
-        const auto width = static_cast<uint32_t>(io.DisplaySize.x);
-        const auto height = static_cast<uint32_t>(io.DisplaySize.y);
-        resizeRenderTexture(width, height);
-
         cmdList->updateBuffer(m_vertexBuffer, vertices);
         cmdList->updateBuffer(m_indexBuffer, indices);
 
-        ColorAttachment colorAttachment{};
-        colorAttachment.texture = m_renderTexture;
-
         RenderPassDesc renderPassDesc{};
-        renderPassDesc.colorAttachments = {colorAttachment};
-        cmdList->beginRenderPass(renderPassDesc);
+        renderPassDesc.colorAttachments.push_back({m_renderTexture, LoadOp::Load, StoreOp::Store});
 
-        cmdList->setPipeline(m_pipeline);
+        const auto renderPass = cmdList->beginRenderPass(renderPassDesc);
+
+        renderPass->setPipeline(m_pipeline);
 
 
-        ScissorRect fullScissor{};
+        Rect2D fullScissor{};
         fullScissor.x = 0;
         fullScissor.y = 0;
         fullScissor.width  = static_cast<int>(width);
         fullScissor.height = static_cast<int>(height);
 
-        cmdList->setScissor(fullScissor);
+        renderPass->setScissor(fullScissor);
 
-        cmdList->setVertexBuffer(0, m_vertexBuffer);
-        cmdList->setIndexBuffer(m_indexBuffer, IndexFormat::UInt32);
+        renderPass->setVertexBuffer(0, m_vertexBuffer);
+        renderPass->setIndexBuffer(m_indexBuffer, IndexFormat::UInt32);
 
-        updateProjection(m_drawData, cmdList);
+        updateProjection(m_drawData, renderPass);
 
         for(int n = 0; n < m_drawData->CmdListsCount; n++)
         {
@@ -136,8 +124,8 @@ namespace urhi
             {
                 const ImDrawCmd &pcmd = cmdListImGui->CmdBuffer[cmd_i];
 
-                const ScissorRect scissor = calculateScissorRect(pcmd);
-                cmdList->setScissor(scissor);
+                const Rect2D scissor = calculateScissorRect(pcmd);
+                renderPass->setScissor(scissor);
 
                 ImGuiImage* image = pcmd.GetTexID();
 
@@ -150,17 +138,15 @@ namespace urhi
                     image->sampler = m_device->createSampler(samplerDesc);
                 }
 
-                cmdList->setTexture("ImGuiTexture", image->view);
-                cmdList->setSampler("ImGuiSampler", image->sampler);
+                renderPass->setTexture("ImGuiTexture", image->view);
+                renderPass->setSampler("ImGuiSampler", image->sampler);
 
-                cmdList->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
+                renderPass->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
             }
         }
 
-        cmdList->endRenderPass();
+        renderPass->end();
         m_device->submit(cmdList);
-
-        ImGui::EndFrame();
     }
 
     void ImGuiController::processEvent(const Event& e)
@@ -270,6 +256,11 @@ namespace urhi
         return m_framebufferTexture;
     }
 
+    grl::Rc<TextureView> ImGuiController::getFramebufferTextureView() const
+    {
+        return m_renderTexture;
+    }
+
     ImTextureID ImGuiController::createTexture(ImTextureData *texData) const
     {
         const void *pixels = texData->GetPixels();
@@ -279,38 +270,34 @@ namespace urhi
         TextureDesc texDesc{};
         texDesc.width = width;
         texDesc.height = height;
-        texDesc.numMipmaps = 1;
+        texDesc.maxMipLevels = 1;
         texDesc.format = PixelFormat::R8G8B8A8Unorm;
         texDesc.usage = TextureUsage::Sampled;
 
         const grl::Rc<Texture> fontTexture = m_device->createTexture(texDesc);
         TextureUploadDesc uploadDesc{};
 
+        uploadDesc.texture = fontTexture;
         uploadDesc.data = pixels;
         uploadDesc.width = width;
         uploadDesc.height = height;
-        uploadDesc.pixelLayout = PixelLayout::RGBA;
-        uploadDesc.pixelType = PixelType::UnsignedByte;
 
         // Upload pixels to the texture with a command list or staging buffer
-        const grl::Rc<CommandList>& cmdList = m_device->createCommandList();
+        const grl::Rc<CommandList>& cmdList = m_device->acquireCommandList(QueueType::Graphics);
 
         cmdList->begin();
-        cmdList->updateTexture(fontTexture, uploadDesc);
+        cmdList->updateTexture(uploadDesc);
         m_device->submit(cmdList);
 
-        TextureViewDesc viewDesc;
-        viewDesc.target = fontTexture;
-
-        const grl::Rc<TextureView>& fontTextureView = m_device->createTextureView(viewDesc);
+        const grl::Rc<TextureView>& fontTextureView = m_device->createTextureView(fontTexture);
 
         SamplerDesc samplerDesc{};
         samplerDesc.minFilter = TextureFilter::Linear;
         samplerDesc.magFilter = TextureFilter::Linear;
         samplerDesc.mipmapFilter = MipmapFilter::Linear;
-        samplerDesc.wrapMode.x = TextureWrap::ClampToEdge;
-        samplerDesc.wrapMode.y = TextureWrap::ClampToEdge;
-        samplerDesc.wrapMode.z = TextureWrap::ClampToEdge;
+        samplerDesc.addressModeU = AddressMode::ClampToEdge;
+        samplerDesc.addressModeV = AddressMode::ClampToEdge;
+        samplerDesc.addressModeW = AddressMode::ClampToEdge;
 
         const grl::Rc<Sampler>& fontSampler = m_device->createSampler(samplerDesc);
 
@@ -328,82 +315,64 @@ namespace urhi
 
     void ImGuiController::createPipeline()
     {
-        ShaderCompileDescription compileDesc{};
+        ShaderCompileDesc compileDesc{};
         compileDesc.path = "imGui.slang";
         compileDesc.source = imGuiShaderSource;
-        auto spirv = ShaderCompiler::compile(compileDesc);
-        const auto shader = m_device->createShader(spirv);
-
-        shader->compile();
-
-        InputLayout vertexInputState{};
-        vertexInputState.addVertexBuffer<ImDrawVert>(0);
-        vertexInputState.addVertexAttribute<glm::vec2>(0, 0);
-        vertexInputState.addVertexAttribute<glm::vec2>(0, 1);
-        vertexInputState.addVertexAttribute<uint32_t>(0, 2);
-
-        DepthState depthState{};
-        depthState.hasDepthTarget  = false;
-        depthState.enableDepthTest = false;
-
-        RasterizerState rasterState{};
-        rasterState.cullMode = CullMode::None;
-        rasterState.enableScissorTest = true;
-
-        BlendState blendState{};
-        blendState.enableBlend = true;
+        const auto shaders = ShaderCompiler::compile(compileDesc);
+        const auto shader1 = m_device->createShader(shaders.at(0));
+        const auto shader2 = m_device->createShader(shaders.at(1));
 
         GraphicsPipelineDesc pipelineDescription{};
-        pipelineDescription.depthState         = depthState;
-        pipelineDescription.shader             = shader;
-        pipelineDescription.inputLayout		   = vertexInputState;
-        pipelineDescription.targetsDescription = {};
-        pipelineDescription.rasterizerState    = rasterState;
-        pipelineDescription.blendState         = blendState;
+        pipelineDescription.shaders         = { shader1, shader2 };
+        pipelineDescription.primitiveType   = PrimitiveType::TriangleList;
+        pipelineDescription.rasterizerState = { .cullMode = CullMode::None, .enableScissorTest = true };
+        pipelineDescription.depthState      = { .hasDepthTarget = false, .enableDepthTest = false };
+        pipelineDescription.colorAttachments = {
+            ColorAttachmentDesc{
+                .format = PixelFormat::R8G8B8A8Unorm,
+                .blend  = BlendState::alphaBlend()
+            }
+        };
 
         m_pipeline = m_device->createPipeline(pipelineDescription);
     }
 
     void ImGuiController::resizeRenderTexture(const uint32_t width, const uint32_t height)
     {
-        if(m_renderTexture != nullptr && m_renderTexture->getWidth() == width && m_renderTexture->getHeight() == height)
+        if(m_renderTexture != nullptr && m_renderTexture->texture()->width() == width && m_renderTexture->texture()->height() == height)
             return;
 
         TextureDesc fbTexDesc{};
         fbTexDesc.width = width;
         fbTexDesc.height = height;
-        fbTexDesc.numMipmaps = 1;
+        fbTexDesc.maxMipLevels = 1;
         fbTexDesc.type = TextureType::Texture2D;
-        fbTexDesc.usage = TextureUsage::ColorTarget;
+        fbTexDesc.usage = TextureUsage::ColorTarget | TextureUsage::Sampled;
         fbTexDesc.format = PixelFormat::R8G8B8A8Unorm;
 
         m_framebufferTexture = m_device->createTexture(fbTexDesc);
-
-        const auto fbTexViewDesc = TextureViewDesc(m_framebufferTexture);
-        m_renderTexture = m_device->createTextureView(fbTexViewDesc);
+        m_renderTexture = m_device->createTextureView(m_framebufferTexture);
     }
 
-    void ImGuiController::updateBuffers(const grl::Rc<CommandList> &cmdList)
+    void ImGuiController::updateBuffers()
     {
         const size_t vertexDataSize = m_drawData->TotalVtxCount * sizeof(ImDrawVert);
         const size_t indexDataSize = m_drawData->TotalIdxCount * sizeof(uint32_t);
 
         if(m_vertexBuffer == nullptr ||  m_vertexBufferSize < vertexDataSize)
         {
-            m_vertexBuffer  = m_device->createVertexBuffer();
-            cmdList->reserveBuffer(m_vertexBuffer, vertexDataSize);
+            m_vertexBuffer = m_device->createBuffer({BufferUsage::Vertex, vertexDataSize});
             m_vertexBufferSize = vertexDataSize;
         }
 
         if(m_indexBuffer == nullptr ||  m_indexBufferSize < indexDataSize)
         {
-            m_indexBuffer  = m_device->createIndexBuffer();
-            cmdList->reserveBuffer(m_indexBuffer, indexDataSize);
+            m_indexBuffer  = m_device->createBuffer({BufferUsage::Index, indexDataSize});
             m_indexBufferSize = indexDataSize;
         }
     }
 
-    void ImGuiController::updateProjection(const ImDrawData *drawData, const grl::Rc<CommandList> &cmdList) const
+    void ImGuiController::updateProjection(const ImDrawData *drawData, const grl::Rc<RenderPass> &renderPass) const
     {
         const ImVec2 displayPos    = drawData->DisplayPos;
         const ImVec2 displaySize   = drawData->DisplaySize;
@@ -417,11 +386,10 @@ namespace urhi
         // Note: bottom = B, top = T → inverts Y so that ImGui's top-left coords work.
         glm::mat4 projMatrix = glm::ortho(L, R, B, T, -1.0f, 1.0f);
 
-        cmdList->updateBuffer(m_projUniformBuffer, projMatrix);
-        cmdList->setUniformBuffer("ImGuiProjection", m_projUniformBuffer);
+        renderPass->pushConstants(projMatrix);
     }
 
-    ScissorRect ImGuiController::calculateScissorRect(const ImDrawCmd &drawCmd) const
+    Rect2D ImGuiController::calculateScissorRect(const ImDrawCmd &drawCmd) const
     {
         const ImVec2 clipOff   = m_drawData->DisplayPos;
         const ImVec2 clipScale = m_drawData->FramebufferScale;
@@ -433,9 +401,9 @@ namespace urhi
         clipRect.w = (drawCmd.ClipRect.w - clipOff.y) * clipScale.y;
 
         if(clipRect.x >= clipRect.z || clipRect.y >= clipRect.w)
-            return ScissorRect{};
+            return Rect2D{};
 
-        ScissorRect scissor{};
+        Rect2D scissor{};
         scissor.x      = static_cast<int>(clipRect.x);
         scissor.y      = static_cast<int>(clipRect.y);
         scissor.width  = static_cast<int>(clipRect.z - clipRect.x);

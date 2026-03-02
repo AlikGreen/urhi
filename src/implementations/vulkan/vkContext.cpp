@@ -1,18 +1,42 @@
 #include "vkContext.h"
+
+#include "clogr.h"
 #include "vkDevice.h"
 #include "vkSwapchain.h"
 #include "vkWindow.h"
 
 namespace urhi
 {
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+        const VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData)
+    {
+        if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        {
+            clogr::abort("[VULKAN] {}", pCallbackData->pMessage);
+        }
+
+        clogr::warn("[VULKAN] {}", pCallbackData->pMessage);
+        return VK_FALSE;
+    }
+
+
     VkContext::VkContext()
     {
         constexpr bool useValidationLayers = true;
 
         vkb::InstanceBuilder builder;
-        auto instRet = builder.set_app_name("Placeholder")
+        auto instRet = builder.set_app_name("placeholder_app_name")
             .request_validation_layers(useValidationLayers)
-            .use_default_debug_messenger()
+            .set_debug_callback(debugCallback)
+            .set_debug_messenger_severity(
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+            .set_debug_messenger_type(
+                VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             .require_api_version(1, 3, 0)
             .build();
 

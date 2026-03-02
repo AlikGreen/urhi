@@ -412,7 +412,7 @@ namespace urhi
     {
         ShaderReflection::PushConstant pc{};
         pc.name = param->getName();
-        pc.size = typeLayout->getElementTypeLayout()->getSize();
+        pc.size = std::max(typeLayout->getSize(), typeLayout->getElementTypeLayout()->getSize());
         pc.offset = param->getOffset();
         reflection.pushConstant = pc;
     }

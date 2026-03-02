@@ -2,7 +2,7 @@
 #include "renderPass.h"
 #include <vulkan/vulkan.hpp>
 
-#include "vkBasePass.h"
+#include "vkCommandList.h"
 #include "descriptions/renderPassDesc.h"
 #include "descriptions/shaderReflection.h"
 
@@ -12,10 +12,10 @@ namespace urhi
 class VkDevice;
 class VkPipeline;
 class VkTexture;
-class VkRenderPass final : public RenderPass, VkPassBase
+class VkRenderPass final : public RenderPass
 {
 public:
-    VkRenderPass(VkDevice* device, vk::CommandBuffer commandBuffer, const RenderPassDesc &desc);
+    VkRenderPass(std::vector<Command> &commands, const RenderPassDesc &desc);
     void setPipeline(const grl::Rc<Pipeline>& pipeline) override;
 
     void setUniformBuffer(const std::string& name, const grl::Rc<Buffer> &buffer) override;
@@ -38,6 +38,6 @@ protected:
     void drawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void drawIndexedImpl(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int vertexOffset, uint32_t firstInstance) override;
 
-    VkDevice* m_device;
+    std::vector<Command>& m_commands;
 };
 }

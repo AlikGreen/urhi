@@ -18,7 +18,7 @@ public:
     [[nodiscard]] vk::PipelineLayout getLayout() const;
     [[nodiscard]] ShaderReflection getReflection(ShaderStage stage) const;
 protected:
-    friend class VkPassBase;
+    friend class VkCommandListEmitter;
 
     vk::PipelineLayout m_layout;
     vk::Pipeline m_pipeline;

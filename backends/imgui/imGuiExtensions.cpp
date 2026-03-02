@@ -1,7 +1,7 @@
+#include "imGuiExtensions.h"
+
 #include <unordered_map>
 #include <vector>
-
-#include "imGuiExtensions.h"
 
 #include <fstream>
 #include <ryml.hpp>
@@ -19,11 +19,11 @@ std::size_t hashTwoPointers(void const* a, void const* b) noexcept
     return h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
 }
 
-namespace NeonGui
+namespace ImGui
 {
     void ClearTextureCache()
     {
-        for (auto &entry : imguiImageMap)
+        for (const auto &entry : imguiImageMap)
         {
             delete entry.second;
         }

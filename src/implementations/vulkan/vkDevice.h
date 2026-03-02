@@ -41,7 +41,7 @@ public:
     grl::Rc<Shader> createShader(const ShaderEntryPoint& entryPoint) override;
 
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
-    void submit(const grl::Rc<CommandList> &cmd) override;
+    void submit(const grl::Rc<CommandList> &cmdList) override;
     void waitIdle() override;
 
     [[nodiscard]] vk::PhysicalDevice getPhysicalDevice() const;
@@ -63,7 +63,7 @@ private:
     vk::Device m_handle;
     VmaAllocator m_allocator{};
 
-    std::array<std::array<grl::Box<VkCommandListPool>, QUEUE_TYPES>, CMD_POOLS_PER_QUEUE> m_commandListPools; // 4 command list pools per queue (so they get a chance to be reset)
+    std::array<std::array<grl::Rc<VkCommandListPool>, QUEUE_TYPES>, CMD_POOLS_PER_QUEUE> m_commandListPools; // 4 command list pools per queue (so they get a chance to be reset)
 
     std::array<grl::Rc<VkQueueState>, 3> m_queueStates{};
 

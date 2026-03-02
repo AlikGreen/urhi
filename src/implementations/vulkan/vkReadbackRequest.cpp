@@ -3,12 +3,8 @@
 #include "clogr.h"
 #include "vkDevice.h"
 
-namespace urhi {
-    VkReadbackRequest::VkReadbackRequest(VkDevice *device, void* mapped, const size_t size, const vk::Buffer buffer, const VmaAllocation bufferAllocation)
-        : m_device(device), m_mapped(mapped), m_size(size), m_bufferAllocation(bufferAllocation), m_buffer(buffer)
-    {
-    }
-
+namespace urhi
+{
     VkReadbackRequest::~VkReadbackRequest()
     {
         vmaDestroyBuffer(m_device->getAllocator(), m_buffer, m_bufferAllocation);

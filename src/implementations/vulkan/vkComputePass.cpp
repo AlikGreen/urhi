@@ -5,50 +5,51 @@
 
 namespace urhi
 {
-    VkComputePass::VkComputePass(VkDevice *device, const vk::CommandBuffer cmd)
-        : VkPassBase(cmd), m_device(device), m_cmd(cmd)
+
+    VkComputePass::VkComputePass(std::vector<Command> &commands)
+        : m_commands(commands)
     {
+        m_commands.push_back(CmdBeginComputePass{});
     }
 
     void VkComputePass::setPipeline(const grl::Rc<Pipeline> &pipeline)
     {
-        setPipelineImpl(pipeline, vk::PipelineBindPoint::eCompute);
+        m_commands.push_back(CmdSetPipeline{pipeline, vk::PipelineBindPoint::eCompute});
     }
 
     void VkComputePass::setUniformBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
     {
-        setUniformBufferImpl(name, buffer);
+        m_commands.push_back(CmdSetUniformBuffer{ name, buffer });
     }
 
     void VkComputePass::setStorageBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
     {
-        setStorageBufferImpl(name, buffer);
+        m_commands.push_back(CmdSetStorageBuffer{ name, buffer });
     }
 
     void VkComputePass::setTexture(const std::string &name, const grl::Rc<TextureView> &texture)
     {
-        setTextureImpl(name, texture);
+        m_commands.push_back(CmdSetTexture{ name, texture });
     }
 
     void VkComputePass::setSampler(const std::string &name, const grl::Rc<Sampler> &sampler)
     {
-        setSamplerImpl(name, sampler);
+        m_commands.push_back(CmdSetSampler{ name, sampler });
     }
 
     void VkComputePass::setImage(const std::string &name, const grl::Rc<TextureView> &texture, const ResourceAccess access)
     {
-        setImageImpl(name, texture, access);
+        m_commands.push_back(CmdSetImage{ name, texture, access });
     }
 
     void VkComputePass::pushConstants(void *data, const size_t size)
     {
-        pushConstantsImpl(data, size);
+        m_commands.push_back(CmdPushConstants{ data, size });
     }
 
     void VkComputePass::dispatch(const uint32_t groupsX, const uint32_t groupsY, const uint32_t groupsZ)
     {
-        pushDescriptorsImpl(vk::PipelineBindPoint::eCompute);
-        m_cmd.dispatchBase(0, 0, 0, groupsX, groupsY, groupsZ);
+        m_commands.push_back(CmdDispatchCompute{ groupsX, groupsY, groupsZ });
     }
 
     void VkComputePass::end()

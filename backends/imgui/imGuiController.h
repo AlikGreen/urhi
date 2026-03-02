@@ -1,8 +1,7 @@
 #pragma once
 
 #include <imgui.h>
-#include <neonRHI/neonRHI.h>
-#include <grl/grl.h>
+#include <urhi/urhi.h>
 
 namespace urhi
 {
@@ -16,7 +15,6 @@ public:
     };
 
     explicit ImGuiController(const InitInfo &initInfo);
-    ~ImGuiController();
 
     void newFrame();
     void endFrame();
@@ -26,6 +24,7 @@ public:
     void updateTextures(const ImDrawData* drawData) const;
 
     [[nodiscard]] grl::Rc<Texture> getFramebufferTexture() const;
+    [[nodiscard]] grl::Rc<TextureView> getFramebufferTextureView() const;
 private:
     ImTextureID createTexture(ImTextureData* texData) const;
     void destroyTexture(const ImTextureData* texData) const;
@@ -33,9 +32,9 @@ private:
     void createPipeline();
 
     void resizeRenderTexture(uint32_t width, uint32_t height);
-    void updateBuffers(const grl::Rc<CommandList> &cmdList);
-    void updateProjection(const ImDrawData *drawData, const grl::Rc<CommandList> &cmdList) const;
-    [[nodiscard]] ScissorRect calculateScissorRect(const ImDrawCmd &drawCmd) const;
+    void updateBuffers();
+    void updateProjection(const ImDrawData *drawData, const grl::Rc<RenderPass> &renderPass) const;
+    [[nodiscard]] Rect2D calculateScissorRect(const ImDrawCmd &drawCmd) const;
 
     static int toImGuiMouseButton(MouseButton button);
     static ImGuiKey toImGuiKey(KeyCode key);
@@ -50,7 +49,6 @@ private:
     grl::Rc<Pipeline> m_pipeline;
     grl::Rc<Buffer> m_vertexBuffer;
     grl::Rc<Buffer> m_indexBuffer;
-    grl::Rc<Buffer> m_projUniformBuffer;
 
     size_t m_vertexBufferSize{};
     size_t m_indexBufferSize{};

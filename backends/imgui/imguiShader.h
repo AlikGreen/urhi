@@ -15,10 +15,13 @@ struct VertexOutput
     float4 vColor;
 };
 
-cbuffer ImGuiProjection
+struct PushConstants
 {
     float4x4 projMatrix;
 };
+
+[[vk::push_constant]]
+PushConstants pc;
 
 Texture2D<float4> ImGuiTexture;
 SamplerState ImGuiSampler;
@@ -39,7 +42,7 @@ VertexOutput vertexMain(VertexInput input)
 
     output.vUV = input.inUV;
     output.vColor = unpackUnorm4x8(input.inColor);
-    output.position = mul(projMatrix, float4(input.inPosition, 0.0, 1.0));
+    output.position = mul(pc.projMatrix, float4(input.inPosition, 0.0, 1.0));
 
     return output;
 }

@@ -2,15 +2,15 @@
 #include "computePass.h"
 #include <vulkan/vulkan.hpp>
 
-#include "vkBasePass.h"
+#include "vkCommandList.h"
 
 namespace urhi
 {
 class VkDevice;
-class VkComputePass final : public ComputePass, VkPassBase
+class VkComputePass final : public ComputePass
 {
 public:
-    VkComputePass(VkDevice* device, vk::CommandBuffer cmd);
+    explicit VkComputePass(std::vector<Command>& commands);
 
     void setPipeline(const grl::Rc<Pipeline> &pipeline) override;
 
@@ -27,7 +27,6 @@ public:
 
     void end() override;
 private:
-    VkDevice* m_device;
-    vk::CommandBuffer m_cmd;
+    std::vector<Command>& m_commands;
 };
 }

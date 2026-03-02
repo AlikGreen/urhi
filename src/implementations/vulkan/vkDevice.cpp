@@ -5,6 +5,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkCommandListEmitter.h"
+#include "vkCommandListTracker.h"
 #include "vkComputePipeline.h"
 #include "vkGraphicsPipeline.h"
 #include "vkMappedBuffer.h"
@@ -121,17 +123,7 @@ namespace urhi
 
     grl::Rc<CommandList> VkDevice::acquireCommandList(QueueType queueType)
     {
-        auto& pool = m_commandListPools[m_cmdListIndex][static_cast<size_t>(queueType)];
-
-        if(!pool)
-        {
-            pool = grl::makeBox<VkCommandListPool>(
-                this,
-                m_queueStates[static_cast<size_t>(queueType)]
-            );
-        }
-
-        return grl::makeRc<VkCommandList>(this, pool.get(), queueType, pool->acquire());
+        return grl::makeRc<VkCommandList>(queueType);
     }
 
     grl::Rc<Texture> VkDevice::createTexture(const TextureDesc &desc)
@@ -162,20 +154,41 @@ namespace urhi
         return grl::makeRc<VkStagedBuffer>(this, desc);
     }
 
-    void VkDevice::submit(const grl::Rc<CommandList> &cmd)
+    void VkDevice::submit(const grl::Rc<CommandList> &cmdList)
     {
-        const auto vkCmd = dynamic_cast<VkCommandList*>(cmd.get());
-        const vk::CommandBuffer commandBuffer = vkCmd->getCmdBuffer();
+        const auto vkCmd = dynamic_cast<VkCommandList*>(cmdList.get());
+
+        auto& pool = m_commandListPools[m_cmdListIndex][static_cast<size_t>(vkCmd->m_queueType)];
+
+        if(!pool)
+        {
+            pool = grl::makeRc<VkCommandListPool>(
+                this,
+                m_queueStates[static_cast<size_t>(vkCmd->m_queueType)]
+            );
+        }
+
+        const vk::CommandBuffer commandBuffer = pool->acquire();
+
+        VkCommandListTracker tracker;
+        for (auto& cmd : vkCmd->m_commands)
+            std::visit([&](auto& c) { tracker.record(c); }, cmd);
+
+        const uint64_t submitValue = pool->m_queueState->nextTimelineValue + 1;
+
+        VkCommandListEmitter emitter{ this, submitValue, pool->m_queueState->timeline, commandBuffer, tracker, pool->m_linearStagingAllocator };
+        for (auto& cmd : vkCmd->m_commands)
+            std::visit([&](auto& c) { emitter.emit(c); }, cmd);
+
+
         commandBuffer.end();
 
         vk::Semaphore semaphore = nullptr;
 
-        if(vkCmd->getQueueType() == QueueType::Graphics)
-        {
+        if(vkCmd->m_queueType == QueueType::Graphics)
             semaphore = m_context->getSwapchain()->consumeSemaphore();
-        }
 
-        vkCmd->getPool().submit(vkCmd, semaphore);
+        pool->submit(commandBuffer, semaphore);
 
         m_cmdListIndex = ++m_cmdListIndex % CMD_POOLS_PER_QUEUE;
     }

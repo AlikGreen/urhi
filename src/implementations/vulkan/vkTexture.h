@@ -30,7 +30,8 @@ public:
     void transitionLayout(vk::CommandBuffer cmd, vk::ImageLayout newLayout);
 
 private:
-    friend class VkCommandList;
+    friend class VkCommandListEmitter;
+
     uint32_t m_width, m_height, m_depth;
     uint32_t m_mipLevels{};
     uint32_t m_arrayLayers;

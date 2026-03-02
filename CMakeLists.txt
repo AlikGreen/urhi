@@ -96,11 +96,25 @@ target_compile_definitions(urhi_imgui PRIVATE
 
 add_library(urhi::imgui ALIAS urhi_imgui)
 
+### BASIC EXAMPLE
 add_executable(urhi_basic_example examples/basic.cpp)
 target_link_libraries(urhi_basic_example PUBLIC urhi)
 
 if(MINGW)
     target_link_options(urhi_basic_example PRIVATE
+            -static-libgcc
+            -static-libstdc++
+            -static
+    )
+endif()
+
+### IMGUI EXAMPLE
+add_executable(urhi_imgui_example examples/imgui.cpp)
+target_link_libraries(urhi_imgui_example PUBLIC urhi::imgui)
+
+
+if(MINGW)
+    target_link_options(urhi_imgui_example PRIVATE
             -static-libgcc
             -static-libstdc++
             -static

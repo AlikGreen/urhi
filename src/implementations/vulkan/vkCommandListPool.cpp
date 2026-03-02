@@ -20,7 +20,7 @@ namespace urhi
 
         auto res = m_device->getHandle().createCommandPool(&commandPoolInfo, nullptr, &m_commandPool);
 
-        m_linearStagingAllocator = grl::makeBox<VkLinearStagingAllocator>(m_device);
+        m_linearStagingAllocator = grl::makeRc<VkLinearStagingAllocator>(m_device);
     }
 
 
@@ -53,9 +53,8 @@ namespace urhi
         return cmd;
     }
 
-    void VkCommandListPool::submit(VkCommandList* cmd, const vk::Semaphore swapchainImageSemaphore)
+    void VkCommandListPool::submit(const vk::CommandBuffer cmd, const vk::Semaphore swapchainImageSemaphore)
     {
-        m_recordingCount--;
         const uint64_t signalValue = ++m_queueState->nextTimelineValue;
         m_lastSubmittedValue = signalValue;
 
@@ -76,26 +75,23 @@ namespace urhi
         timelineInfo.signalSemaphoreValueCount = 1;
         timelineInfo.pSignalSemaphoreValues = &signalValue;
 
-        auto cmdBuffer = cmd->getCmdBuffer();
-
         vk::SubmitInfo submitInfo{};
         submitInfo.pNext = &timelineInfo;
         submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &cmdBuffer;
+        submitInfo.pCommandBuffers = &cmd;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &m_queueState->timeline;
 
         std::scoped_lock lock(*m_queueState->mutex);
         m_queueState->queue.submit({submitInfo});
-        cmd->onSubmit(signalValue);
     }
 
     bool VkCommandListPool::canReset() const
     {
-        if(m_recordingCount != 0 || m_lastSubmittedValue == 0) return false;
+        if(m_lastSubmittedValue == 0) return false;
 
         const uint64_t completedValue = m_device->getHandle().getSemaphoreCounterValue(m_queueState->timeline);
 
