@@ -3,6 +3,8 @@
 #include "VkBootstrap.h"
 #include <vulkan/vulkan.hpp>
 
+#include "logger.h"
+
 namespace urhi
 {
 class VkSwapchain;
@@ -19,11 +21,15 @@ public:
     [[nodiscard]] vk::Instance getVkInstance() const;
     [[nodiscard]] grl::Rc<VkSwapchain> getSwapchain() const;
 
+    clogr::Logger& logger() override;
+
 private:
     vk::Instance m_instance;
     vk::DebugUtilsMessengerEXT m_debugMessenger;
     vkb::Instance m_vkbInstance;
     grl::Rc<VkSwapchain> m_swapchain;
+
+    grl::Rc<clogr::Logger> m_logger;
 };
 
 }

@@ -107,15 +107,6 @@ namespace urhi
 
         renderPass->setPipeline(m_pipeline);
 
-
-        Rect2D fullScissor{};
-        fullScissor.x = 0;
-        fullScissor.y = 0;
-        fullScissor.width  = static_cast<int>(width);
-        fullScissor.height = static_cast<int>(height);
-
-        renderPass->setScissor(fullScissor);
-
         renderPass->setVertexBuffer(0, m_vertexBuffer);
         renderPass->setIndexBuffer(m_indexBuffer, IndexFormat::UInt32);
 
@@ -313,16 +304,14 @@ namespace urhi
     void ImGuiController::destroyTexture(const ImTextureData *texData) const
     {
         const ImGuiIO& io = ImGui::GetIO();
-        ImGuiImage* img = io.Fonts->TexData->TexID;
-
-        // m_device->destroy(img.sampler);
-        // m_device->destroy(img.view);
+        const ImGuiImage* img = io.Fonts->TexData->TexID;
+        delete img;
     }
 
     void ImGuiController::createPipeline()
     {
         ShaderCompileDesc compileDesc{};
-        compileDesc.path = "imGui.slang";
+        compileDesc.path = "imgui.slang";
         compileDesc.source = imGuiShaderSource;
         const auto shaders = ShaderCompiler::compile(compileDesc);
         const auto shader1 = m_device->createShader(shaders.at(0));
@@ -386,10 +375,9 @@ namespace urhi
 
         const float L = displayPos.x;
         const float R = displayPos.x + displaySize.x;
-        const float T = displayPos.y;
-        const float B = displayPos.y + displaySize.y;
+        const float T = displayPos.y + displaySize.y;
+        const float B = displayPos.y;
 
-        // Note: bottom = B, top = T → inverts Y so that ImGui's top-left coords work.
         glm::mat4 projMatrix = glm::ortho(L, R, B, T, -1.0f, 1.0f);
 
         renderPass->pushConstants(projMatrix);
@@ -422,12 +410,12 @@ namespace urhi
     {
         switch(button)
         {
-            case MouseButton::Left:   return 0; // ImGui: left
-            case MouseButton::Right:  return 1; // ImGui: right
-            case MouseButton::Middle: return 2; // ImGui: middle
-            case MouseButton::Side1:  return 3; // ImGui: X1
-            case MouseButton::Side2:  return 4; // ImGui: X2
-            default:                  return -1; // ignore
+            case MouseButton::Left:   return 0;
+            case MouseButton::Right:  return 1;
+            case MouseButton::Middle: return 2;
+            case MouseButton::Side1:  return 3;
+            case MouseButton::Side2:  return 4;
+            default:                  return -1;
         }
     }
 
@@ -525,7 +513,6 @@ namespace urhi
         }
     }
 
-    // ImGui uses "mod" bits (ImGuiMod_*) which are part of ImGuiKeyChord
     ImGuiKeyChord ImGuiController::toImGuiMods(const KeyMod mod)
     {
         ImGuiKeyChord out = ImGuiMod_None;

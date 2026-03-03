@@ -93,11 +93,12 @@ int main()
     struct Vertex { glm::vec3 pos; glm::vec2 texCoord; };
 
     const std::vector<Vertex> vertices = {
-        {{-1,-1,0},{0,1}},
-        {{ 1,-1,0},{1,1}},
-        {{ 1, 1,0},{1,0}},
-        {{-1, 1,0},{0,0}},
+        {{-1,-1,0},{0,0}},
+        {{ 1,-1,0},{1,0}},
+        {{ 1, 1,0},{1,1}},
+        {{-1, 1,0},{0,1}},
     };
+
     const std::vector<uint32_t> indices = {0,1,2, 0,2,3};
 
     const auto vertexBuffer = device->createBuffer({BufferUsage::Vertex, vertices.size() * sizeof(Vertex)});

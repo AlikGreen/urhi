@@ -222,4 +222,9 @@ namespace urhi
     {
         return m_maxAnisotropy;
     }
+
+    clogr::Logger& VkDevice::logger() const
+    {
+        return m_context->logger();
+    }
 }

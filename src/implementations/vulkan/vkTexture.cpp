@@ -27,8 +27,6 @@ namespace urhi
             vk::SharingMode::eExclusive,
         };
 
-        m_image = m_device->getHandle().createImage(imageInfo);
-
         VmaAllocationCreateInfo allocCreateInfo{};
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         allocCreateInfo.flags = 0;

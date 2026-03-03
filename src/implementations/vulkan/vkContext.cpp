@@ -10,15 +10,10 @@ namespace urhi
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         const VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        const VkDebugUtilsMessengerCallbackDataEXT* data,
         void* pUserData)
     {
-        if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-        {
-            clogr::abort("[VULKAN] {}", pCallbackData->pMessage);
-        }
-
-        clogr::warn("[VULKAN] {}", pCallbackData->pMessage);
+        clogr::error("[{}] {}", data->pMessageIdName ? data->pMessageIdName : "VK", data->pMessage);
         return VK_FALSE;
     }
 
@@ -74,5 +69,10 @@ namespace urhi
     grl::Rc<VkSwapchain> VkContext::getSwapchain() const
     {
         return m_swapchain;
+    }
+
+    clogr::Logger & VkContext::logger()
+    {
+        return *m_logger;
     }
 }

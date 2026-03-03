@@ -5,6 +5,7 @@
 #include <vma/vk_mem_alloc.h>
 
 #include "device.h"
+#include "logger.h"
 #include "descriptions/deviceDesc.h"
 #include "descriptions/shaderEntryPoint.h"
 #include "enums/queueType.h"
@@ -49,6 +50,7 @@ public:
     [[nodiscard]] VmaAllocator getAllocator() const;
     [[nodiscard]] float getMaxAnisotropy() const;
 
+    clogr::Logger& logger() const;
     grl::Rc<VkQueueState> getQueueState(QueueType queueType);
 private:
     friend class VkSwapchain;
