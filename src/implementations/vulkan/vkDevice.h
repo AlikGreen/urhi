@@ -30,6 +30,8 @@ class VkDevice final : public Device
 {
 public:
     explicit VkDevice(const DeviceDesc& desc, VkContext* context);
+    ~VkDevice() override;
+
     grl::Rc<Pipeline> createPipeline(const GraphicsPipelineDesc &desc) override;
     grl::Rc<Pipeline> createPipeline(const ComputePipelineDesc &desc) override;
 
@@ -43,7 +45,8 @@ public:
 
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
     void submit(const grl::Rc<CommandList> &cmdList) override;
-    void waitIdle() override;
+
+    void queueDestroy(VkLifetime lifetime, std::function<void(vk::Device device)> callback);
 
     [[nodiscard]] vk::PhysicalDevice getPhysicalDevice() const;
     [[nodiscard]] vk::Device getHandle() const;
@@ -58,6 +61,8 @@ private:
     static constexpr size_t CMD_POOLS_PER_QUEUE = 4;
     static constexpr size_t QUEUE_TYPES = 3;
 
+    void tryCollectGarbage();
+
     VkContext* m_context;
     std::atomic<uint32_t> m_cmdListIndex;
 
@@ -68,6 +73,8 @@ private:
     std::array<std::array<grl::Rc<VkCommandListPool>, QUEUE_TYPES>, CMD_POOLS_PER_QUEUE> m_commandListPools; // 4 command list pools per queue (so they get a chance to be reset)
 
     std::array<grl::Rc<VkQueueState>, 3> m_queueStates{};
+
+    std::vector<std::pair<VkLifetime, std::function<void(vk::Device device)>>> m_destroyQueue{};
 
     float m_maxAnisotropy = 0.0f;
 };

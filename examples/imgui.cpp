@@ -175,6 +175,5 @@ int main()
         swapchain->present();
     }
 
-    device->waitIdle();
     ImGui::DestroyContext();
 }

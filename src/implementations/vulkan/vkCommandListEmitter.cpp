@@ -16,8 +16,8 @@
 
 namespace urhi
 {
-    VkCommandListEmitter::VkCommandListEmitter(VkDevice* device, uint64_t submitValue, vk::Semaphore timeline, vk::CommandBuffer cmd, VkCommandListTracker tracker, grl::Rc<VkLinearStagingAllocator> stagingAllocator)
-        : m_device(device), m_cmd(cmd), m_tracker(tracker), m_submitValue(submitValue), m_timeline(timeline), m_stagingAllocator(stagingAllocator) { }
+    VkCommandListEmitter::VkCommandListEmitter(VkDevice* device, QueueType queueType, uint64_t submitValue, vk::Semaphore timeline, vk::CommandBuffer cmd, VkCommandListTracker tracker, grl::Rc<VkLinearStagingAllocator> stagingAllocator)
+        : m_device(device), m_cmd(cmd), m_tracker(tracker), m_submitValue(submitValue), m_timeline(timeline), m_queueType(queueType), m_stagingAllocator(stagingAllocator) { }
 
     void VkCommandListEmitter::emit(const CmdDrawIndexed &c)
     {
@@ -203,23 +203,28 @@ namespace urhi
         c.request->m_waitValue = m_submitValue;
 
         m_idx++;
+
+        vkTex->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdUpdateBuffer &c)
     {
         if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(c.buffer.get()))
         {
-            m_stagingAllocator->upload(c.data.data(), c.data.size(), vkStaged->getHandle(), 0, m_cmd);
+            m_stagingAllocator->upload(c.data.data(), c.data.size(), vkStaged->handle(), 0, m_cmd);
+            vkStaged->lifetime().markUsed(m_queueType, m_submitValue);
         }
         else if(const auto vkMapped = dynamic_cast<VkMappedBuffer*>(c.buffer.get()))
         {
             vkMapped->upload(c.data.data(), c.data.size());
+            vkMapped->lifetime().markUsed(m_queueType, m_submitValue);
         }else
         {
             clogr::abort("Buffer was not a VkStagedBuffer or VkMappedBuffer");
         }
 
         m_idx++;
+
     }
 
     void VkCommandListEmitter::emit(const CmdUpdateTexture &c)
@@ -230,6 +235,8 @@ namespace urhi
         m_stagingAllocator->uploadToImage(desc, m_cmd);
 
         m_idx++;
+
+       dynamic_cast<VkTexture*>(c.desc.texture.get())->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetUniformBuffer &c)
@@ -240,10 +247,12 @@ namespace urhi
 
         m_boundResources[c.name] = BoundResource{
             .type = ShaderReflection::ResourceType::ConstantBuffer,
-            .bufferInfo = { vkBuffer->getHandle(), 0, vkBuffer->getSize() }
+            .bufferInfo = { vkBuffer->handle(), 0, vkBuffer->size() }
         };
 
         m_idx++;
+
+        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetStorageBuffer &c)
@@ -254,10 +263,12 @@ namespace urhi
 
         m_boundResources[c.name] = BoundResource{
             .type = ShaderReflection::ResourceType::StorageBuffer,
-            .bufferInfo = { vkBuffer->getHandle(), 0, vkBuffer->getSize() }
+            .bufferInfo = { vkBuffer->handle(), 0, vkBuffer->size() }
         };
 
         m_idx++;
+
+        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdPushConstants &c)
@@ -281,6 +292,8 @@ namespace urhi
         };
 
         m_idx++;
+
+        vkView->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetSampler &c)
@@ -295,6 +308,8 @@ namespace urhi
         };
 
         m_idx++;
+
+        vkSampler->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetImage &c)
@@ -317,17 +332,21 @@ namespace urhi
     void VkCommandListEmitter::emit(const CmdSetVertexBuffer &c)
     {
         const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(c.buffer.get());
-        m_cmd.bindVertexBuffers(0, {vkBuffer->getHandle()}, {0});
+        m_cmd.bindVertexBuffers(0, {vkBuffer->handle()}, {0});
 
         m_idx++;
+
+        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetIndexBuffer &c)
     {
         const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(c.buffer.get());
-        m_cmd.bindIndexBuffer(vkBuffer->getHandle(), 0, VkConvert::indexFormat(c.format));
+        m_cmd.bindIndexBuffer(vkBuffer->handle(), 0, VkConvert::indexFormat(c.format));
 
         m_idx++;
+
+        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetScissor &c)

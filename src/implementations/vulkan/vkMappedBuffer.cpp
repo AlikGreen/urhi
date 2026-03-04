@@ -32,6 +32,15 @@ namespace urhi
         m_hostCoherent = !(memFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 
+    VkMappedBuffer::~VkMappedBuffer()
+    {
+        m_device->queueDestroy(m_life,
+        [h = m_buffer](const vk::Device device)
+        {
+            device.destroyBuffer(h);
+        });
+    }
+
     void VkMappedBuffer::upload(const void *data, const size_t size) const
     {
         memcpy(m_mappedPtr, data, size);
@@ -40,13 +49,18 @@ namespace urhi
             vmaFlushAllocation(m_device->getAllocator(), m_allocation, 0, size);
     }
 
-    vk::Buffer VkMappedBuffer::getHandle() const
+    vk::Buffer VkMappedBuffer::handle() const
     {
         return m_buffer;
     }
 
-    uint64_t VkMappedBuffer::getSize() const
+    uint64_t VkMappedBuffer::size() const
     {
         return m_size;
+    }
+
+    VkLifetime & VkMappedBuffer::lifetime()
+    {
+        return m_life;
     }
 }

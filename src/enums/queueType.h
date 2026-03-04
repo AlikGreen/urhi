@@ -2,7 +2,7 @@
 
 namespace urhi
 {
-enum class QueueType
+enum class QueueType : uint8_t
 {
     Graphics,
     Compute,

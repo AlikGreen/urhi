@@ -47,8 +47,20 @@ namespace urhi
         : m_width(width), m_height(height), m_depth(1),
         m_mipLevels(1), m_arrayLayers(1),
         m_format(format), m_type(TextureType::Texture2D),
-        m_device(device), m_image(image)
+        m_device(device), m_image(image), m_owned(false)
     {
+    }
+
+    VkTexture::~VkTexture()
+    {
+        if(!m_owned) return;
+
+        m_device->queueDestroy(m_life,
+        [h = m_image](const vk::Device device)
+        {
+
+            device.destroyImage(h);
+        });
     }
 
     uint32_t VkTexture::width() const
@@ -185,5 +197,10 @@ namespace urhi
         );
 
         m_currentLayout = newLayout;
+    }
+
+    VkLifetime& VkTexture::lifetime()
+    {
+        return m_life;
     }
 }

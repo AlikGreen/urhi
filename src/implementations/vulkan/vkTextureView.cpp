@@ -31,13 +31,19 @@ namespace urhi
     }
 
     VkTextureView::VkTextureView(VkDevice *device, const grl::Rc<VkTexture> &texture, const PixelFormat format, const vk::ImageView view)
-        : m_device(device), m_baseMipLevel(0), m_baseArrayLayer(0), m_mipLevels(1), m_arrayLayers(1), m_format(format), m_imageView(view), m_texture(texture)
+        : m_device(device), m_baseMipLevel(0), m_baseArrayLayer(0), m_mipLevels(1), m_arrayLayers(1), m_format(format), m_imageView(view), m_texture(texture), m_owned(false)
     {
     }
 
     VkTextureView::~VkTextureView()
     {
-        m_device->getHandle().destroyImageView(m_imageView);
+        if(!m_owned) return;
+
+        m_device->queueDestroy(m_life,
+        [h = m_imageView](const vk::Device device)
+        {
+            device.destroyImageView(h);
+        });
     }
 
     uint32_t VkTextureView::baseMipLevel() const
@@ -73,5 +79,10 @@ namespace urhi
     vk::ImageView VkTextureView::getHandle() const
     {
         return m_imageView;
+    }
+
+    VkLifetime& VkTextureView::lifetime()
+    {
+        return m_life;
     }
 }

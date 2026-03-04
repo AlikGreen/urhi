@@ -6,6 +6,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkLifetime.h"
+
 namespace urhi
 {
 class VkDevice;
@@ -15,6 +17,8 @@ class VkTexture final : public Texture
 public:
     VkTexture(VkDevice* device, const TextureDesc& desc);
     VkTexture(VkDevice* device, vk::Image image, PixelFormat format, uint32_t width, uint32_t height);
+    ~VkTexture() override;
+
     [[nodiscard]] uint32_t width() const override;
     [[nodiscard]] uint32_t height() const override;
     [[nodiscard]] uint32_t depth() const override;
@@ -29,6 +33,7 @@ public:
 
     void transitionLayout(vk::CommandBuffer cmd, vk::ImageLayout newLayout);
 
+    VkLifetime& lifetime();
 private:
     friend class VkCommandListEmitter;
 
@@ -41,5 +46,8 @@ private:
     VkDevice* m_device;
     vk::Image m_image;
     vk::ImageLayout m_currentLayout = vk::ImageLayout::eUndefined;
+
+    VkLifetime m_life;
+    bool m_owned = true;
 };
 }

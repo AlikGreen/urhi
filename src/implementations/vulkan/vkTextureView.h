@@ -28,6 +28,7 @@ public:
     [[nodiscard]] grl::Rc<Texture> texture() const override;
 
     [[nodiscard]]  vk::ImageView getHandle() const;
+    VkLifetime& lifetime();
 private:
     VkDevice* m_device;
     uint32_t m_baseMipLevel, m_baseArrayLayer;
@@ -36,5 +37,8 @@ private:
 
     vk::ImageView m_imageView;
     grl::Rc<VkTexture> m_texture;
+
+    VkLifetime m_life{};
+    bool m_owned = true;
 };
 }

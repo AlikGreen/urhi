@@ -252,6 +252,4 @@ int main()
 
         swapchain->present();
     }
-
-    device->waitIdle();
 }

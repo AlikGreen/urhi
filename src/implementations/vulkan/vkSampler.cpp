@@ -6,6 +6,7 @@
 namespace urhi
 {
     VkSampler::VkSampler(VkDevice *device, const SamplerDesc &desc)
+        : m_device(device)
     {
         const vk::SamplerCreateInfo samplerCI
         {
@@ -30,8 +31,22 @@ namespace urhi
         m_handle = device->getHandle().createSampler(samplerCI);
     }
 
+    VkSampler::~VkSampler()
+    {
+        m_device->queueDestroy(m_life,
+    [h = m_handle](const vk::Device device)
+        {
+            device.destroySampler(h);
+        });
+    }
+
     vk::Sampler VkSampler::getHandle() const
     {
         return m_handle;
+    }
+
+    VkLifetime& VkSampler::lifetime()
+    {
+        return m_life;
     }
 }

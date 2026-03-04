@@ -111,6 +111,12 @@ namespace urhi
         m_maxAnisotropy = physProps.limits.maxSamplerAnisotropy;
     }
 
+    VkDevice::~VkDevice()
+    {
+        m_handle.waitIdle();
+        tryCollectGarbage();
+    }
+
     grl::Rc<Pipeline> VkDevice::createPipeline(const GraphicsPipelineDesc &desc)
     {
         return grl::makeRc<VkGraphicsPipeline>(this, desc);
@@ -176,7 +182,7 @@ namespace urhi
 
         const uint64_t submitValue = pool->m_queueState->nextTimelineValue + 1;
 
-        VkCommandListEmitter emitter{ this, submitValue, pool->m_queueState->timeline, commandBuffer, tracker, pool->m_linearStagingAllocator };
+        VkCommandListEmitter emitter{ this, vkCmd->m_queueType, submitValue, pool->m_queueState->timeline, commandBuffer, tracker, pool->m_linearStagingAllocator };
         for (auto& cmd : vkCmd->m_commands)
             std::visit([&](auto& c) { emitter.emit(c); }, cmd);
 
@@ -191,11 +197,13 @@ namespace urhi
         pool->submit(commandBuffer, semaphore);
 
         m_cmdListIndex = ++m_cmdListIndex % CMD_POOLS_PER_QUEUE;
+
+        tryCollectGarbage();
     }
 
-    void VkDevice::waitIdle()
+    void VkDevice::queueDestroy(VkLifetime lifetime, std::function<void(vk::Device device)> callback)
     {
-        m_handle.waitIdle();
+        m_destroyQueue.emplace_back(lifetime, callback);
     }
 
     vk::PhysicalDevice VkDevice::getPhysicalDevice() const
@@ -216,6 +224,33 @@ namespace urhi
     grl::Rc<VkQueueState> VkDevice::getQueueState(QueueType queueType)
     {
         return m_queueStates[static_cast<size_t>(queueType)];
+    }
+    
+    void VkDevice::tryCollectGarbage()
+    {
+        if(m_destroyQueue.size() < 1) return;
+
+        uint64_t completeValues[3];
+
+        for (size_t i = 0; i < m_destroyQueue.size(); i++ )
+        {
+            auto& [lifetime, callback] = m_destroyQueue[i];
+
+            uint64_t completeValue = completeValues[static_cast<uint8_t>(lifetime.lastSubmitQueue)];
+            if(completeValue == 0)
+            {
+                completeValue = m_handle.getSemaphoreCounterValue(m_queueStates[i]->timeline);
+                completeValues[static_cast<uint8_t>(lifetime.lastSubmitQueue)] = completeValue;
+            }
+
+            if(lifetime.lastSubmitValue <= completeValue)
+            {
+                callback(m_handle);
+                m_destroyQueue[i] = std::move(m_destroyQueue.back());
+                m_destroyQueue.pop_back();
+                i--;
+            }
+        }
     }
 
     float VkDevice::getMaxAnisotropy() const

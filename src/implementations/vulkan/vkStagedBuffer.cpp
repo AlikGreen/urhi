@@ -28,12 +28,26 @@ namespace urhi
         vmaCreateBuffer(device->getAllocator(), reinterpret_cast<const VkBufferCreateInfo*>(&bufferCI), &bufferAllocCI, reinterpret_cast<::VkBuffer*>(&m_buffer), &allocation, nullptr);
     }
 
-    vk::Buffer VkStagedBuffer::getHandle() const
+    VkStagedBuffer::~VkStagedBuffer()
+    {
+        m_device->queueDestroy(m_life,
+        [h = m_buffer](const vk::Device device)
+        {
+            device.destroyBuffer(h);
+        });
+    }
+
+    VkLifetime& VkStagedBuffer::lifetime()
+    {
+        return m_life;
+    }
+
+    vk::Buffer VkStagedBuffer::handle() const
     {
         return m_buffer;
     }
 
-    uint64_t VkStagedBuffer::getSize() const
+    uint64_t VkStagedBuffer::size() const
     {
         return m_bufferSize;
     }
