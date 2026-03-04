@@ -466,6 +466,54 @@ namespace urhi
         m_idx++;
     }
 
+    void VkCommandListEmitter::emit(const CmdBlitTexture &c) const
+    {
+        clogr::ensure(c.desc.src != c.desc.dst, "Source texture cannot be the same as destination texture.");
+        const auto vkSrc = dynamic_cast<VkTexture*>(c.desc.src.get());
+        const auto vkDst = dynamic_cast<VkTexture*>(c.desc.dst.get());
+
+        vkSrc->transitionLayout(m_cmd, vk::ImageLayout::eTransferSrcOptimal);
+        vkDst->transitionLayout(m_cmd, vk::ImageLayout::eTransferDstOptimal);
+
+        vk::ImageBlit2 blit{};
+
+        const int32_t srcMaxX = c.desc.srcExtent.x != 0 ? c.desc.srcExtent.x + c.desc.srcOffset.x : vkSrc->width(c.desc.srcMipLevel);
+        const int32_t srcMaxY = c.desc.srcExtent.y != 0 ? c.desc.srcExtent.y + c.desc.srcOffset.y : vkSrc->height(c.desc.srcMipLevel);
+        const int32_t srcMaxZ = c.desc.srcExtent.z != 0 ? c.desc.srcExtent.z + c.desc.srcOffset.z : vkSrc->depth(c.desc.srcMipLevel) ;
+
+        const int32_t dstMaxX = c.desc.dstExtent.x != 0 ? c.desc.dstExtent.x + c.desc.dstOffset.x : vkSrc->width(c.desc.dstMipLevel);
+        const int32_t dstMaxY = c.desc.dstExtent.y != 0 ? c.desc.dstExtent.y + c.desc.dstOffset.y : vkSrc->height(c.desc.dstMipLevel);
+        const int32_t dstMaxZ = c.desc.dstExtent.z != 0 ? c.desc.dstExtent.z + c.desc.dstOffset.z : vkSrc->depth(c.desc.dstMipLevel);
+
+        blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        blit.srcSubresource.mipLevel = c.desc.srcMipLevel;
+        blit.srcSubresource.baseArrayLayer = c.desc.srcArrayLayer;
+        blit.srcSubresource.layerCount = 1;
+        blit.srcOffsets[0] = vk::Offset3D{static_cast<int32_t>(c.desc.srcOffset.x), static_cast<int32_t>(c.desc.srcOffset.y), static_cast<int32_t>(c.desc.srcOffset.z)};
+        blit.srcOffsets[1] = vk::Offset3D{srcMaxX, srcMaxY, srcMaxZ};
+
+        blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        blit.dstSubresource.mipLevel = c.desc.dstMipLevel;
+        blit.dstSubresource.baseArrayLayer = c.desc.dstArrayLayer;
+        blit.dstSubresource.layerCount = 1;
+        blit.dstOffsets[0] = vk::Offset3D{static_cast<int32_t>(c.desc.dstOffset.x), static_cast<int32_t>(c.desc.dstOffset.y), static_cast<int32_t>(c.desc.dstOffset.z)};
+        blit.dstOffsets[1] = vk::Offset3D{dstMaxX, dstMaxY, dstMaxZ};
+
+        vk::BlitImageInfo2 blitInfo{};
+        blitInfo.srcImage       = vkSrc->getHandle();
+        blitInfo.srcImageLayout = vk::ImageLayout::eTransferSrcOptimal;
+        blitInfo.dstImage       = vkDst->getHandle();
+        blitInfo.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
+        blitInfo.regionCount    = 1;
+        blitInfo.pRegions       = &blit;
+        blitInfo.filter         = VkConvert::filter(c.desc.filter);
+
+        m_cmd.blitImage2(blitInfo);
+
+        vkSrc->lifetime().markUsed(m_queueType, m_submitValue);
+        vkDst->lifetime().markUsed(m_queueType, m_submitValue);
+    }
+
     void VkCommandListEmitter::emit(const CmdDispatchCompute &c)
     {
         pushDescriptors();

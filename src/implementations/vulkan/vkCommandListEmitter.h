@@ -44,6 +44,7 @@ public:
     void emit(const CmdSetViewport& c);
 
     void emit(const CmdGenerateMips& c);
+    void emit(const CmdBlitTexture& c) const;
 
     void emit(const CmdDispatchCompute& c);
 private:

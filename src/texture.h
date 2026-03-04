@@ -15,9 +15,13 @@ public:
     Texture(const Texture&) = delete;
     Texture& operator= (const Texture&) = delete;
 
-    [[nodiscard]] virtual uint32_t width() const = 0;
-    [[nodiscard]] virtual uint32_t height() const = 0;
-    [[nodiscard]] virtual uint32_t depth() const = 0;
+    uint32_t width()  const { return width(0); };
+    uint32_t height() const { return height(0); };
+    uint32_t depth()  const { return depth(0); };
+
+    [[nodiscard]] virtual uint32_t width(uint32_t mip) const = 0;
+    [[nodiscard]] virtual uint32_t height(uint32_t mip) const = 0;
+    [[nodiscard]] virtual uint32_t depth(uint32_t mip) const = 0;
 
     [[nodiscard]] virtual uint32_t mipLevelCount() const = 0;
     [[nodiscard]] virtual uint32_t arrayLayerCount() const = 0;

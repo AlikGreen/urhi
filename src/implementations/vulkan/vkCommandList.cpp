@@ -54,6 +54,11 @@ namespace urhi
         m_commands.push_back(CmdGenerateMips{texture});
     }
 
+    void VkCommandList::blitTexture(const BlitTextureDesc &desc)
+    {
+        m_commands.push_back(CmdBlitTexture{desc});
+    }
+
     grl::Rc<ReadbackRequest> VkCommandList::readback(const TextureReadbackDesc &desc)
     {
         grl::Rc<VkReadbackRequest> request = grl::makeRc<VkReadbackRequest>();

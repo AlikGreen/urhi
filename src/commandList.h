@@ -7,7 +7,7 @@
 #include "renderPass.h"
 
 #include "texture.h"
-#include "textureView.h"
+#include "descriptions/blitTextureDesc.h"
 #include "descriptions/renderPassDesc.h"
 #include "descriptions/textureReadbackDesc.h"
 #include "descriptions/textureUploadDesc.h"
@@ -30,6 +30,7 @@ public:
 
     virtual void updateTexture(const TextureUploadDesc& desc) = 0;
     virtual void generateMipmaps(const grl::Rc<Texture>& texture) = 0;
+    virtual void blitTexture(const BlitTextureDesc& desc) = 0;
 
     grl::Rc<ReadbackRequest> readback(const grl::Rc<Texture>& texture) { return readback(TextureReadbackDesc{texture}); }
     virtual grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc) = 0;

@@ -20,6 +20,7 @@ struct CmdBeginCommandBuffer   {};
 struct CmdUpdateTexture   { TextureUploadDesc desc; std::vector<uint8_t> data; };
 struct CmdUpdateBuffer    { grl::Rc<Buffer> buffer; std::vector<uint8_t> data; };
 struct CmdGenerateMips    { grl::Rc<Texture> texture; };
+struct CmdBlitTexture     { BlitTextureDesc desc; };
 
 struct CmdReadbackTexture    { grl::Rc<VkReadbackRequest> request; TextureReadbackDesc desc; };
 
@@ -49,7 +50,7 @@ using Command = std::variant<
     CmdEndRenderPass, CmdEndComputePass,
     CmdUpdateTexture, CmdUpdateBuffer,
     CmdGenerateMips, CmdReadbackTexture,
-    CmdSetPipeline,
+    CmdBlitTexture, CmdSetPipeline,
     CmdSetTexture, CmdSetSampler, CmdSetImage,
     CmdSetVertexBuffer, CmdSetIndexBuffer,
     CmdSetUniformBuffer, CmdSetStorageBuffer,
@@ -68,6 +69,7 @@ public:
 
     void updateTexture(const TextureUploadDesc &desc) override;
     void generateMipmaps(const grl::Rc<Texture> &texture) override;
+    void blitTexture(const BlitTextureDesc& desc) override;
 
     grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc) override;
 protected:

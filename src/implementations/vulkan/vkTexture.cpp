@@ -63,19 +63,19 @@ namespace urhi
         });
     }
 
-    uint32_t VkTexture::width() const
+    uint32_t VkTexture::width(const uint32_t mip) const
     {
-        return m_width;
+        return std::max(1u, m_width >> mip);
     }
 
-    uint32_t VkTexture::height() const
+    uint32_t VkTexture::height(const uint32_t mip) const
     {
-        return m_height;
+        return std::max(1u, m_height >> mip);
     }
 
-    uint32_t VkTexture::depth() const
+    uint32_t VkTexture::depth(const uint32_t mip) const
     {
-        return m_depth;
+        return std::max(1u, m_depth >> mip);
     }
 
     uint32_t VkTexture::mipLevelCount() const
