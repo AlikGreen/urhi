@@ -525,11 +525,11 @@ namespace urhi
     {
         switch (format)
         {
-            case PixelFormat::Depth24Plus:
-            case PixelFormat::Depth32Float:
-            case PixelFormat::Depth16UNorm:
             case PixelFormat::Depth24PlusStencil8:
                 return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+            case PixelFormat::Depth32Float:
+            case PixelFormat::Depth16UNorm:
+                return vk::ImageAspectFlagBits::eDepth;
             default:
                 return vk::ImageAspectFlagBits::eColor;
         }

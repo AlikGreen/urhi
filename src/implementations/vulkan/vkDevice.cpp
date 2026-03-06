@@ -117,14 +117,6 @@ namespace urhi
         props = m_physicalDevice.getFormatProperties(vk::Format::eD32SfloatS8Uint);
         if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
             m_depth24PlusStencil8Format = vk::Format::eD32SfloatS8Uint;
-
-        props = m_physicalDevice.getFormatProperties(vk::Format::eX8D24UnormPack32);
-        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
-            m_depth24PlusFormat = vk::Format::eX8D24UnormPack32;
-
-        props = m_physicalDevice.getFormatProperties(vk::Format::eD32Sfloat);
-        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
-            m_depth24PlusFormat = vk::Format::eD32Sfloat;
     }
 
     VkDevice::~VkDevice()
@@ -240,11 +232,6 @@ namespace urhi
     grl::Rc<VkQueueState> VkDevice::getQueueState(QueueType queueType)
     {
         return m_queueStates[static_cast<size_t>(queueType)];
-    }
-
-    vk::Format VkDevice::depth24PlusFormat() const
-    {
-        return m_depth24PlusFormat;
     }
 
     vk::Format VkDevice::depth24PlusStencil8Format() const

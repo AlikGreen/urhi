@@ -56,7 +56,6 @@ public:
     clogr::Logger& logger() const;
     grl::Rc<VkQueueState> getQueueState(QueueType queueType);
 
-    vk::Format depth24PlusFormat() const;
     vk::Format depth24PlusStencil8Format() const;
 private:
     friend class VkSwapchain;
@@ -80,7 +79,6 @@ private:
     std::vector<std::pair<VkLifetime, std::function<void(vk::Device device)>>> m_destroyQueue{};
 
     float m_maxAnisotropy = 0.0f;
-    vk::Format m_depth24PlusFormat;
     vk::Format m_depth24PlusStencil8Format;
 };
 }

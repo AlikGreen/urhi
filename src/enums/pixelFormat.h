@@ -61,10 +61,9 @@ enum class PixelFormat : uint16_t
     RGBA32Float,
 
     // Depth / stencil
-    Stencil8,
     Depth16UNorm,
-    Depth24Plus,
-    Depth24PlusStencil8,
     Depth32Float,
+    Stencil8,
+    Depth24PlusStencil8,
 };
 }
