@@ -268,7 +268,6 @@ namespace urhi
 
 
             // Depth / Stencil
-            case PixelFormat::Depth24Plus:         return device->depth24PlusFormat();
             case PixelFormat::Depth24PlusStencil8: return device->depth24PlusStencil8Format();
 
             case PixelFormat::Depth32Float:     return vk::Format::eD32Sfloat;
@@ -350,8 +349,6 @@ namespace urhi
             // Handle the dynamic Depth24 cases
             // These require a check against the device's specific chosen formats
             default:
-                if (format == device->depth24PlusFormat())
-                    return PixelFormat::Depth24Plus;
                 if (format == device->depth24PlusStencil8Format())
                     return PixelFormat::Depth24PlusStencil8;
 
@@ -808,14 +805,9 @@ namespace urhi
             case PixelFormat::RGBA32SInt:
                 return 16;
 
-            case PixelFormat::Depth24Plus:
             case PixelFormat::Depth24PlusStencil8:
             {
-                const vk::Format actualFormat = (format == PixelFormat::Depth24Plus)
-                                                    ? device->depth24PlusFormat()
-                                                    : device->depth24PlusStencil8Format();
-
-                switch (actualFormat)
+                switch (device->depth24PlusStencil8Format())
                 {
                     case vk::Format::eD16Unorm:
                         return 2;
