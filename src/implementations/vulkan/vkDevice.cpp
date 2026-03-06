@@ -162,6 +162,7 @@ namespace urhi
 
     grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
     {
+        clogr::ensure(desc.size != 0, "Cannot create a buffer with a size of 0");
        if (desc.usage == BufferUsage::Uniform && desc.size < 1024 * 8) // if < 8 KB use persistent mapped buffer
            return grl::makeRc<VkMappedBuffer>(this, desc);
 

@@ -273,7 +273,8 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdPushConstants &c)
     {
-        clogr::ensure(c.data.size() != 0, "No data uploaded");
+        clogr::ensure(!c.data.empty(), "No data uploaded");
+        clogr::ensure(m_currentPipeline->m_pushConstantRange != nullptr, "This shader attached to the bound pipeline has no push constants");
         clogr::ensure(m_currentPipeline->m_pushConstantRange->size == c.data.size(), "Size of uploaded data doesnt match shader");
         m_cmd.pushConstants(m_currentPipeline->getLayout(), m_currentPipeline->m_pushConstantRange->stageFlags, m_currentPipeline->m_pushConstantRange->offset, c.data.size(), c.data.data());
 
