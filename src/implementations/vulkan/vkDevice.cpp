@@ -48,6 +48,7 @@ namespace urhi
         vkb::PhysicalDeviceSelector selector { context->getVkbInstance() };
         vkb::PhysicalDevice physicalDevice = selector
             .add_required_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)
+            .add_required_extension(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME)
             .set_minimum_version(1, 3)
             .set_required_features_13(features13)
             .set_required_features_12(features12)
@@ -57,7 +58,14 @@ namespace urhi
             .value();
 
 
-        vkb::DeviceBuilder deviceBuilder { physicalDevice };
+        vk::PhysicalDeviceRobustness2FeaturesEXT robustness2{};
+        robustness2.nullDescriptor = true;
+
+        vkb::DeviceBuilder deviceBuilder{ physicalDevice };
+        auto dev_ret = deviceBuilder
+            .add_pNext(&robustness2)
+            .build();
+
         vkb::Device vkbDevice = deviceBuilder.build().value();
 
         m_handle = vkbDevice.device;

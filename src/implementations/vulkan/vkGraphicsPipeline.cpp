@@ -118,8 +118,10 @@ namespace urhi {
         renderingInfo.pColorAttachmentFormats = colorFormats.data();
         if (desc.depthAttachmentFormat)
         {
-            renderingInfo.depthAttachmentFormat = VkConvert::pixelFormat(desc.depthAttachmentFormat.value(), m_device);
-            renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
+            renderingInfo.depthAttachmentFormat = VkConvert::pixelFormat(*desc.depthAttachmentFormat, m_device);
+
+            if(*desc.depthAttachmentFormat == PixelFormat::Depth24PlusStencil8)
+                renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
         }else
         {
             renderingInfo.depthAttachmentFormat = vk::Format::eUndefined;
