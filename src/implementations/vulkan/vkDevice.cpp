@@ -62,11 +62,10 @@ namespace urhi
         robustness2.nullDescriptor = true;
 
         vkb::DeviceBuilder deviceBuilder{ physicalDevice };
-        auto dev_ret = deviceBuilder
+        vkb::Device vkbDevice = deviceBuilder
             .add_pNext(&robustness2)
-            .build();
-
-        vkb::Device vkbDevice = deviceBuilder.build().value();
+            .build()
+            .value();
 
         m_handle = vkbDevice.device;
         m_physicalDevice = physicalDevice.physical_device;
