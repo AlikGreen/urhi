@@ -99,7 +99,7 @@ namespace urhi
         attachment.target   = m_renderTexture;
         attachment.loadOp   = LoadOp::Clear;
         attachment.storeOp  = StoreOp::Store;
-        attachment.clearValue = ClearColorFloat{ 0.0f, 0.0f, 0.0f, 1.0f }; // red
+        attachment.clearValue = ClearColorFloat{ 0.0f, 0.0f, 0.0f, 0.0f };
 
         renderPassDesc.colorAttachments.push_back(attachment);
 
@@ -268,7 +268,7 @@ namespace urhi
         texDesc.width = width;
         texDesc.height = height;
         texDesc.maxMipLevels = 1;
-        texDesc.format = PixelFormat::R8G8B8A8Unorm;
+        texDesc.format = PixelFormat::RGBA8UNorm;
         texDesc.usage = TextureUsage::Sampled;
 
         const grl::Rc<Texture> fontTexture = m_device->createTexture(texDesc);
@@ -324,7 +324,7 @@ namespace urhi
         pipelineDescription.depthState      = { .hasDepthTarget = false, .enableDepthTest = false };
         pipelineDescription.colorAttachments = {
             ColorAttachmentDesc{
-                .format = PixelFormat::R8G8B8A8Unorm,
+                .format = PixelFormat::RGBA8UNorm,
                 .blend  = BlendState::alphaBlend()
             }
         };
@@ -343,7 +343,7 @@ namespace urhi
         fbTexDesc.maxMipLevels = 1;
         fbTexDesc.type = TextureType::Texture2D;
         fbTexDesc.usage = TextureUsage::ColorTarget | TextureUsage::Sampled;
-        fbTexDesc.format = PixelFormat::R8G8B8A8Unorm;
+        fbTexDesc.format = PixelFormat::RGBA8UNorm;
 
         m_framebufferTexture = m_device->createTexture(fbTexDesc);
         m_renderTexture = m_device->createTextureView(m_framebufferTexture);

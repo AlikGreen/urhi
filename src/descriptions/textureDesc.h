@@ -15,7 +15,7 @@ struct TextureDesc
 
     uint32_t arrayLayers = 1;
 
-    PixelFormat format = PixelFormat::Invalid;
+    PixelFormat format = PixelFormat::Unknown;
     TextureUsage usage = TextureUsage::Sampled;
     TextureType type = TextureType::Texture2D;
 

@@ -68,7 +68,7 @@ namespace urhi
         const auto texture = dynamic_cast<VkTexture*>(uploadDesc.texture.get());
 
         clogr::ensure(uploadDesc.data != nullptr, "Trying to upload nullptr data to texture.");
-        const uint32_t size = uploadDesc.width*uploadDesc.height*uploadDesc.depth*VkConvert::pixelFormatBytes(texture->format());
+        const uint32_t size = uploadDesc.width*uploadDesc.height*uploadDesc.depth*VkConvert::pixelFormatBytes(texture->format(), m_device);
         const StagingAllocation allocation = allocate(size);
 
         std::memcpy(allocation.mapped, uploadDesc.data, size);

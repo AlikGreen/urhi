@@ -14,8 +14,8 @@
 
 namespace urhi
 {
-    VkCommandList::VkCommandList(const QueueType queueType)
-        : m_queueType(queueType)
+    VkCommandList::VkCommandList(const QueueType queueType, VkDevice* device)
+        : m_device(device), m_queueType(queueType)
     {
     }
 
@@ -40,7 +40,7 @@ namespace urhi
 
     void VkCommandList::updateTexture(const TextureUploadDesc &desc)
     {
-        const uint32_t size = desc.width * desc.height * desc.depth * VkConvert::pixelFormatBytes(desc.texture->format());
+        const uint32_t size = desc.width * desc.height * desc.depth * VkConvert::pixelFormatBytes(desc.texture->format(), m_device);
 
         std::vector<uint8_t> vec{};
         vec.resize(size);

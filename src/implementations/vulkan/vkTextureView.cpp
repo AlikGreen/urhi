@@ -16,7 +16,7 @@ namespace urhi
             vk::ImageViewCreateFlags{0},
             m_texture->getHandle(),
             VkConvert::textureViewType(desc.texture->type()),
-            VkConvert::pixelFormat(desc.format),
+            VkConvert::pixelFormat(desc.format, m_device),
             {},
             {
                 VkConvert::aspectMask(desc.format),

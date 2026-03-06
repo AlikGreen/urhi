@@ -13,7 +13,7 @@ struct TextureViewDesc
     uint32_t baseArrayLayer = 0;
     uint32_t arrayLayers = 1;
 
-    PixelFormat format = PixelFormat::Invalid;
+    PixelFormat format = PixelFormat::Unknown;
 
     TextureViewDesc() = default;
 

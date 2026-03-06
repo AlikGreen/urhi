@@ -109,6 +109,22 @@ namespace urhi
         vkGetPhysicalDeviceProperties(m_physicalDevice, &physProps);
 
         m_maxAnisotropy = physProps.limits.maxSamplerAnisotropy;
+
+        vk::FormatProperties props = m_physicalDevice.getFormatProperties(vk::Format::eD24UnormS8Uint);
+        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+            m_depth24PlusStencil8Format = vk::Format::eD24UnormS8Uint;
+
+        props = m_physicalDevice.getFormatProperties(vk::Format::eD32SfloatS8Uint);
+        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+            m_depth24PlusStencil8Format = vk::Format::eD32SfloatS8Uint;
+
+        props = m_physicalDevice.getFormatProperties(vk::Format::eX8D24UnormPack32);
+        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+            m_depth24PlusFormat = vk::Format::eX8D24UnormPack32;
+
+        props = m_physicalDevice.getFormatProperties(vk::Format::eD32Sfloat);
+        if (props.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+            m_depth24PlusFormat = vk::Format::eD32Sfloat;
     }
 
     VkDevice::~VkDevice()
@@ -129,7 +145,7 @@ namespace urhi
 
     grl::Rc<CommandList> VkDevice::acquireCommandList(QueueType queueType)
     {
-        return grl::makeRc<VkCommandList>(queueType);
+        return grl::makeRc<VkCommandList>(queueType, this);
     }
 
     grl::Rc<Texture> VkDevice::createTexture(const TextureDesc &desc)
@@ -154,7 +170,7 @@ namespace urhi
 
     grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
     {
-       if (desc.usage == BufferUsage::Uniform && desc.size < 1024 * 8) // if < 8 MB use persistent mapped buffer
+       if (desc.usage == BufferUsage::Uniform && desc.size < 1024 * 8) // if < 8 KB use persistent mapped buffer
            return grl::makeRc<VkMappedBuffer>(this, desc);
 
         return grl::makeRc<VkStagedBuffer>(this, desc);
@@ -225,7 +241,17 @@ namespace urhi
     {
         return m_queueStates[static_cast<size_t>(queueType)];
     }
-    
+
+    vk::Format VkDevice::depth24PlusFormat() const
+    {
+        return m_depth24PlusFormat;
+    }
+
+    vk::Format VkDevice::depth24PlusStencil8Format() const
+    {
+        return m_depth24PlusStencil8Format;
+    }
+
     void VkDevice::tryCollectGarbage()
     {
         if(m_destroyQueue.size() < 1) return;

@@ -17,7 +17,7 @@ namespace urhi
         {
             vk::ImageCreateFlags{0},
             VkConvert::textureType(desc.type),
-            VkConvert::pixelFormat(desc.format),
+            VkConvert::pixelFormat(desc.format, m_device),
             {desc.width, desc.height, desc.depth},
             m_mipLevels,
             desc.arrayLayers,

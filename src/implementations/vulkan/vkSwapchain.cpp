@@ -13,7 +13,7 @@ namespace urhi
         m_window = std::dynamic_pointer_cast<VkWindow>(desc.window);
         m_presentMode = VkConvert::presentMode(desc.presentMode);
         m_colorSpace = VkConvert::colorSpace(desc.colorSpace);
-        m_imageFormat = VkConvert::pixelFormat(desc.format);
+        m_imageFormat = VkConvert::pixelFormat(desc.format, m_device.get());
 
         const vk::SurfaceCapabilitiesKHR caps = m_device->getPhysicalDevice().getSurfaceCapabilitiesKHR(m_window->getSurface());
         m_maxFramesInFlight = caps.minImageCount;
@@ -83,7 +83,7 @@ namespace urhi
         //store swapchain and its related images
         m_handle = vkbSwapchain.swapchain;
 
-        PixelFormat swapchainFormat = VkConvert::pixelFormat(m_imageFormat);
+        PixelFormat swapchainFormat = VkConvert::pixelFormat(m_imageFormat, m_device.get());
 
         const auto rawImages = vkbSwapchain.get_images().value();
         m_textures.clear();

@@ -27,6 +27,7 @@
 
 namespace urhi
 {
+class VkDevice;
 class VkConvert
 {
 public:
@@ -37,8 +38,8 @@ public:
     static vk::PresentModeKHR presentMode(PresentMode presentMode);
     static vk::ColorSpaceKHR colorSpace(ColorSpace colorSpace);
 
-    static vk::Format pixelFormat(PixelFormat pixelFormat);
-    static PixelFormat pixelFormat(vk::Format format);
+    static vk::Format pixelFormat(PixelFormat pixelFormat, const VkDevice* device);
+    static PixelFormat pixelFormat(vk::Format format, const VkDevice* device);
 
     static vk::BufferUsageFlags bufferUsage(BufferUsage bufferUsage);
 
@@ -73,6 +74,6 @@ public:
     static vk::SamplerMipmapMode mipmapFilter(MipmapFilter filter);
     static vk::SamplerAddressMode addressMode(AddressMode mode);
     static vk::BorderColor borderColor(BorderColor color);
-    static uint32_t pixelFormatBytes(PixelFormat format);
+    static uint32_t pixelFormatBytes(PixelFormat format, const VkDevice* device);
 };
 }

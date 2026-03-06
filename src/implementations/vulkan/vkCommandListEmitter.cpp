@@ -156,7 +156,7 @@ namespace urhi
         region.imageOffset = vk::Offset3D{ desc.x, desc.y, desc.z };
         region.imageExtent = vk::Extent3D{ width, height, depth };
 
-        const uint32_t size = width * height * depth * VkConvert::pixelFormatBytes(vkTex->format());
+        const uint32_t size = width * height * depth * VkConvert::pixelFormatBytes(vkTex->format(), m_device);
 
         // create buffer
         const VkBufferCreateInfo bufferInfo = {
@@ -370,7 +370,7 @@ namespace urhi
         auto texture = dynamic_cast<VkTexture*>(c.texture.get());
         const uint32_t mipLevels = texture->mipLevelCount();
 
-        const vk::FormatProperties formatProperties = m_device->getPhysicalDevice().getFormatProperties(VkConvert::pixelFormat(texture->format()));
+        const vk::FormatProperties formatProperties = m_device->getPhysicalDevice().getFormatProperties(VkConvert::pixelFormat(texture->format(), m_device));
         clogr::ensure(static_cast<bool>(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear), "Texture format is not blitable (so cannot generate mipmaps) if mipmaps are needed generate them manually");
 
         int32_t mipWidth = texture->width();

@@ -6,7 +6,7 @@ namespace urhi
 {
 struct ColorAttachmentDesc
 {
-    PixelFormat format = PixelFormat::Undefined;
+    PixelFormat format = PixelFormat::Unknown;
     BlendState blend = BlendState::opaque();
 };
 }

@@ -110,7 +110,7 @@ namespace urhi {
         std::vector<vk::Format> colorFormats;
         for (const auto& attachment : desc.colorAttachments)
         {
-            colorFormats.push_back(VkConvert::pixelFormat(attachment.format));
+            colorFormats.push_back(VkConvert::pixelFormat(attachment.format, m_device));
         }
 
         vk::PipelineRenderingCreateInfo renderingInfo{};
@@ -118,7 +118,7 @@ namespace urhi {
         renderingInfo.pColorAttachmentFormats = colorFormats.data();
         if (desc.depthAttachmentFormat)
         {
-            renderingInfo.depthAttachmentFormat = VkConvert::pixelFormat(desc.depthAttachmentFormat.value());
+            renderingInfo.depthAttachmentFormat = VkConvert::pixelFormat(desc.depthAttachmentFormat.value(), m_device);
             renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
         }else
         {

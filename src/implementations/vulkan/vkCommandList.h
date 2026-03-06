@@ -61,7 +61,7 @@ using Command = std::variant<
 class VkCommandList final : public CommandList
 {
 public:
-    explicit VkCommandList(QueueType queueType);
+    explicit VkCommandList(QueueType queueType, VkDevice* device);
     void begin() override;
 
     grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc &desc) override;
@@ -80,6 +80,7 @@ private:
     friend class VkComputePass;
     friend class VkDevice;
 
+    VkDevice* m_device;
     QueueType m_queueType;
     grl::Rc<VkCommandListPool> m_pool;
 
