@@ -57,7 +57,11 @@ namespace urhi
 
     void VkWindow::close()
     {
-        clogr::abort("not implemented");
+        if(m_handle)
+        {
+            glfwDestroyWindow(m_handle);
+            m_handle = nullptr;
+        }
     }
 
     std::vector<Event> VkWindow::pollEvents()
