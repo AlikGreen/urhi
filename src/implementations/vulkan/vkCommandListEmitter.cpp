@@ -465,6 +465,8 @@ namespace urhi
         texture->m_currentLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
         m_idx++;
+
+        texture->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdBlitTexture &c) const

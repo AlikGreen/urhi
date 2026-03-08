@@ -13,7 +13,8 @@ namespace urhi
         const VkDebugUtilsMessengerCallbackDataEXT* data,
         void* pUserData)
     {
-        clogr::error("[{}] {}", data->pMessageIdName ? data->pMessageIdName : "VK", data->pMessage);
+        if(messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+            clogr::error("[{}] {}", data->pMessageIdName ? data->pMessageIdName : "VK", data->pMessage);
         return VK_FALSE;
     }
 

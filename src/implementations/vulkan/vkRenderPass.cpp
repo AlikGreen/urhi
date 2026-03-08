@@ -15,37 +15,37 @@ namespace urhi
     VkRenderPass::VkRenderPass(std::vector<Command>& commands, const RenderPassDesc &desc)
         : m_commands(commands)
     {
-        m_commands.push_back(CmdBeginRenderPass{desc});
+        m_commands.emplace_back(CmdBeginRenderPass{desc});
     }
 
     void VkRenderPass::setPipeline(const grl::Rc<Pipeline>& pipeline)
     {
-        m_commands.push_back(CmdSetPipeline{pipeline, vk::PipelineBindPoint::eGraphics});
+        m_commands.emplace_back(CmdSetPipeline{pipeline, vk::PipelineBindPoint::eGraphics});
     }
 
     void VkRenderPass::setUniformBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
     {
-        m_commands.push_back(CmdSetUniformBuffer{name, buffer});
+        m_commands.emplace_back(CmdSetUniformBuffer{name, buffer});
     }
 
     void VkRenderPass::setStorageBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
     {
-        m_commands.push_back(CmdSetStorageBuffer{name, buffer});
+        m_commands.emplace_back(CmdSetStorageBuffer{name, buffer});
     }
 
     void VkRenderPass::setTexture(const std::string &name, const grl::Rc<TextureView> &texture)
     {
-        m_commands.push_back(CmdSetTexture{name, texture});
+        m_commands.emplace_back(CmdSetTexture{name, texture});
     }
 
     void VkRenderPass::setSampler(const std::string &name, const grl::Rc<Sampler> &sampler)
     {
-        m_commands.push_back(CmdSetSampler{name, sampler});
+        m_commands.emplace_back(CmdSetSampler{name, sampler});
     }
 
     void VkRenderPass::setImage(const std::string &name, const grl::Rc<TextureView> &texture, const ResourceAccess access)
     {
-        m_commands.push_back(CmdSetImage{name, texture, access});
+        m_commands.emplace_back(CmdSetImage{name, texture, access});
     }
 
     void VkRenderPass::pushConstants(void *data, const size_t size)
@@ -54,41 +54,41 @@ namespace urhi
         vec.resize(size);
         std::memcpy(vec.data(), data, size);
 
-        m_commands.push_back(CmdPushConstants{vec});
+        m_commands.emplace_back(CmdPushConstants{vec});
     }
 
     void VkRenderPass::setVertexBuffer(const uint32_t index, const grl::Rc<Buffer> &vertexBuffer)
     {
-        m_commands.push_back(CmdSetVertexBuffer{index, vertexBuffer});
+        m_commands.emplace_back(CmdSetVertexBuffer{index, vertexBuffer});
     }
 
     void VkRenderPass::setIndexBuffer(const grl::Rc<Buffer> &indexBuffer, const IndexFormat indexFormat)
     {
-        m_commands.push_back(CmdSetIndexBuffer{indexBuffer, indexFormat});
+        m_commands.emplace_back(CmdSetIndexBuffer{indexBuffer, indexFormat});
     }
 
     void VkRenderPass::setScissor(const Rect2D rect)
     {
-        m_commands.push_back(CmdSetScissor{rect});
+        m_commands.emplace_back(CmdSetScissor{rect});
     }
 
     void VkRenderPass::setViewport(const Viewport viewport)
     {
-        m_commands.push_back(CmdSetViewport{viewport});
+        m_commands.emplace_back(CmdSetViewport{viewport});
     }
 
     void VkRenderPass::end()
     {
-        m_commands.push_back(CmdEndRenderPass{});
+        m_commands.emplace_back(CmdEndRenderPass{});
     }
 
     void VkRenderPass::drawImpl(const uint32_t vertexCount, const uint32_t instanceCount, const uint32_t firstVertex, const uint32_t firstInstance)
     {
-        m_commands.push_back(CmdDraw{vertexCount, instanceCount, firstVertex, firstInstance});
+        m_commands.emplace_back(CmdDraw{vertexCount, instanceCount, firstVertex, firstInstance});
     }
 
     void VkRenderPass::drawIndexedImpl(const uint32_t indexCount, const uint32_t instanceCount, const uint32_t firstIndex, const int vertexOffset, const uint32_t firstInstance)
     {
-        m_commands.push_back(CmdDrawIndexed{indexCount, instanceCount, firstIndex, vertexOffset, firstInstance});
+        m_commands.emplace_back(CmdDrawIndexed{indexCount, instanceCount, firstIndex, vertexOffset, firstInstance});
     }
 }

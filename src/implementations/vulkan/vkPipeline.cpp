@@ -15,11 +15,20 @@ namespace urhi
     VkPipeline::VkPipeline(VkDevice* device, const std::vector<grl::Rc<Shader>> &shaders)
         : m_device(device)
     {
+        auto bindingKey = [](uint32_t set, uint32_t binding) {
+            return (static_cast<uint64_t>(set) << 32) | binding;
+        };
 
         std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding> layoutBindingsMap;
 
-        auto processReflection = [&](const ShaderEntryPoint& entryPoint)
+
+        for(const auto& shader : shaders)
         {
+            clogr::ensure(!m_shaderMap.contains(shader->entryPoint().stage), "Pipeline cannot be created with multiple shaders of the same type.");
+            auto vkShader = std::dynamic_pointer_cast<VkShader>(shader);
+            m_shaderMap.emplace(shader->entryPoint().stage, vkShader);
+            auto entryPoint = vkShader->entryPoint();
+
             if(entryPoint.reflection.pushConstant.has_value())
             {
                 const auto pc = entryPoint.reflection.pushConstant.value();
@@ -39,29 +48,26 @@ namespace urhi
 
             for (const auto& resource : entryPoint.reflection.resources)
             {
-                auto it = layoutBindingsMap.find(resource.binding);
+                const auto key = bindingKey(resource.set, resource.binding);
+                auto it = layoutBindingsMap.find(key);
                 if (it != layoutBindingsMap.end())
                 {
+                    clogr::ensure(it->second.descriptorType == VkConvert::resourceType(resource.type),
+                        "Descriptor type mismatch at set={} binding={}: shaders disagree on resource type",
+                        resource.set, resource.binding);
+
                     it->second.stageFlags |= VkConvert::shaderStage(entryPoint.stage);
                 }
                 else
                 {
                     vk::DescriptorSetLayoutBinding binding{};
-                    binding.binding = resource.binding;
-                    binding.descriptorType = VkConvert::resourceType(resource.type);
-                    binding.descriptorCount = resource.arrayCount;
-                    binding.stageFlags = VkConvert::shaderStage(entryPoint.stage);
-                    layoutBindingsMap[resource.binding] = binding;
+                    binding.binding         = resource.binding;
+                    binding.descriptorType  = VkConvert::resourceType(resource.type);
+                    binding.descriptorCount = std::max(1u, resource.arrayCount); // never 0
+                    binding.stageFlags      = VkConvert::shaderStage(entryPoint.stage);
+                    layoutBindingsMap[key]  = binding;
                 }
             }
-        };
-
-        for(const auto& shader : shaders)
-        {
-            clogr::ensure(!m_shaderMap.contains(shader->entryPoint().stage), "Pipeline cannot be created with multiple shaders of the same type.");
-            auto vkShader = std::dynamic_pointer_cast<VkShader>(shader);
-            m_shaderMap.emplace(shader->entryPoint().stage, vkShader);
-            processReflection(vkShader->entryPoint());
         }
 
         std::vector<vk::DescriptorSetLayoutBinding> layoutBindings;

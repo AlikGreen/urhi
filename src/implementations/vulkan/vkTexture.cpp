@@ -58,7 +58,6 @@ namespace urhi
         m_device->queueDestroy(m_life,
         [h = m_image](const vk::Device device)
         {
-
             device.destroyImage(h);
         });
     }

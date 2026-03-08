@@ -48,7 +48,6 @@ namespace urhi
         vkb::PhysicalDeviceSelector selector { context->getVkbInstance() };
         vkb::PhysicalDevice physicalDevice = selector
             .add_required_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)
-            .add_required_extension(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME)
             .set_minimum_version(1, 3)
             .set_required_features_13(features13)
             .set_required_features_12(features12)
@@ -58,12 +57,8 @@ namespace urhi
             .value();
 
 
-        vk::PhysicalDeviceRobustness2FeaturesEXT robustness2{};
-        robustness2.nullDescriptor = true;
-
         vkb::DeviceBuilder deviceBuilder{ physicalDevice };
         vkb::Device vkbDevice = deviceBuilder
-            .add_pNext(&robustness2)
             .build()
             .value();
 
@@ -249,19 +244,20 @@ namespace urhi
 
     void VkDevice::tryCollectGarbage()
     {
-        if(m_destroyQueue.size() < 1) return;
+        if(m_destroyQueue.empty()) return;
 
-        uint64_t completeValues[3];
+        uint64_t completeValues[3] = {0, 0, 0};
 
         for (size_t i = 0; i < m_destroyQueue.size(); i++ )
         {
             auto& [lifetime, callback] = m_destroyQueue[i];
 
+            const auto queueIdx = static_cast<uint8_t>(lifetime.lastSubmitQueue);
             uint64_t completeValue = completeValues[static_cast<uint8_t>(lifetime.lastSubmitQueue)];
             if(completeValue == 0)
             {
-                completeValue = m_handle.getSemaphoreCounterValue(m_queueStates[i]->timeline);
-                completeValues[static_cast<uint8_t>(lifetime.lastSubmitQueue)] = completeValue;
+                completeValue = m_handle.getSemaphoreCounterValue(m_queueStates[queueIdx]->timeline);
+                completeValues[queueIdx] = completeValue;
             }
 
             if(lifetime.lastSubmitValue <= completeValue)

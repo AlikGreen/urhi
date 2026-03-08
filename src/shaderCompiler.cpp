@@ -277,9 +277,20 @@ namespace urhi
             for (uint32_t c = 0; c < param->getCategoryCount(); ++c)
             {
                 auto category = param->getCategoryByIndex(c);
-                binding = param->getOffset(category);
-                set = param->getBindingSpace(category);
-                break;
+
+                if (category == slang::ParameterCategory::ShaderResource ||
+                    category == slang::ParameterCategory::DescriptorTableSlot)
+                {
+                    binding = (uint32_t)param->getOffset(category);
+                    set = (uint32_t)param->getBindingSpace(category);
+                    break;
+                }
+
+                if (category == slang::ParameterCategory::SamplerState)
+                {
+                    binding = (uint32_t)param->getOffset(category);
+                    set = (uint32_t)param->getBindingSpace(category);
+                }
             }
 
             const auto kind = type->getKind();

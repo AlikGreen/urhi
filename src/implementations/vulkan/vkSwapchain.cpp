@@ -40,11 +40,6 @@ namespace urhi
         if(height == 0) height = m_window->height();
 
         resize(width, height);
-
-        for (size_t i = 0; i < m_textureViews.size(); i++)
-        {
-            m_renderFinishedSemaphores.push_back(m_device->getHandle().createSemaphore({}));
-        }
     }
 
     VkSwapchain::~VkSwapchain()
@@ -71,8 +66,7 @@ namespace urhi
 
         vkb::Swapchain vkbSwapchain = swapchainBuilder
             //.use_default_format_selection()
-            .set_desired_format(VkSurfaceFormatKHR{ .format = static_cast<VkFormat>(m_imageFormat), .colorSpace = static_cast<VkColorSpaceKHR>(m_imageFormat) })
-            //use vsync present mode
+            .set_desired_format(VkSurfaceFormatKHR{ .format = static_cast<VkFormat>(m_imageFormat), .colorSpace = static_cast<VkColorSpaceKHR>(m_colorSpace) })
             .set_desired_present_mode(static_cast<VkPresentModeKHR>(m_presentMode))
             .set_desired_extent(width, height)
             .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
@@ -84,6 +78,7 @@ namespace urhi
         m_handle = vkbSwapchain.swapchain;
 
         PixelFormat swapchainFormat = VkConvert::pixelFormat(m_imageFormat, m_device.get());
+
 
         const auto rawImages = vkbSwapchain.get_images().value();
         m_textures.clear();
@@ -102,6 +97,14 @@ namespace urhi
             grl::Rc<VkTextureView> texView = grl::makeRc<VkTextureView>(m_device.get(), std::dynamic_pointer_cast<VkTexture>(m_textures[i]), swapchainFormat, rawImageViews[i]);
             m_textureViews.push_back(texView);
         }
+
+        for (const auto s : m_renderFinishedSemaphores)
+            m_device->getHandle().destroySemaphore(s);
+        m_renderFinishedSemaphores.clear();
+
+        m_renderFinishedSemaphores.reserve(m_textureViews.size());
+        for (size_t i = 0; i < m_textureViews.size(); ++i)
+            m_renderFinishedSemaphores.push_back(m_device->getHandle().createSemaphore({}));
     }
 
     grl::Rc<TextureView> VkSwapchain::acquireNextImage()
@@ -119,6 +122,8 @@ namespace urhi
             UINT64_MAX,
             frame.imageAvailableSemaphore
         );
+
+        clogr::ensure(result.has_value(), "Count not acquire image");
 
         m_semaphoreConsumed = false;
 
@@ -149,24 +154,26 @@ namespace urhi
         vk::SubmitInfo bridgeSubmit{};
         bridgeSubmit.commandBufferCount = 1;
         bridgeSubmit.pCommandBuffers = &cmd;
+        const vk::Semaphore signalSemaphore = m_renderFinishedSemaphores[m_imageIndex];
+        bridgeSubmit.signalSemaphoreCount = 1;
+        bridgeSubmit.pSignalSemaphores = &signalSemaphore;
 
-        // only do bridge submit if work was actually submitted this frame
+        // ── move these OUT of the if-block ──
+        vk::Semaphore waitSemaphore{};
+        vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
+        vk::TimelineSemaphoreSubmitInfo timelineWaitInfo{};
+
         if (queueState->nextTimelineValue > 0)
         {
-            const vk::Semaphore waitSemaphore = queueState->timeline;
-            const vk::Semaphore signalSemaphore = m_renderFinishedSemaphores[m_imageIndex];
-            constexpr vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
+            waitSemaphore = queueState->timeline;
 
-            vk::TimelineSemaphoreSubmitInfo timelineWaitInfo{};
             timelineWaitInfo.waitSemaphoreValueCount = 1;
-            timelineWaitInfo.pWaitSemaphoreValues = &queueState->nextTimelineValue;
+            timelineWaitInfo.pWaitSemaphoreValues    = &queueState->nextTimelineValue;
 
-            bridgeSubmit.pNext = &timelineWaitInfo;
+            bridgeSubmit.pNext             = &timelineWaitInfo;
             bridgeSubmit.waitSemaphoreCount = 1;
-            bridgeSubmit.pWaitSemaphores = &waitSemaphore;
+            bridgeSubmit.pWaitSemaphores   = &waitSemaphore;
             bridgeSubmit.pWaitDstStageMask = &waitStage;
-            bridgeSubmit.signalSemaphoreCount = 1;
-            bridgeSubmit.pSignalSemaphores = &signalSemaphore;
         }
 
         queueState->queue.submit({bridgeSubmit}, m_frames[m_frameIndex].inFlightFence);
