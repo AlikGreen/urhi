@@ -46,7 +46,7 @@ public:
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
     void submit(const grl::Rc<CommandList> &cmdList) override;
 
-    void queueDestroy(VkLifetime lifetime, std::function<void(vk::Device device)> callback);
+    void queueDestroy(VkLifetime lifetime, const std::function<void(vk::Device device)> &callback);
 
     [[nodiscard]] vk::PhysicalDevice getPhysicalDevice() const;
     [[nodiscard]] vk::Device getHandle() const;

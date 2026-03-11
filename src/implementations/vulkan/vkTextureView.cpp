@@ -40,10 +40,10 @@ namespace urhi
         if(!m_owned) return;
 
         m_device->queueDestroy(m_life,
-        [h = m_imageView](const vk::Device device)
-        {
-            device.destroyImageView(h);
-        });
+                               [h = m_imageView](const vk::Device device)
+                               {
+                                   device.destroyImageView(h);
+                               });
     }
 
     uint32_t VkTextureView::baseMipLevel() const
@@ -84,5 +84,11 @@ namespace urhi
     VkLifetime& VkTextureView::lifetime()
     {
         return m_life;
+    }
+
+    void VkTextureView::markUsed(const QueueType type, const uint64_t submitValue)
+    {
+        lifetime().markUsed(type, submitValue);
+        m_texture->lifetime().markUsed(type, submitValue);
     }
 }

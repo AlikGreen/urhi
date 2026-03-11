@@ -5,6 +5,7 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "validation.h"
 #include "vkCommandListEmitter.h"
 #include "vkCommandListTracker.h"
 #include "vkComputePipeline.h"
@@ -124,6 +125,7 @@ namespace urhi
     VkDevice::~VkDevice()
     {
         m_handle.waitIdle();
+        m_handle.waitIdle();
         tryCollectGarbage();
     }
 
@@ -164,7 +166,7 @@ namespace urhi
 
     grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
     {
-        clogr::ensure(desc.size != 0, "Cannot create a buffer with a size of 0");
+        URHI_VALIDATE(desc.size != 0, "Buffer size ({}) invalid for creation - buffer size must be greater than 0 and less than vram available", desc.size);
        if (desc.usage == BufferUsage::Uniform && desc.size < 1024 * 8) // if < 8 KB use persistent mapped buffer
            return grl::makeRc<VkMappedBuffer>(this, desc);
 
@@ -212,7 +214,7 @@ namespace urhi
         tryCollectGarbage();
     }
 
-    void VkDevice::queueDestroy(VkLifetime lifetime, std::function<void(vk::Device device)> callback)
+    void VkDevice::queueDestroy(VkLifetime lifetime, const std::function<void(vk::Device device)>& callback)
     {
         m_destroyQueue.emplace_back(lifetime, callback);
     }
@@ -268,6 +270,8 @@ namespace urhi
                 i--;
             }
         }
+
+        URHI_WARNING(m_destroyQueue.size() <= 512, "Too many resource destroys queued - {} destroys queued, you may have a memory leak", m_destroyQueue.size());
     }
 
     float VkDevice::getMaxAnisotropy() const

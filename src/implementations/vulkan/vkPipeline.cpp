@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "clogr.h"
+#include "validation.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 #include "vkShader.h"
@@ -15,16 +16,15 @@ namespace urhi
     VkPipeline::VkPipeline(VkDevice* device, const std::vector<grl::Rc<Shader>> &shaders)
         : m_device(device)
     {
-        auto bindingKey = [](uint32_t set, uint32_t binding) {
+        auto bindingKey = [](const uint32_t set, const uint32_t binding) {
             return (static_cast<uint64_t>(set) << 32) | binding;
         };
 
         std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding> layoutBindingsMap;
 
-
         for(const auto& shader : shaders)
         {
-            clogr::ensure(!m_shaderMap.contains(shader->entryPoint().stage), "Pipeline cannot be created with multiple shaders of the same type.");
+            URHI_VALIDATE(!m_shaderMap.contains(shader->entryPoint().stage), "Duplicate shader types - Pipeline cannot be created with multiple shaders of the same type");
             auto vkShader = std::dynamic_pointer_cast<VkShader>(shader);
             m_shaderMap.emplace(shader->entryPoint().stage, vkShader);
             auto entryPoint = vkShader->entryPoint();
@@ -52,9 +52,9 @@ namespace urhi
                 auto it = layoutBindingsMap.find(key);
                 if (it != layoutBindingsMap.end())
                 {
-                    clogr::ensure(it->second.descriptorType == VkConvert::resourceType(resource.type),
-                        "Descriptor type mismatch at set={} binding={}: shaders disagree on resource type",
-                        resource.set, resource.binding);
+                    URHI_VALIDATE(it->second.descriptorType == VkConvert::resourceType(resource.type),
+                        "Resource type mismatch - Resource ({}) is used with different types in different shader stages",
+                        resource.name);
 
                     it->second.stageFlags |= VkConvert::shaderStage(entryPoint.stage);
                 }

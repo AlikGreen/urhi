@@ -31,10 +31,10 @@ namespace urhi
     VkStagedBuffer::~VkStagedBuffer()
     {
         m_device->queueDestroy(m_life,
-        [h = m_buffer](const vk::Device device)
-        {
-            device.destroyBuffer(h);
-        });
+                               [h = m_buffer](const vk::Device device)
+                               {
+                                   device.destroyBuffer(h);
+                               });
     }
 
     VkLifetime& VkStagedBuffer::lifetime()

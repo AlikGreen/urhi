@@ -19,9 +19,9 @@ public:
     VkTexture(VkDevice* device, vk::Image image, PixelFormat format, uint32_t width, uint32_t height);
     ~VkTexture() override;
 
-    [[nodiscard]] uint32_t width(uint32_t mip = 0) const override;
-    [[nodiscard]] uint32_t height(uint32_t mip = 0) const override;
-    [[nodiscard]] uint32_t depth(uint32_t mip = 0) const override;
+    [[nodiscard]] uint32_t width(uint32_t mip) const override;
+    [[nodiscard]] uint32_t height(uint32_t mip) const override;
+    [[nodiscard]] uint32_t depth(uint32_t mip) const override;
 
     [[nodiscard]] uint32_t mipLevelCount() const override;
     [[nodiscard]] uint32_t arrayLayerCount() const override;

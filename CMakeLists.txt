@@ -3,6 +3,8 @@ project(urhi)
 
 set(CMAKE_CXX_STANDARD 23)
 
+option(URHI_ENABLE_VALIDATION "Enable URHI runtime validation" OFF)
+
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
 
 set(ENABLE_OPT OFF CACHE BOOL "" FORCE)
@@ -37,6 +39,10 @@ file(GLOB_RECURSE
 )
 
 add_library(urhi STATIC ${SRC_FILES})
+
+if(URHI_ENABLE_VALIDATION)
+    target_compile_definitions(urhi PUBLIC URHI_ENABLE_VALIDATION)
+endif()
 
 target_compile_definitions(urhi PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 target_compile_definitions(urhi PRIVATE GLFW_INCLUDE_NONE)

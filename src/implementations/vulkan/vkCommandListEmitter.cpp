@@ -3,11 +3,15 @@
 #include <numeric>
 #include <ranges>
 #include <unordered_set>
+#include <utility>
 
 #include "clogr.h"
+#include "urhiToString.h"
+#include "validation.h"
 #include "vkCommandListTracker.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
+#include "vkGraphicsPipeline.h"
 #include "vkMappedBuffer.h"
 #include "vkPipeline.h"
 #include "vkStagedBuffer.h"
@@ -16,11 +20,17 @@
 
 namespace urhi
 {
-    VkCommandListEmitter::VkCommandListEmitter(VkDevice* device, QueueType queueType, uint64_t submitValue, vk::Semaphore timeline, vk::CommandBuffer cmd, VkCommandListTracker tracker, grl::Rc<VkLinearStagingAllocator> stagingAllocator)
-        : m_device(device), m_cmd(cmd), m_tracker(tracker), m_submitValue(submitValue), m_timeline(timeline), m_queueType(queueType), m_stagingAllocator(stagingAllocator) { }
+    VkCommandListEmitter::VkCommandListEmitter(VkDevice* device, QueueType queueType, uint64_t submitValue, const vk::Semaphore timeline, const vk::CommandBuffer cmd, VkCommandListTracker tracker, grl::Rc<VkLinearStagingAllocator> stagingAllocator)
+        : m_device(device), m_cmd(cmd), m_tracker(std::move(tracker)), m_submitValue(submitValue), m_timeline(timeline), m_queueType(queueType), m_stagingAllocator(std::move(stagingAllocator)) { }
 
     void VkCommandListEmitter::emit(const CmdDrawIndexed &c)
     {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - draw requires a graphics pipeline to be bound first");
+
+        URHI_VALIDATE(m_boundPipelineBindPoint == vk::PipelineBindPoint::eGraphics,
+            "Draw requires a graphics pipeline, but the currently bound pipeline uses bind point {}",
+            vk::to_string(m_boundPipelineBindPoint));
+
         pushDescriptors();
         m_cmd.drawIndexed(c.indexCount, c.instanceCount, c.firstIndex, c.vertexOffset, c.firstInstance);
 
@@ -29,6 +39,12 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdDraw &c)
     {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - draw requires a graphics pipeline to be bound first");
+
+        URHI_VALIDATE(m_boundPipelineBindPoint == vk::PipelineBindPoint::eGraphics,
+            "Draw requires a graphics pipeline, but the currently bound pipeline uses bind point {}",
+            vk::to_string(m_boundPipelineBindPoint));
+
         pushDescriptors();
         m_cmd.draw(c.vertexCount, c.instanceCount, c.firstVertex, c.firstInstance);
 
@@ -37,11 +53,9 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBeginRenderPass &c)
     {
-        for (auto& attachment : c.desc.colorAttachments)
-        {
-            const auto tex = dynamic_cast<VkTexture*>(dynamic_cast<VkTextureView*>(attachment.target.get())->texture().get());
-            tex->transitionLayout(m_cmd, vk::ImageLayout::eColorAttachmentOptimal);
-        }
+        m_isRendering = true;
+        m_currentRenderPassDesc = c.desc;
+        m_boundResources.clear();
 
         for (auto& [texture, useList] : m_tracker.m_textureUses)
         {
@@ -58,29 +72,46 @@ namespace urhi
 
         const auto& desc = c.desc;
 
+
         std::vector<vk::RenderingAttachmentInfo> colorAttachments;
         colorAttachments.reserve(desc.colorAttachments.size());
 
         Rect2D renderArea = desc.renderArea;
 
-        for(const auto& attachment : desc.colorAttachments)
+        for(size_t i = 0; i < desc.colorAttachments.size(); i++)
         {
-            auto vkTex = dynamic_cast<VkTextureView*>(attachment.target.get());
+            const auto& attachment = desc.colorAttachments[i];
+
+            auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
+            auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
+            vkView->markUsed(m_queueType, m_submitValue);
+            vkTex->transitionLayout(m_cmd, vk::ImageLayout::eColorAttachmentOptimal);
+
 
             if(renderArea.width == 0 && renderArea.height == 0)
             {
-                renderArea.width = vkTex->texture()->width();
-                renderArea.height = vkTex->texture()->height();
+                renderArea.width = vkView->texture()->width();
+                renderArea.height = vkView->texture()->height();
             }
 
-            clogr::ensure(vkTex->texture()->width() >= renderArea.x + renderArea.width || vkTex->texture()->height() >= renderArea.y + renderArea.height,
-                "Render area outside the bounds of render target\nRender target size: ({}, {})\nRender area: ({}, {}, {}, {})",
-                vkTex->texture()->width(), vkTex->texture()->height(),
-                renderArea.x, renderArea.y, renderArea.width, renderArea.height);
+            URHI_VALIDATE(
+                vkView->texture()->width()  >= renderArea.x + renderArea.width &&
+                vkView->texture()->height() >= renderArea.y + renderArea.height,
+                "Render area outside the bounds of render target\n"
+                "Render target size: ({}, {})\n"
+                "Render area: ({}, {}, {}, {})",
+                vkView->texture()->width(),
+                vkView->texture()->height(),
+                renderArea.x,
+                renderArea.y,
+                renderArea.width,
+                renderArea.height
+            );
+
 
             vk::RenderingAttachmentInfo colorAttachment
             {
-                vkTex->getHandle(),
+                vkView->getHandle(),
                 vk::ImageLayout::eColorAttachmentOptimal,
                 vk::ResolveModeFlagBits::eNone,
                 VK_NULL_HANDLE,
@@ -97,12 +128,28 @@ namespace urhi
 
         if(desc.depthAttachment.has_value())
         {
-            const auto vkTex = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
+            const auto vkView = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
+            const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
+            vkView->markUsed(m_queueType, m_submitValue);
+            vkTex->transitionLayout(m_cmd, vk::ImageLayout::eDepthAttachmentOptimal);
 
+            URHI_VALIDATE(
+                vkView->width()  >= renderArea.x + renderArea.width &&
+                vkView->height() >= renderArea.y + renderArea.height,
+                "Render area outside the bounds of depth target\n"
+                "Depth target size: ({}, {})\n"
+                "Render area: ({}, {}, {}, {})",
+                vkView->width(),
+                vkView->height(),
+                renderArea.x,
+                renderArea.y,
+                renderArea.width,
+                renderArea.height
+            );
 
             depthAttachment =
             {
-                vkTex->getHandle(),
+                vkView->getHandle(),
                 vk::ImageLayout::eDepthAttachmentOptimal,
                 vk::ResolveModeFlagBits::eNone,
                 VK_NULL_HANDLE,
@@ -139,11 +186,24 @@ namespace urhi
     void VkCommandListEmitter::emit(const CmdReadbackTexture &c)
     {
         const auto desc = c.desc;
-
         const auto vkTex = dynamic_cast<VkTexture*>(desc.texture.get());
-        const uint32_t width = std::min(vkTex->width(), desc.width);
-        const uint32_t height = std::min(vkTex->height(), desc.height);
-        const uint32_t depth = std::min(vkTex->depth(), desc.depth);
+
+        URHI_VALIDATE(desc.texture != nullptr,
+            "Texture must not be null");
+
+        URHI_VALIDATE(desc.mipLevel < vkTex->mipLevelCount(),
+            "Readback mip level {} out of range for texture with {} mip levels",
+            desc.mipLevel, vkTex->mipLevelCount());
+
+        URHI_VALIDATE(desc.baseArrayLayer + desc.arrayLayerCount <= vkTex->arrayLayerCount(),
+            "Readback array layer range [{}, {}) out of bounds for texture with {} layers",
+            desc.baseArrayLayer,
+            desc.baseArrayLayer + desc.arrayLayerCount,
+            vkTex->arrayLayerCount());
+
+        URHI_VALIDATE(desc.x + desc.width  <= vkTex->width(0),  "Readback region out of bounds - x offset ({}) + width ({}) is not less than texture width ({})", desc.x, desc.width, vkTex->width(0));
+        URHI_VALIDATE(desc.y + desc.height <= vkTex->height(0), "Readback region out of bounds - y offset ({}) + height ({}) is not less than texture height ({})", desc.y, desc.height, vkTex->height(0));
+        URHI_VALIDATE(desc.z + desc.depth  <= vkTex->depth(0),  "Readback region out of bounds - z offset ({}) + depth ({}) is not less than texture depth ({})", desc.z, desc.depth, vkTex->depth(0));
 
         vk::BufferImageCopy region = {};
         region.bufferOffset = 0;
@@ -153,15 +213,14 @@ namespace urhi
         region.imageSubresource.mipLevel = desc.mipLevel;
         region.imageSubresource.baseArrayLayer = desc.baseArrayLayer;
         region.imageSubresource.layerCount = desc.arrayLayerCount;
-        region.imageOffset = vk::Offset3D{ desc.x, desc.y, desc.z };
-        region.imageExtent = vk::Extent3D{ width, height, depth };
+        region.imageOffset = vk::Offset3D{ static_cast<int32_t>(desc.x), static_cast<int32_t>(desc.y), static_cast<int32_t>(desc.z) };
+        region.imageExtent = vk::Extent3D{ desc.width, desc.height, desc.depth };
 
-        const uint32_t size = width * height * depth * VkConvert::pixelFormatBytes(vkTex->format(), m_device);
+        const uint32_t size = desc.width * desc.height * desc.depth * VkConvert::pixelFormatBytes(vkTex->format(), m_device);
 
-        // create buffer
         const VkBufferCreateInfo bufferInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size = size,
+            .size =  size,
             .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT
         };
 
@@ -172,17 +231,19 @@ namespace urhi
         };
 
         VmaAllocation allocation;
-        VmaAllocationInfo allocationResult;
+        VmaAllocationInfo allocRes;
         vk::Buffer buffer;
 
-        vmaCreateBuffer(
+        auto res = vmaCreateBuffer(
             m_device->getAllocator(),
             &bufferInfo,
             &allocInfo,
             reinterpret_cast<::VkBuffer*>(&buffer),
             &allocation,
-            &allocationResult
+            &allocRes
         );
+
+        URHI_VALIDATE(res == VK_SUCCESS, "Failed to create buffer allocation - vmaCreateBuffer returned {}", vk::to_string(static_cast<vk::Result>(res)));
 
         vkTex->transitionLayout(m_cmd, vk::ImageLayout::eTransferSrcOptimal);
 
@@ -195,7 +256,7 @@ namespace urhi
        );
 
         c.request->m_device = m_device;
-        c.request->m_mapped = allocationResult.pMappedData;
+        c.request->m_mapped = allocRes.pMappedData;
         c.request->m_buffer = buffer;
         c.request->m_size = size;
         c.request->m_bufferAllocation = allocation;
@@ -220,11 +281,10 @@ namespace urhi
             vkMapped->lifetime().markUsed(m_queueType, m_submitValue);
         }else
         {
-            clogr::abort("Buffer was not a VkStagedBuffer or VkMappedBuffer");
+            URHI_VALIDATE(false, "Failed to update buffer - Buffer was not of type VkStagedBuffer or VkMappedBuffer");
         }
 
         m_idx++;
-
     }
 
     void VkCommandListEmitter::emit(const CmdUpdateTexture &c)
@@ -241,7 +301,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdSetUniformBuffer &c)
     {
-        clogr::ensure(m_currentPipeline != nullptr, "No pipeline set");
+        URHI_VALIDATE(m_boundPipeline != nullptr, " No pipeline set — compute dispatch requires a compute pipeline to be set first");
 
         const auto vkBuffer = dynamic_cast<VkBuffer*>(c.buffer.get());
 
@@ -257,7 +317,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdSetStorageBuffer &c)
     {
-        clogr::ensure(m_currentPipeline != nullptr, "No pipeline set");
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set — compute dispatch requires a compute pipeline to be set first");
 
         const auto vkBuffer = dynamic_cast<VkBuffer*>(c.buffer.get());
 
@@ -273,17 +333,19 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdPushConstants &c)
     {
-        clogr::ensure(!c.data.empty(), "No data uploaded");
-        clogr::ensure(m_currentPipeline->m_pushConstantRange != nullptr, "This shader attached to the bound pipeline has no push constants");
-        clogr::ensure(m_currentPipeline->m_pushConstantRange->size == c.data.size(), "Size of uploaded data doesnt match shader");
-        m_cmd.pushConstants(m_currentPipeline->getLayout(), m_currentPipeline->m_pushConstantRange->stageFlags, m_currentPipeline->m_pushConstantRange->offset, c.data.size(), c.data.data());
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - push constants require a pipeline to be bound first");
+        URHI_VALIDATE(!c.data.empty(), "No data uploaded");
+        URHI_VALIDATE(m_boundPipeline->m_pushConstantRange != nullptr, "This shader attached to the bound pipeline has no push constants");
+        URHI_VALIDATE(m_boundPipeline->m_pushConstantRange->size == c.data.size(), "Size of uploaded data ({} bytes) doesnt match shader struct ({} bytes)", c.data.size(), m_boundPipeline->m_pushConstantRange->size);
+
+        m_cmd.pushConstants(m_boundPipeline->getLayout(), m_boundPipeline->m_pushConstantRange->stageFlags, m_boundPipeline->m_pushConstantRange->offset, c.data.size(), c.data.data());
 
         m_idx++;
     }
 
     void VkCommandListEmitter::emit(const CmdSetTexture &c)
     {
-        clogr::ensure(m_currentPipeline != nullptr, "Pipeline must be set before setting texture.");
+        URHI_VALIDATE(m_boundPipeline != nullptr, "Pipeline must be set before setting texture.");
 
         const auto vkView = dynamic_cast<VkTextureView*>(c.texture.get());
 
@@ -294,12 +356,12 @@ namespace urhi
 
         m_idx++;
 
-        vkView->lifetime().markUsed(m_queueType, m_submitValue);
+        vkView->markUsed(m_queueType, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetSampler &c)
     {
-        clogr::ensure(m_currentPipeline != nullptr, "Pipeline must be set before setting sampler.");
+        URHI_VALIDATE(m_boundPipeline != nullptr, "Pipeline must be set before setting sampler.");
 
         const auto vkSampler = dynamic_cast<VkSampler*>(c.sampler.get());
 
@@ -315,7 +377,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdSetImage &c)
     {
-        clogr::ensure(m_currentPipeline != nullptr, "Pipeline must be set before setting image.");
+        URHI_VALIDATE(m_boundPipeline != nullptr, "Pipeline must be set before setting image.");
 
         const auto vkView = dynamic_cast<VkTextureView*>(c.texture.get());
         const auto vkTex  = dynamic_cast<VkTexture*>(vkView->texture().get());
@@ -371,11 +433,21 @@ namespace urhi
         auto texture = dynamic_cast<VkTexture*>(c.texture.get());
         const uint32_t mipLevels = texture->mipLevelCount();
 
-        const vk::FormatProperties formatProperties = m_device->getPhysicalDevice().getFormatProperties(VkConvert::pixelFormat(texture->format(), m_device));
-        clogr::ensure(static_cast<bool>(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear), "Texture format is not blitable (so cannot generate mipmaps) if mipmaps are needed generate them manually");
+        URHI_VALIDATE(c.texture != nullptr,
+            "Texture must not be null");
 
-        int32_t mipWidth = texture->width();
-        int32_t mipHeight = texture->height();
+        URHI_VALIDATE(mipLevels > 1,
+            "Cannot generate mipmaps for a texture with only {} mip level",
+            mipLevels);
+
+        URHI_VALIDATE(texture->arrayLayerCount() > 0,
+            "Cannot generate mipmaps for a texture with zero array layers");
+
+        const vk::FormatProperties formatProperties = m_device->getPhysicalDevice().getFormatProperties(VkConvert::pixelFormat(texture->format(), m_device));
+        URHI_VALIDATE(static_cast<bool>(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear), "Texture format is not blitable - generate mipmaps requires the texture format to be blitable");
+
+        auto mipWidth = static_cast<int32_t>(texture->width(0));
+        auto mipHeight = static_cast<int32_t>(texture->height(0));
 
         texture->transitionLayout(m_cmd, vk::ImageLayout::eTransferDstOptimal);
 
@@ -471,22 +543,81 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBlitTexture &c) const
     {
-        clogr::ensure(c.desc.src != c.desc.dst, "Source texture cannot be the same as destination texture.");
         const auto vkSrc = dynamic_cast<VkTexture*>(c.desc.src.get());
         const auto vkDst = dynamic_cast<VkTexture*>(c.desc.dst.get());
+
+        URHI_VALIDATE(c.desc.src != nullptr, "Source texture must not be null");
+        URHI_VALIDATE(c.desc.dst != nullptr, "Destination texture must not be null");
+        URHI_VALIDATE(c.desc.srcMipLevel < vkSrc->mipLevelCount(),
+            "Source mip level {} out of range for texture with {} mip levels",
+            c.desc.srcMipLevel, vkSrc->mipLevelCount());
+
+        URHI_VALIDATE(c.desc.dstMipLevel < vkDst->mipLevelCount(),
+            "Destination mip level {} out of range for texture with {} mip levels",
+            c.desc.dstMipLevel, vkDst->mipLevelCount());
+
+        URHI_VALIDATE(c.desc.srcArrayLayer < vkSrc->arrayLayerCount(),
+            "Source array layer {} out of range for texture with {} layers",
+            c.desc.srcArrayLayer, vkSrc->arrayLayerCount());
+
+        URHI_VALIDATE(c.desc.dstArrayLayer < vkDst->arrayLayerCount(),
+            "Destination array layer {} out of range for texture with {} layers",
+            c.desc.dstArrayLayer, vkDst->arrayLayerCount());
+
+        URHI_VALIDATE(
+        static_cast<int32_t>(c.desc.srcOffset.x) >= 0 &&
+        static_cast<int32_t>(c.desc.srcOffset.y) >= 0 &&
+        static_cast<int32_t>(c.desc.srcOffset.z) >= 0,
+        "Source offset must be non-negative");
+
+        URHI_VALIDATE(
+            static_cast<int32_t>(c.desc.dstOffset.x) >= 0 &&
+            static_cast<int32_t>(c.desc.dstOffset.y) >= 0 &&
+            static_cast<int32_t>(c.desc.dstOffset.z) >= 0,
+            "Destination offset must be non-negative");
+
+        URHI_VALIDATE(c.desc.src != c.desc.dst, "Source and destination textures are the same — blit requires distinct textures");
 
         vkSrc->transitionLayout(m_cmd, vk::ImageLayout::eTransferSrcOptimal);
         vkDst->transitionLayout(m_cmd, vk::ImageLayout::eTransferDstOptimal);
 
         vk::ImageBlit2 blit{};
 
-        const int32_t srcMaxX = c.desc.srcExtent.x != 0 ? c.desc.srcExtent.x + c.desc.srcOffset.x : vkSrc->width(c.desc.srcMipLevel);
-        const int32_t srcMaxY = c.desc.srcExtent.y != 0 ? c.desc.srcExtent.y + c.desc.srcOffset.y : vkSrc->height(c.desc.srcMipLevel);
-        const int32_t srcMaxZ = c.desc.srcExtent.z != 0 ? c.desc.srcExtent.z + c.desc.srcOffset.z : vkSrc->depth(c.desc.srcMipLevel) ;
+        const int32_t srcMaxX = c.desc.srcExtent.x != 0 ? c.desc.srcExtent.x + static_cast<int32_t>(c.desc.srcOffset.x) : static_cast<int32_t>(vkSrc->width(c.desc.srcMipLevel));
+        const int32_t srcMaxY = c.desc.srcExtent.y != 0 ? c.desc.srcExtent.y + static_cast<int32_t>(c.desc.srcOffset.y) : static_cast<int32_t>(vkSrc->height(c.desc.srcMipLevel));
+        const int32_t srcMaxZ = c.desc.srcExtent.z != 0 ? c.desc.srcExtent.z + static_cast<int32_t>(c.desc.srcOffset.z) : static_cast<int32_t>(vkSrc->depth(c.desc.srcMipLevel)) ;
 
-        const int32_t dstMaxX = c.desc.dstExtent.x != 0 ? c.desc.dstExtent.x + c.desc.dstOffset.x : vkSrc->width(c.desc.dstMipLevel);
-        const int32_t dstMaxY = c.desc.dstExtent.y != 0 ? c.desc.dstExtent.y + c.desc.dstOffset.y : vkSrc->height(c.desc.dstMipLevel);
-        const int32_t dstMaxZ = c.desc.dstExtent.z != 0 ? c.desc.dstExtent.z + c.desc.dstOffset.z : vkSrc->depth(c.desc.dstMipLevel);
+        const int32_t dstMaxX = c.desc.dstExtent.x != 0 ? c.desc.dstExtent.x + static_cast<int32_t>(c.desc.dstOffset.x) : static_cast<int32_t>(vkDst->width(c.desc.dstMipLevel));
+        const int32_t dstMaxY = c.desc.dstExtent.y != 0 ? c.desc.dstExtent.y + static_cast<int32_t>(c.desc.dstOffset.y) : static_cast<int32_t>(vkDst->height(c.desc.dstMipLevel));
+        const int32_t dstMaxZ = c.desc.dstExtent.z != 0 ? c.desc.dstExtent.z + static_cast<int32_t>(c.desc.dstOffset.z) : static_cast<int32_t>(vkDst->depth(c.desc.dstMipLevel));
+
+        URHI_VALIDATE(srcMaxX > static_cast<int32_t>(c.desc.srcOffset.x) &&
+              srcMaxY > static_cast<int32_t>(c.desc.srcOffset.y) &&
+              srcMaxZ > static_cast<int32_t>(c.desc.srcOffset.z),
+            "Source blit region must have non-zero extent");
+
+        URHI_VALIDATE(dstMaxX > static_cast<int32_t>(c.desc.dstOffset.x) &&
+                      dstMaxY > static_cast<int32_t>(c.desc.dstOffset.y) &&
+                      dstMaxZ > static_cast<int32_t>(c.desc.dstOffset.z),
+            "Destination blit region must have non-zero extent");
+
+        URHI_VALIDATE(srcMaxX <= static_cast<int32_t>(vkSrc->width(c.desc.srcMipLevel)) &&
+                      srcMaxY <= static_cast<int32_t>(vkSrc->height(c.desc.srcMipLevel)) &&
+                      srcMaxZ <= static_cast<int32_t>(vkSrc->depth(c.desc.srcMipLevel)),
+            "Source blit region out of bounds for source mip {} (size: {}, {}, {})",
+            c.desc.srcMipLevel,
+            vkSrc->width(c.desc.srcMipLevel),
+            vkSrc->height(c.desc.srcMipLevel),
+            vkSrc->depth(c.desc.srcMipLevel));
+
+        URHI_VALIDATE(dstMaxX <= static_cast<int32_t>(vkDst->width(c.desc.dstMipLevel)) &&
+                      dstMaxY <= static_cast<int32_t>(vkDst->height(c.desc.dstMipLevel)) &&
+                      dstMaxZ <= static_cast<int32_t>(vkDst->depth(c.desc.dstMipLevel)),
+            "Destination blit region out of bounds for destination mip {} (size: {}, {}, {})",
+            c.desc.dstMipLevel,
+            vkDst->width(c.desc.dstMipLevel),
+            vkDst->height(c.desc.dstMipLevel),
+            vkDst->depth(c.desc.dstMipLevel));
 
         blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
         blit.srcSubresource.mipLevel = c.desc.srcMipLevel;
@@ -519,6 +650,12 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdDispatchCompute &c)
     {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set — compute dispatch requires a compute pipeline to be set first");
+
+        URHI_VALIDATE(m_boundPipelineBindPoint == vk::PipelineBindPoint::eCompute,
+            "Compute dispatch requires a compute pipeline, but the currently bound pipeline uses bind point {}",
+            vk::to_string(m_boundPipelineBindPoint));
+
         pushDescriptors();
         m_cmd.dispatchBase(0, 0, 0, c.groupsX, c.groupsY, c.groupsZ);
 
@@ -527,6 +664,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdEndRenderPass &c)
     {
+        m_isRendering = false;
         m_cmd.endRendering();
 
         m_idx++;
@@ -534,6 +672,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBeginComputePass &c)
     {
+        m_boundResources.clear();
         m_idx++;
     }
 
@@ -552,33 +691,95 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdSetPipeline &c)
     {
-        m_currentPipeline = std::dynamic_pointer_cast<VkPipeline>(c.pipeline);
-        m_currentPipelineBindPoint = c.bindPoint;
-        clogr::ensure(m_currentPipeline != nullptr, "Pipeline is not a graphics pipeline");
-        m_cmd.bindPipeline(c.bindPoint, m_currentPipeline->getHandle());
+        URHI_VALIDATE(c.pipeline != nullptr, "Pipeline must not be null");
+        m_boundPipeline = std::dynamic_pointer_cast<VkPipeline>(c.pipeline);
+        m_boundPipelineBindPoint = c.bindPoint;
 
+        #if defined(URHI_ENABLE_VALIDATION)
+            if(m_isRendering && c.bindPoint == vk::PipelineBindPoint::eGraphics)
+            {
+                const auto& pipelineDesc = dynamic_cast<VkGraphicsPipeline*>(m_boundPipeline.get())->m_desc;
+                const auto& renderPassDesc = m_currentRenderPassDesc;
+
+                URHI_VALIDATE(
+                    pipelineDesc.colorAttachments.size() == renderPassDesc.colorAttachments.size(),
+                    "Color attachment count mismatch between graphics pipeline and active render pass\n"
+                    "Pipeline color attachment count: {}\n"
+                    "Render pass color attachment count: {}",
+                    pipelineDesc.colorAttachments.size(),
+                    renderPassDesc.colorAttachments.size()
+                );
+
+                URHI_VALIDATE(
+                    pipelineDesc.depthAttachmentFormat.has_value() == renderPassDesc.depthAttachment.has_value(),
+                    "Depth attachment presence mismatch between graphics pipeline and active render pass\n"
+                    "Pipeline has depth attachment: {}\n"
+                    "Render pass has depth attachment: {}",
+                    pipelineDesc.depthAttachmentFormat.has_value(),
+                    renderPassDesc.depthAttachment.has_value()
+                );
+
+                for(uint32_t i = 0; i < renderPassDesc.colorAttachments.size(); ++i)
+                {
+                    const auto vkTex = dynamic_cast<VkTextureView*>(renderPassDesc.colorAttachments[i].target.get());
+
+                    URHI_VALIDATE(
+                        vkTex != nullptr,
+                        "Render pass color attachment at slot {} is not a VkTextureView",
+                        i
+                    );
+
+                    URHI_VALIDATE(
+                        pipelineDesc.colorAttachments[i].format == vkTex->format(),
+                        "Color attachment format mismatch between graphics pipeline and active render pass at slot {}\n"
+                        "Pipeline format: {}\n"
+                        "Render pass format: {}",
+                        i,
+                        urhi::toString(pipelineDesc.colorAttachments[i].format),
+                        urhi::toString(vkTex->format())
+                    );
+                }
+
+                if(renderPassDesc.depthAttachment.has_value())
+                {
+                    const auto vkTex = dynamic_cast<VkTextureView*>(renderPassDesc.depthAttachment->target.get());
+
+                    URHI_VALIDATE(
+                        vkTex != nullptr,
+                        "Render pass depth attachment is not a VkTextureView"
+                    );
+
+                    URHI_VALIDATE(
+                        pipelineDesc.depthAttachmentFormat.value() == vkTex->format(),
+                        "Depth attachment format mismatch between graphics pipeline and active render pass\n"
+                        "Pipeline depth format: {}\n"
+                        "Render pass depth format: {}",
+                        urhi::toString(pipelineDesc.depthAttachmentFormat.value()),
+                        urhi::toString(vkTex->format())
+                    );
+                }
+            }
+        #endif
+
+        m_cmd.bindPipeline(c.bindPoint, m_boundPipeline->getHandle());
         m_idx++;
     }
 
     void VkCommandListEmitter::pushDescriptors()
     {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - descriptors cannot be pushed before binding a pipeline");
         std::unordered_set<uint32_t> seenBindings;
         std::vector<vk::WriteDescriptorSet> writes;
         writes.reserve(m_boundResources.size());
 
-
-        for(const auto& shader: m_currentPipeline->m_shaderMap | std::ranges::views::values)
+        for(const auto& [stage, shader] : m_boundPipeline->m_shaderMap)
         {
             for (const auto& resource : shader->entryPoint().reflection.resources)
             {
                 if (!seenBindings.insert(resource.binding).second) continue;
 
                 auto it = m_boundResources.find(resource.name);
-                if (it == m_boundResources.end())
-                {
-                    clogr::ensure(false, "Resource not bound: {}", resource.name);
-                    continue;
-                }
+                URHI_VALIDATE(it != m_boundResources.end(), "Resource ({}) not bound - expected a resource to be bound to every shader resource ", resource.name);
 
                 vk::WriteDescriptorSet write{};
                 write.dstBinding = resource.binding;
@@ -598,12 +799,10 @@ namespace urhi
         }
 
         m_cmd.pushDescriptorSetKHR(
-            m_currentPipelineBindPoint,
-            m_currentPipeline->getLayout(),
+            m_boundPipelineBindPoint,
+            m_boundPipeline->getLayout(),
             0, // always 0 for now might change
             writes
         );
-
-        m_boundResources.clear();
     }
 }

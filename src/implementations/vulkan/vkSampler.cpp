@@ -34,10 +34,10 @@ namespace urhi
     VkSampler::~VkSampler()
     {
         m_device->queueDestroy(m_life,
-    [h = m_handle](const vk::Device device)
-        {
-            device.destroySampler(h);
-        });
+                               [h = m_handle](const vk::Device device)
+                               {
+                                   device.destroySampler(h);
+                               });
     }
 
     vk::Sampler VkSampler::getHandle() const

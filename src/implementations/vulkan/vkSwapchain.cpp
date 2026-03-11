@@ -1,6 +1,7 @@
 #include "vkSwapchain.h"
 
 #include "clogr.h"
+#include "validation.h"
 #include "VkBootstrap.h"
 #include "vkConvert.h"
 #include "vkTextureView.h"
@@ -83,7 +84,7 @@ namespace urhi
         const auto rawImages = vkbSwapchain.get_images().value();
         m_textures.clear();
         m_textures.reserve(rawImages.size());
-        for (const VkImage raw : rawImages)
+        for (VkImage raw : rawImages)
         {
             grl::Rc<VkTexture> tex = grl::makeRc<VkTexture>(m_device.get(), raw, swapchainFormat, m_width, m_height);
             m_textures.push_back(tex);
@@ -111,9 +112,10 @@ namespace urhi
     {
         const auto& frame = m_frames[m_frameIndex];
 
-        auto res = m_device->getHandle().waitForFences(
+        const auto res = m_device->getHandle().waitForFences(
             frame.inFlightFence, VK_TRUE, UINT64_MAX
         );
+        URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to wait for fence - vk::Device::waitForFences returned {}", vk::to_string(res));
 
         m_device->getHandle().resetFences(frame.inFlightFence);
 
@@ -123,7 +125,7 @@ namespace urhi
             frame.imageAvailableSemaphore
         );
 
-        clogr::ensure(result.has_value(), "Count not acquire image");
+        URHI_VALIDATE(result.has_value(), "Failed to acquire image - vk::Device::acquireNextImageKHR returned {}", vk::to_string(res));
 
         m_semaphoreConsumed = false;
 
@@ -140,7 +142,8 @@ namespace urhi
             waitInfo.semaphoreCount = 1;
             waitInfo.pSemaphores = &m_device->getQueueState(QueueType::Graphics)->timeline;
             waitInfo.pValues = &frame.maxTimelineValue;
-            auto res = m_device->getHandle().waitSemaphores(waitInfo, UINT64_MAX);
+            const auto res = m_device->getHandle().waitSemaphores(waitInfo, UINT64_MAX);
+            URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to wait on semaphore - vk::Device::waitSemaphores returned {}", vk::to_string(res));
         }
 
         const auto queueState = m_device->getQueueState(QueueType::Graphics);
@@ -185,7 +188,8 @@ namespace urhi
         presentInfo.pSwapchains = &m_handle;
         presentInfo.pImageIndices = &m_imageIndex;
 
-        auto res = queueState->queue.presentKHR(presentInfo);
+        const auto res = queueState->queue.presentKHR(presentInfo);
+        URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to present image - vk::Device::presentKHR returned {}", vk::to_string(res));
 
         frame.maxTimelineValue = queueState->nextTimelineValue;
         m_frameIndex = (m_frameIndex + 1) % m_maxFramesInFlight;

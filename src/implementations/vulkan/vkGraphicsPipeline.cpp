@@ -3,9 +3,10 @@
 #include "clogr.h"
 #include "vkConvert.h"
 
-namespace urhi {
+namespace urhi
+{
     VkGraphicsPipeline::VkGraphicsPipeline(VkDevice *device, const GraphicsPipelineDesc &desc)
-        : VkPipeline(device, desc.shaders)
+        : VkPipeline(device, desc.shaders), m_desc(desc)
     {
         VkShader* vertexShader = nullptr;
         VkShader* fragmentShader = nullptr;

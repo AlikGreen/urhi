@@ -33,6 +33,6 @@ private:
 
     uint64_t m_submittedCount = 0;
     uint32_t m_nextBufferIndex = 0;
-    uint32_t m_lastSubmittedValue = 0;
+    uint64_t m_lastSubmittedValue = 0;
 };
 }

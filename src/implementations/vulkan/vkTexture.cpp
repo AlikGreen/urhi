@@ -1,5 +1,6 @@
 #include "vkTexture.h"
 
+#include "validation.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 
@@ -33,7 +34,7 @@ namespace urhi
 
         VmaAllocation alloc;
 
-        auto res1 = vmaCreateImage(
+        auto res = vmaCreateImage(
             m_device->getAllocator(),
             reinterpret_cast<VkImageCreateInfo*>(&imageInfo),
             &allocCreateInfo,
@@ -41,6 +42,8 @@ namespace urhi
             &alloc,
             nullptr
         );
+
+        URHI_VALIDATE(res == VK_SUCCESS, "Failed to create texture allocation - vmaCreateImage returned {}", vk::to_string(static_cast<vk::Result>(res)));
     }
 
     VkTexture::VkTexture(VkDevice *device, const vk::Image image, const PixelFormat format, const uint32_t width, const uint32_t height)
@@ -56,10 +59,10 @@ namespace urhi
         if(!m_owned) return;
 
         m_device->queueDestroy(m_life,
-        [h = m_image](const vk::Device device)
-        {
-            device.destroyImage(h);
-        });
+                               [h = m_image](const vk::Device device)
+                               {
+                                   device.destroyImage(h);
+                               });
     }
 
     uint32_t VkTexture::width(const uint32_t mip) const

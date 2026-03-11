@@ -1,6 +1,7 @@
 #include "vkLinearStagingAllocator.h"
 
 #include "clogr.h"
+#include "validation.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 #include "vkTexture.h"
@@ -67,7 +68,7 @@ namespace urhi
     {
         const auto texture = dynamic_cast<VkTexture*>(uploadDesc.texture.get());
 
-        clogr::ensure(uploadDesc.data != nullptr, "Trying to upload nullptr data to texture.");
+        URHI_VALIDATE(uploadDesc.data != nullptr, "Texture upload data is nullptr - update texture requires non null data");
         const uint32_t size = uploadDesc.width*uploadDesc.height*uploadDesc.depth*VkConvert::pixelFormatBytes(texture->format(), m_device);
         const StagingAllocation allocation = allocate(size);
 

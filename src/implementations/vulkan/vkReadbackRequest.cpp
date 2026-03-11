@@ -1,6 +1,7 @@
 #include "VkReadbackRequest.h"
 
 #include "clogr.h"
+#include "validation.h"
 #include "vkDevice.h"
 
 namespace urhi
@@ -19,10 +20,11 @@ namespace urhi
 
     void VkReadbackRequest::wait() const
     {
-        clogr::ensure(m_timeline != VK_NULL_HANDLE, "Tried to wait on readback before submitting command list");
+        URHI_VALIDATE(m_timeline != VK_NULL_HANDLE, "Readback request not submitted before being waited on - readback request must be submitted before being waited on");
 
         const vk::SemaphoreWaitInfo waitInfo { {}, {m_timeline}, {m_waitValue} };
-        auto res = m_device->getHandle().waitSemaphores(waitInfo, UINT64_MAX);
+        const auto res = m_device->getHandle().waitSemaphores(waitInfo, UINT64_MAX);
+        URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to wait on semaphore - vk::Device::waitSemaphores returned {}", vk::to_string(res));
     }
 
     const void* VkReadbackRequest::data() const

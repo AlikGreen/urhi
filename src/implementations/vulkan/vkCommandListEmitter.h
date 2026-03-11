@@ -62,8 +62,10 @@ private:
 
     grl::Rc<VkLinearStagingAllocator> m_stagingAllocator;
 
-    grl::Rc<VkPipeline> m_currentPipeline;
-    vk::PipelineBindPoint m_currentPipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+    bool m_isRendering;
+    RenderPassDesc m_currentRenderPassDesc;
+    grl::Rc<VkPipeline> m_boundPipeline;
+    vk::PipelineBindPoint m_boundPipelineBindPoint = vk::PipelineBindPoint::eGraphics;
     std::unordered_map<std::string, BoundResource> m_boundResources;
 
     uint32_t m_idx = 0;

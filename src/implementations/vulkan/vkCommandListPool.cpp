@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "clogr.h"
+#include "validation.h"
 #include "vkCommandList.h"
 #include "vkDevice.h"
 
@@ -18,7 +19,8 @@ namespace urhi
         commandPoolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
         commandPoolInfo.queueFamilyIndex = m_queueState->family;
 
-        auto res = m_device->getHandle().createCommandPool(&commandPoolInfo, nullptr, &m_commandPool);
+        const auto res = m_device->getHandle().createCommandPool(&commandPoolInfo, nullptr, &m_commandPool);
+        URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to create command pool - vk::Device::createCommandPool returned {}", vk::to_string(res));
 
         m_linearStagingAllocator = grl::makeRc<VkLinearStagingAllocator>(m_device);
     }
@@ -32,13 +34,27 @@ namespace urhi
             m_linearStagingAllocator->reset();
             m_nextBufferIndex = 0;
         }
+        else if(m_commandBuffers.size() > 32)
+        {
+
+            vk::SemaphoreWaitInfo waitInfo{};
+            waitInfo.semaphoreCount = 1;
+            waitInfo.pSemaphores = &m_device->getQueueState(QueueType::Graphics)->timeline;
+            waitInfo.pValues = &m_lastSubmittedValue;
+
+            const auto res = m_device->getHandle().waitSemaphores(waitInfo, UINT64_MAX);
+            URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to wait on semaphore - vk::Device::waitSemaphores returned {}", vk::to_string(res));
+
+            m_device->getHandle().resetCommandPool(m_commandPool);
+            m_linearStagingAllocator->reset();
+            m_nextBufferIndex = 0;
+        }
 
         if (m_nextBufferIndex < m_commandBuffers.size())
         {
             return m_commandBuffers[m_nextBufferIndex++];
         }
 
-        clogr::ensure(m_commandBuffers.size() < kErrorThreshold, "Too many command buffers allocated. You may have forgot to submit command buffers.");
 
         const vk::CommandBufferAllocateInfo info(
             m_commandPool,
@@ -47,7 +63,8 @@ namespace urhi
         );
 
         vk::CommandBuffer cmd;
-        auto res1 = m_device->getHandle().allocateCommandBuffers(&info, &cmd);
+        const auto res = m_device->getHandle().allocateCommandBuffers(&info, &cmd);
+        URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to allocate command buffer - vk::Device::allocateCommandBuffers returned {}", vk::to_string(res));
         m_commandBuffers.push_back(cmd);
         m_nextBufferIndex++;
         return cmd;
@@ -65,7 +82,7 @@ namespace urhi
         if (swapchainImageSemaphore)
         {
             waitSemaphores.push_back(swapchainImageSemaphore);
-            waitStages.push_back(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+            waitStages.emplace_back(vk::PipelineStageFlagBits::eColorAttachmentOutput);
             waitValues.push_back(0);
         }
 
