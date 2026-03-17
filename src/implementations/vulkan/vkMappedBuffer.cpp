@@ -37,10 +37,10 @@ namespace urhi
     VkMappedBuffer::~VkMappedBuffer()
     {
         m_device->queueDestroy(m_life,
-                               [h = m_buffer](const vk::Device device)
-                               {
-                                   device.destroyBuffer(h);
-                               });
+        [buf = m_buffer, alloc = m_allocation](const VkDevice* device)
+        {
+            vmaDestroyBuffer(device->getAllocator(), buf, alloc);
+        });
     }
 
     void VkMappedBuffer::upload(const void *data, const size_t size) const

@@ -44,6 +44,7 @@ private:
     TextureType m_type;
 
     VkDevice* m_device;
+    VmaAllocation m_allocation;
     vk::Image m_image;
     vk::ImageLayout m_currentLayout = vk::ImageLayout::eUndefined;
 

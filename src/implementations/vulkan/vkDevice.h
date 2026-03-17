@@ -46,7 +46,7 @@ public:
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
     void submit(const grl::Rc<CommandList> &cmdList) override;
 
-    void queueDestroy(VkLifetime lifetime, const std::function<void(vk::Device device)> &callback);
+    void queueDestroy(VkLifetime lifetime, const std::function<void(VkDevice* device)> &callback);
 
     [[nodiscard]] vk::PhysicalDevice getPhysicalDevice() const;
     [[nodiscard]] vk::Device getHandle() const;
@@ -76,7 +76,7 @@ private:
 
     std::array<grl::Rc<VkQueueState>, 3> m_queueStates{};
 
-    std::vector<std::pair<VkLifetime, std::function<void(vk::Device device)>>> m_destroyQueue{};
+    std::vector<std::pair<VkLifetime, std::function<void(VkDevice* device)>>> m_destroyQueue{};
 
     float m_maxAnisotropy = 0.0f;
     vk::Format m_depth24PlusStencil8Format;

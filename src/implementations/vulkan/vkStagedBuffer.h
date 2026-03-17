@@ -2,6 +2,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "vkBuffer.h"
+#include "vkLinearStagingAllocator.h"
 #include "descriptions/bufferDesc.h"
 
 namespace urhi
@@ -20,6 +21,7 @@ public:
     VkLifetime& lifetime() override;
 private:
     VkDevice* m_device;
+    VmaAllocation m_allocation;
     vk::Buffer m_buffer{};
     uint64_t m_bufferSize;
 

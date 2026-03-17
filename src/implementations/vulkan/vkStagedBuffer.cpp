@@ -9,7 +9,7 @@
 namespace urhi
 {
     VkStagedBuffer::VkStagedBuffer(VkDevice* device, const BufferDesc desc)
-        : m_device(device), m_bufferSize(desc.size)
+        : m_device(device), m_allocation(nullptr), m_bufferSize(desc.size)
     {
         const vk::BufferCreateInfo bufferCI{
             {},
@@ -24,17 +24,17 @@ namespace urhi
             .usage = VMA_MEMORY_USAGE_GPU_ONLY
         };
 
-        VmaAllocation allocation;
-        vmaCreateBuffer(device->getAllocator(), reinterpret_cast<const VkBufferCreateInfo*>(&bufferCI), &bufferAllocCI, reinterpret_cast<::VkBuffer*>(&m_buffer), &allocation, nullptr);
+        vmaCreateBuffer(device->getAllocator(), reinterpret_cast<const VkBufferCreateInfo *>(&bufferCI), &bufferAllocCI,
+                        reinterpret_cast<::VkBuffer *>(&m_buffer), &m_allocation, nullptr);
     }
 
     VkStagedBuffer::~VkStagedBuffer()
     {
         m_device->queueDestroy(m_life,
-                               [h = m_buffer](const vk::Device device)
-                               {
-                                   device.destroyBuffer(h);
-                               });
+        [buf = m_buffer, alloc = m_allocation](const VkDevice* device)
+        {
+            vmaDestroyBuffer(device->getAllocator(), buf, alloc);
+        });
     }
 
     VkLifetime& VkStagedBuffer::lifetime()

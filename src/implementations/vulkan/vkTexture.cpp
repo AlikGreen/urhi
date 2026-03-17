@@ -32,14 +32,12 @@ namespace urhi
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         allocCreateInfo.flags = 0;
 
-        VmaAllocation alloc;
-
         auto res = vmaCreateImage(
             m_device->getAllocator(),
             reinterpret_cast<VkImageCreateInfo*>(&imageInfo),
             &allocCreateInfo,
             reinterpret_cast<VkImage*>(&m_image),
-            &alloc,
+            &m_allocation,
             nullptr
         );
 
@@ -48,9 +46,9 @@ namespace urhi
 
     VkTexture::VkTexture(VkDevice *device, const vk::Image image, const PixelFormat format, const uint32_t width, const uint32_t height)
         : m_width(width), m_height(height), m_depth(1),
-        m_mipLevels(1), m_arrayLayers(1),
-        m_format(format), m_type(TextureType::Texture2D),
-        m_device(device), m_image(image), m_owned(false)
+          m_mipLevels(1), m_arrayLayers(1),
+          m_format(format), m_type(TextureType::Texture2D),
+          m_device(device), m_allocation(nullptr), m_image(image), m_owned(false)
     {
     }
 
@@ -59,10 +57,13 @@ namespace urhi
         if(!m_owned) return;
 
         m_device->queueDestroy(m_life,
-                               [h = m_image](const vk::Device device)
-                               {
-                                   device.destroyImage(h);
-                               });
+        [img = m_image, alloc = m_allocation](const VkDevice* device)
+        {
+            if(alloc != nullptr)
+                vmaDestroyImage(device->getAllocator(), img, alloc);
+            else
+                device->getHandle().destroyImage(img);
+        });
     }
 
     uint32_t VkTexture::width(const uint32_t mip) const

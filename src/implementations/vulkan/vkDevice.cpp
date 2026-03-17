@@ -125,8 +125,10 @@ namespace urhi
     VkDevice::~VkDevice()
     {
         m_handle.waitIdle();
-        m_handle.waitIdle();
         tryCollectGarbage();
+
+        vmaDestroyAllocator(m_allocator);
+        m_handle.destroy();
     }
 
     grl::Rc<Pipeline> VkDevice::createPipeline(const GraphicsPipelineDesc &desc)
@@ -214,7 +216,7 @@ namespace urhi
         tryCollectGarbage();
     }
 
-    void VkDevice::queueDestroy(VkLifetime lifetime, const std::function<void(vk::Device device)>& callback)
+    void VkDevice::queueDestroy(VkLifetime lifetime, const std::function<void(VkDevice* device)>& callback)
     {
         m_destroyQueue.emplace_back(lifetime, callback);
     }
@@ -264,7 +266,7 @@ namespace urhi
 
             if(lifetime.lastSubmitValue <= completeValue)
             {
-                callback(m_handle);
+                callback(this);
                 m_destroyQueue[i] = std::move(m_destroyQueue.back());
                 m_destroyQueue.pop_back();
                 i--;

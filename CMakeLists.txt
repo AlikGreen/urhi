@@ -14,7 +14,6 @@ add_subdirectory(${DEPS_DIR}/glad)
 add_subdirectory(${DEPS_DIR}/spirv-cross)
 add_subdirectory(${DEPS_DIR}/clogr)
 add_subdirectory(${DEPS_DIR}/vk-bootstrap)
-add_subdirectory(${DEPS_DIR}/rapidyaml)
 add_subdirectory(${DEPS_DIR}/vma)
 
 find_package(Vulkan REQUIRED)
@@ -93,7 +92,7 @@ add_library(urhi_imgui STATIC
         backends/imgui/imGuiExtensions.cpp)
 
 target_include_directories(urhi_imgui PUBLIC backends/)
-target_link_libraries(urhi_imgui PUBLIC urhi imgui_static ryml::ryml c4core::c4core)
+target_link_libraries(urhi_imgui PUBLIC urhi imgui_static)
 
 target_compile_definitions(urhi_imgui PRIVATE
         IMGUI_USER_CONFIG="imgui/imGuiConfig.h"
