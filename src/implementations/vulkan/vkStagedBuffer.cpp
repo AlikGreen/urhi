@@ -9,7 +9,7 @@
 namespace urhi
 {
     VkStagedBuffer::VkStagedBuffer(VkDevice* device, const BufferDesc desc)
-        : m_device(device), m_allocation(nullptr), m_bufferSize(desc.size)
+        : m_device(device), m_allocation(nullptr), m_bufferSize(desc.size), m_usage(desc.usage)
     {
         const vk::BufferCreateInfo bufferCI{
             {},
@@ -35,6 +35,54 @@ namespace urhi
         {
             vmaDestroyBuffer(device->getAllocator(), buf, alloc);
         });
+    }
+
+    void VkStagedBuffer::barrier(const vk::CommandBuffer cmd) const
+    {
+        vk::BufferMemoryBarrier2 barrier{};
+        barrier.buffer = m_buffer;
+        barrier.offset = 0;
+        barrier.size = m_bufferSize;
+
+        barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
+        barrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
+
+        switch (m_usage)
+        {
+            case BufferUsage::Vertex:
+                barrier.dstStageMask  = vk::PipelineStageFlagBits2::eVertexAttributeInput;
+                barrier.dstAccessMask = vk::AccessFlagBits2::eVertexAttributeRead;
+                break;
+
+            case BufferUsage::Index:
+                barrier.dstStageMask  = vk::PipelineStageFlagBits2::eIndexInput;
+                barrier.dstAccessMask = vk::AccessFlagBits2::eIndexRead;
+                break;
+
+            case BufferUsage::Uniform:
+                barrier.dstStageMask  = vk::PipelineStageFlagBits2::eAllGraphics |
+                                        vk::PipelineStageFlagBits2::eComputeShader;
+                barrier.dstAccessMask = vk::AccessFlagBits2::eUniformRead;
+                break;
+
+            case BufferUsage::ShaderStorage:
+                barrier.dstStageMask  = vk::PipelineStageFlagBits2::eAllGraphics |
+                                        vk::PipelineStageFlagBits2::eComputeShader;
+                barrier.dstAccessMask = vk::AccessFlagBits2::eShaderStorageRead |
+                                        vk::AccessFlagBits2::eShaderStorageWrite;
+                break;
+
+            default:
+                barrier.dstStageMask  = vk::PipelineStageFlagBits2::eAllCommands;
+                barrier.dstAccessMask = vk::AccessFlagBits2::eMemoryRead;
+                break;
+        }
+
+        vk::DependencyInfo depInfo{};
+        depInfo.bufferMemoryBarrierCount = 1;
+        depInfo.pBufferMemoryBarriers = &barrier;
+
+        cmd.pipelineBarrier2(depInfo);
     }
 
     VkLifetime& VkStagedBuffer::lifetime()

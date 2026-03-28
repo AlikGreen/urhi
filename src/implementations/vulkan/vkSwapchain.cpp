@@ -1,5 +1,7 @@
 #include "vkSwapchain.h"
 
+#include <iostream>
+
 #include "clogr.h"
 #include "validation.h"
 #include "VkBootstrap.h"
@@ -130,6 +132,14 @@ namespace urhi
         m_semaphoreConsumed = false;
 
         m_imageIndex = result.value;
+
+        auto* swapTex = dynamic_cast<VkTexture*>(m_textures[m_imageIndex].get());
+        swapTex->resetTrackedState(
+            vk::ImageLayout::eUndefined,
+            vk::PipelineStageFlagBits2::eColorAttachmentOutput, // Matches your QueueSubmit wait semaphore
+            vk::AccessFlagBits2::eNone
+        );
+
         return m_textureViews[m_imageIndex];
     }
 
@@ -143,7 +153,7 @@ namespace urhi
             waitInfo.pSemaphores = &m_device->getQueueState(QueueType::Graphics)->timeline;
             waitInfo.pValues = &frame.maxTimelineValue;
             const auto res = m_device->getHandle().waitSemaphores(waitInfo, UINT64_MAX);
-            URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to wait on semaphore - vk::Device::waitSemaphores returned {}", vk::to_string(res));
+            URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to wait on semaphore");
         }
 
         const auto queueState = m_device->getQueueState(QueueType::Graphics);
@@ -151,36 +161,54 @@ namespace urhi
         m_device->getHandle().resetCommandPool(m_frames[m_frameIndex].transitionPool, {});
         const auto& cmd = m_frames[m_frameIndex].transitionCmd;
         cmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-        dynamic_cast<VkTexture*>(m_textures[m_imageIndex].get())->transitionLayout(cmd, vk::ImageLayout::ePresentSrcKHR);
+        dynamic_cast<VkTexture*>(m_textures[m_imageIndex].get())->transitionLayout(cmd,
+            vk::ImageLayout::ePresentSrcKHR,
+            vk::PipelineStageFlagBits2::eNone,
+            vk::AccessFlagBits2::eNone);
+
         cmd.end();
 
-        vk::SubmitInfo bridgeSubmit{};
-        bridgeSubmit.commandBufferCount = 1;
-        bridgeSubmit.pCommandBuffers = &cmd;
-        const vk::Semaphore signalSemaphore = m_renderFinishedSemaphores[m_imageIndex];
-        bridgeSubmit.signalSemaphoreCount = 1;
-        bridgeSubmit.pSignalSemaphores = &signalSemaphore;
-
-        // ── move these OUT of the if-block ──
-        vk::Semaphore waitSemaphore{};
-        vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
-        vk::TimelineSemaphoreSubmitInfo timelineWaitInfo{};
+        // Build wait semaphore infos
+        std::vector<vk::SemaphoreSubmitInfo> waitSemaphoreInfos;
 
         if (queueState->nextTimelineValue > 0)
         {
-            waitSemaphore = queueState->timeline;
-
-            timelineWaitInfo.waitSemaphoreValueCount = 1;
-            timelineWaitInfo.pWaitSemaphoreValues    = &queueState->nextTimelineValue;
-
-            bridgeSubmit.pNext             = &timelineWaitInfo;
-            bridgeSubmit.waitSemaphoreCount = 1;
-            bridgeSubmit.pWaitSemaphores   = &waitSemaphore;
-            bridgeSubmit.pWaitDstStageMask = &waitStage;
+            vk::SemaphoreSubmitInfo timelineWait{};
+            timelineWait.semaphore = queueState->timeline;
+            timelineWait.value = queueState->nextTimelineValue;
+            timelineWait.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
+            waitSemaphoreInfos.push_back(timelineWait);
         }
 
-        queueState->queue.submit({bridgeSubmit}, m_frames[m_frameIndex].inFlightFence);
+        // Signal semaphore info (binary)
+        vk::SemaphoreSubmitInfo signalInfo{};
+        signalInfo.semaphore = m_renderFinishedSemaphores[m_imageIndex];
+        signalInfo.value = 0; // binary semaphore
+        signalInfo.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
 
+        // Command buffer info
+        vk::CommandBufferSubmitInfo cmdInfo{};
+        cmdInfo.commandBuffer = cmd;
+
+        // Submit info
+        vk::SubmitInfo2 submitInfo{};
+        submitInfo.waitSemaphoreInfoCount = static_cast<uint32_t>(waitSemaphoreInfos.size());
+        submitInfo.pWaitSemaphoreInfos = waitSemaphoreInfos.data();
+        submitInfo.commandBufferInfoCount = 1;
+        submitInfo.pCommandBufferInfos = &cmdInfo;
+        submitInfo.signalSemaphoreInfoCount = 1;
+        submitInfo.pSignalSemaphoreInfos = &signalInfo;
+
+        try
+        {
+            queueState->queue.submit2({submitInfo}, m_frames[m_frameIndex].inFlightFence);
+        } catch (const vk::SystemError& e)
+        {
+            clogr::error("Present submit2 failed: {}", e.what());
+            throw;
+        }
+
+        // Present
         vk::PresentInfoKHR presentInfo{};
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[m_imageIndex];
@@ -189,7 +217,7 @@ namespace urhi
         presentInfo.pImageIndices = &m_imageIndex;
 
         const auto res = queueState->queue.presentKHR(presentInfo);
-        URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to present image - vk::Device::presentKHR returned {}", vk::to_string(res));
+        URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to present image");
 
         frame.maxTimelineValue = queueState->nextTimelineValue;
         m_frameIndex = (m_frameIndex + 1) % m_maxFramesInFlight;

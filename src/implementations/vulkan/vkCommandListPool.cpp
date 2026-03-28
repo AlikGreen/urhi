@@ -75,35 +75,37 @@ namespace urhi
         const uint64_t signalValue = ++m_queueState->nextTimelineValue;
         m_lastSubmittedValue = signalValue;
 
-        std::vector<vk::Semaphore> waitSemaphores;
-        std::vector<vk::PipelineStageFlags> waitStages;
-        std::vector<uint64_t> waitValues;
+        std::vector<vk::SemaphoreSubmitInfo> waitSemaphoreInfos;
+        std::vector<vk::SemaphoreSubmitInfo> signalSemaphoreInfos;
 
         if (swapchainImageSemaphore)
         {
-            waitSemaphores.push_back(swapchainImageSemaphore);
-            waitStages.emplace_back(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-            waitValues.push_back(0);
+            vk::SemaphoreSubmitInfo waitInfo{};
+            waitInfo.semaphore = swapchainImageSemaphore;
+            waitInfo.value = 0; // binary semaphore
+            waitInfo.stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+            waitSemaphoreInfos.push_back(waitInfo);
         }
 
-        vk::TimelineSemaphoreSubmitInfo timelineInfo{};
-        timelineInfo.waitSemaphoreValueCount = static_cast<uint32_t>(waitValues.size());
-        timelineInfo.pWaitSemaphoreValues = waitValues.data();
-        timelineInfo.signalSemaphoreValueCount = 1;
-        timelineInfo.pSignalSemaphoreValues = &signalValue;
+        vk::SemaphoreSubmitInfo signalInfo{};
+        signalInfo.semaphore = m_queueState->timeline;
+        signalInfo.value = signalValue;
+        signalInfo.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
+        signalSemaphoreInfos.push_back(signalInfo);
 
-        vk::SubmitInfo submitInfo{};
-        submitInfo.pNext = &timelineInfo;
-        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
-        submitInfo.pWaitSemaphores = waitSemaphores.data();
-        submitInfo.pWaitDstStageMask = waitStages.data();
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &cmd;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &m_queueState->timeline;
+        vk::CommandBufferSubmitInfo cmdInfo{};
+        cmdInfo.commandBuffer = cmd;
+
+        vk::SubmitInfo2 submitInfo{};
+        submitInfo.waitSemaphoreInfoCount = static_cast<uint32_t>(waitSemaphoreInfos.size());
+        submitInfo.pWaitSemaphoreInfos = waitSemaphoreInfos.data();
+        submitInfo.commandBufferInfoCount = 1;
+        submitInfo.pCommandBufferInfos = &cmdInfo;
+        submitInfo.signalSemaphoreInfoCount = static_cast<uint32_t>(signalSemaphoreInfos.size());
+        submitInfo.pSignalSemaphoreInfos = signalSemaphoreInfos.data();
 
         std::scoped_lock lock(*m_queueState->mutex);
-        m_queueState->queue.submit({submitInfo});
+        m_queueState->queue.submit2({submitInfo});
     }
 
     bool VkCommandListPool::canReset() const

@@ -81,7 +81,9 @@ namespace urhi
             size
         );
 
-        texture->transitionLayout(cmd, vk::ImageLayout::eTransferDstOptimal);
+        texture->transitionLayout(cmd, vk::ImageLayout::eTransferDstOptimal,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferWrite);
 
         vk::BufferImageCopy region;
         region.bufferOffset = allocation.offset;
@@ -103,8 +105,6 @@ namespace urhi
             1,
             &region
         );
-
-        texture->transitionLayout(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 
 
@@ -129,10 +129,11 @@ namespace urhi
         allocateNewPage(newPageSize);
         m_activePageIndex++;
 
-        page = m_pages[m_activePageIndex];
-        allocation.buffer = page.buffer;
+        StagingPage& newPage = m_pages[m_activePageIndex];
+        newPage.offset = size;
+        allocation.buffer = newPage.buffer;
         allocation.offset = 0;
-        allocation.mapped = page.mappedData;
+        allocation.mapped = newPage.mappedData;
         allocation.pageIndex = m_activePageIndex;
 
         return allocation;

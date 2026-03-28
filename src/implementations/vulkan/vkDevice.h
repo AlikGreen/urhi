@@ -23,7 +23,7 @@ struct VkQueueState
     uint32_t family = 0;
     grl::Box<std::mutex> mutex{};
     vk::Semaphore timeline;
-    uint64_t nextTimelineValue{};
+    uint64_t nextTimelineValue = 0;
 };
 
 class VkDevice final : public Device
@@ -44,6 +44,9 @@ public:
     grl::Rc<Shader> createShader(const ShaderEntryPoint& entryPoint) override;
 
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
+
+    void waitIdle() override;
+
     void submit(const grl::Rc<CommandList> &cmdList) override;
 
     void queueDestroy(VkLifetime lifetime, const std::function<void(VkDevice* device)> &callback);

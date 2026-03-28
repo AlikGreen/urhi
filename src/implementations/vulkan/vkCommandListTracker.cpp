@@ -4,18 +4,25 @@
 
 namespace urhi
 {
-    void VkCommandListTracker::record(const CmdBeginRenderPass &c)
-    {
-        for (auto& attachment : c.desc.colorAttachments)
-            m_textureUses[dynamic_cast<VkTexture*>(dynamic_cast<VkTextureView*>(attachment.target.get())->texture().get())].push_back({ vk::ImageLayout::eColorAttachmentOptimal, m_idx });
-
-        if(c.desc.depthAttachment)
-            m_textureUses[dynamic_cast<VkTexture*>(dynamic_cast<VkTextureView*>(c.desc.depthAttachment->target.get())->texture().get())].push_back({ vk::ImageLayout::eDepthAttachmentOptimal, m_idx });
-        m_idx++;
-    }
-
     void VkCommandListTracker::record(const CmdSetTexture &c)
     {
-        m_textureUses[dynamic_cast<VkTexture*>(dynamic_cast<VkTextureView*>(c.texture.get())->texture().get())].push_back({ vk::ImageLayout::eShaderReadOnlyOptimal, m_idx++ });
+        m_textureUses[dynamic_cast<VkTexture*>(dynamic_cast<VkTextureView*>(c.texture.get())->texture().get())].push_back(
+        {
+            vk::ImageLayout::eShaderReadOnlyOptimal,
+            vk::PipelineStageFlagBits2::eFragmentShader,
+            vk::AccessFlagBits2::eShaderSampledRead,
+            m_idx++
+        });
+    }
+
+    void VkCommandListTracker::record(const CmdSetImage &c)
+    {
+        m_textureUses[dynamic_cast<VkTexture*>(dynamic_cast<VkTextureView*>(c.texture.get())->texture().get())].push_back(
+       {
+           vk::ImageLayout::eGeneral,
+           vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eFragmentShader,
+           vk::AccessFlagBits2::eShaderStorageWrite | vk::AccessFlagBits2::eShaderStorageRead,
+           m_idx++
+       });
     }
 }

@@ -94,16 +94,11 @@ namespace urhi
         m_queueStates[2]->mutex = grl::makeBox<std::mutex>();
         m_queueStates[2]->timeline = m_handle.createSemaphore({{}, typeCreateInfo});
 
-        VmaVulkanFunctions vkFunctions{
-            .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-            .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
-            .vkCreateImage = vkCreateImage
-        };
         VmaAllocatorCreateInfo allocatorCI{
             .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
             .physicalDevice = m_physicalDevice,
             .device = m_handle,
-            .pVulkanFunctions = &vkFunctions,
+            .pVulkanFunctions = nullptr,
             .instance = context->getVkInstance()
         };
         vmaCreateAllocator(&allocatorCI, &m_allocator);
@@ -173,6 +168,11 @@ namespace urhi
            return grl::makeRc<VkMappedBuffer>(this, desc);
 
         return grl::makeRc<VkStagedBuffer>(this, desc);
+    }
+
+    void VkDevice::waitIdle()
+    {
+        m_handle.waitIdle();
     }
 
     void VkDevice::submit(const grl::Rc<CommandList> &cmdList)

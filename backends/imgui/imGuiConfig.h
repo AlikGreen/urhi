@@ -1,6 +1,7 @@
 #pragma once
 #include <grl/grl.h>
 #include <glm/glm.hpp>
+#include <utility>
 
 namespace urhi
 {
@@ -11,6 +12,15 @@ namespace urhi
     {
         grl::Rc<TextureView> view;
         grl::Rc<Sampler> sampler;
+
+        ImGuiImage(grl::Rc<TextureView> view, grl::Rc<Sampler> sampler)
+            : view(std::move(view)), sampler(std::move(sampler)) {  }
+
+        explicit ImGuiImage(grl::Rc<TextureView> view)
+            : view(std::move(view)), sampler(nullptr) {  }
+
+        ImGuiImage()
+            : view(nullptr), sampler(nullptr) {  }
     };
 }
 

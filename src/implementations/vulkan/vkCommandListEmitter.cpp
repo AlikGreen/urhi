@@ -64,7 +64,10 @@ namespace urhi
                 if (use.commandIndex >= m_idx)
                 {
                     const auto tex = dynamic_cast<VkTexture*>(texture);
-                    tex->transitionLayout(m_cmd, use.requiredLayout);
+                    tex->transitionLayout(m_cmd,
+                        use.requiredLayout,
+                        use.requiredStageMask,
+                        use.requiredAccessMask);
                     break;
                 }
             }
@@ -78,14 +81,15 @@ namespace urhi
 
         Rect2D renderArea = desc.renderArea;
 
-        for(size_t i = 0; i < desc.colorAttachments.size(); i++)
+        for(const auto & attachment : desc.colorAttachments)
         {
-            const auto& attachment = desc.colorAttachments[i];
-
             auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
             auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
             vkView->markUsed(m_queueType, m_submitValue);
-            vkTex->transitionLayout(m_cmd, vk::ImageLayout::eColorAttachmentOptimal);
+            vkTex->transitionLayout(m_cmd,
+                vk::ImageLayout::eColorAttachmentOptimal,
+                vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead);
 
 
             if(renderArea.width == 0 && renderArea.height == 0)
@@ -131,7 +135,10 @@ namespace urhi
             const auto vkView = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
             const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
             vkView->markUsed(m_queueType, m_submitValue);
-            vkTex->transitionLayout(m_cmd, vk::ImageLayout::eDepthAttachmentOptimal);
+            vkTex->transitionLayout(m_cmd,
+                vk::ImageLayout::eDepthAttachmentOptimal,
+                vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+                vk::AccessFlagBits2::eDepthStencilAttachmentWrite | vk::AccessFlagBits2::eDepthStencilAttachmentRead);
 
             URHI_VALIDATE(
                 vkView->width()  >= renderArea.x + renderArea.width &&
@@ -187,6 +194,10 @@ namespace urhi
     {
         const auto desc = c.desc;
         const auto vkTex = dynamic_cast<VkTexture*>(desc.texture.get());
+
+        const auto oldLayout = vkTex->getLayout();
+        const auto oldStage  = vkTex->getStage();
+        const auto oldAccess = vkTex->getAccess();
 
         URHI_VALIDATE(desc.texture != nullptr,
             "Texture must not be null");
@@ -245,7 +256,10 @@ namespace urhi
 
         URHI_VALIDATE(res == VK_SUCCESS, "Failed to create buffer allocation - vmaCreateBuffer returned {}", vk::to_string(static_cast<vk::Result>(res)));
 
-        vkTex->transitionLayout(m_cmd, vk::ImageLayout::eTransferSrcOptimal);
+        vkTex->transitionLayout(m_cmd,
+            vk::ImageLayout::eTransferSrcOptimal,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferRead);
 
         m_cmd.copyImageToBuffer(
         vkTex->getHandle(),
@@ -263,6 +277,8 @@ namespace urhi
         c.request->m_timeline = m_timeline;
         c.request->m_waitValue = m_submitValue;
 
+        vkTex->transitionLayout(m_cmd, oldLayout, oldStage, oldAccess);
+
         m_idx++;
 
         vkTex->lifetime().markUsed(m_queueType, m_submitValue);
@@ -273,6 +289,7 @@ namespace urhi
         if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(c.buffer.get()))
         {
             m_stagingAllocator->upload(c.data.data(), c.data.size(), vkStaged->handle(), 0, m_cmd);
+            vkStaged->barrier(m_cmd);
             vkStaged->lifetime().markUsed(m_queueType, m_submitValue);
         }
         else if(const auto vkMapped = dynamic_cast<VkMappedBuffer*>(c.buffer.get()))
@@ -382,7 +399,11 @@ namespace urhi
         const auto vkView = dynamic_cast<VkTextureView*>(c.texture.get());
         const auto vkTex  = dynamic_cast<VkTexture*>(vkView->texture().get());
 
-        vkTex->transitionLayout(m_cmd, vk::ImageLayout::eGeneral);
+        vkTex->transitionLayout(m_cmd,
+            vk::ImageLayout::eGeneral,
+            vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eFragmentShader,
+           vk::AccessFlagBits2::eShaderStorageWrite | vk::AccessFlagBits2::eShaderStorageRead
+           );
 
         m_boundResources[c.name] = BoundResource{
             .type      = ShaderReflection::ResourceType::StorageImage,
@@ -430,7 +451,11 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdGenerateMips &c)
     {
-        auto texture = dynamic_cast<VkTexture*>(c.texture.get());
+        const auto texture = dynamic_cast<VkTexture*>(c.texture.get());
+        const auto oldLayout = texture->getLayout();
+        const auto oldStage  = texture->getStage();
+        const auto oldAccess = texture->getAccess();
+
         const uint32_t mipLevels = texture->mipLevelCount();
 
         URHI_VALIDATE(c.texture != nullptr,
@@ -449,7 +474,10 @@ namespace urhi
         auto mipWidth = static_cast<int32_t>(texture->width(0));
         auto mipHeight = static_cast<int32_t>(texture->height(0));
 
-        texture->transitionLayout(m_cmd, vk::ImageLayout::eTransferDstOptimal);
+        texture->transitionLayout(m_cmd,
+            vk::ImageLayout::eTransferDstOptimal,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferWrite);
 
         for (uint32_t i = 1; i < mipLevels; i++)
         {
@@ -502,39 +530,29 @@ namespace urhi
 
             if (mipWidth > 1) mipWidth /= 2;
             if (mipHeight > 1) mipHeight /= 2;
-
-            vk::ImageMemoryBarrier2 dstBarrier{
-                vk::PipelineStageFlagBits2::eTransfer,
-                vk::AccessFlagBits2::eTransferWrite,
-                vk::PipelineStageFlagBits2::eTransfer,
-                vk::AccessFlagBits2::eTransferRead,
-                vk::ImageLayout::eTransferSrcOptimal,
-                vk::ImageLayout::eShaderReadOnlyOptimal,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                texture->getHandle(),
-                { vk::ImageAspectFlagBits::eColor, i - 1, 1, 0, texture->arrayLayerCount() }
-            };
-
-            m_cmd.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(dstBarrier));
         }
 
-        vk::ImageMemoryBarrier2 dstBarrier{
+        vk::ImageMemoryBarrier2 lastMipBarrier{
             vk::PipelineStageFlagBits2::eTransfer,
             vk::AccessFlagBits2::eTransferWrite,
             vk::PipelineStageFlagBits2::eTransfer,
             vk::AccessFlagBits2::eTransferRead,
             vk::ImageLayout::eTransferDstOptimal,
-            vk::ImageLayout::eShaderReadOnlyOptimal,
+            vk::ImageLayout::eTransferSrcOptimal,
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
             texture->getHandle(),
             { vk::ImageAspectFlagBits::eColor, mipLevels - 1, 1, 0, texture->arrayLayerCount() }
         };
 
-        m_cmd.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(dstBarrier));
+        m_cmd.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(lastMipBarrier));
 
-        texture->m_currentLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        texture->resetTrackedState(
+            vk::ImageLayout::eTransferSrcOptimal,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferRead);
+
+        texture->transitionLayout(m_cmd, oldLayout, oldStage, oldAccess);
 
         m_idx++;
 
@@ -545,6 +563,14 @@ namespace urhi
     {
         const auto vkSrc = dynamic_cast<VkTexture*>(c.desc.src.get());
         const auto vkDst = dynamic_cast<VkTexture*>(c.desc.dst.get());
+
+        const auto srcOldLayout = vkSrc->getLayout();
+        const auto srcOldStage  = vkSrc->getStage();
+        const auto srcOldAccess = vkSrc->getAccess();
+
+        const auto dstOldLayout = vkDst->getLayout();
+        const auto dstOldStage  = vkDst->getStage();
+        const auto dstOldAccess = vkDst->getAccess();
 
         URHI_VALIDATE(c.desc.src != nullptr, "Source texture must not be null");
         URHI_VALIDATE(c.desc.dst != nullptr, "Destination texture must not be null");
@@ -578,8 +604,15 @@ namespace urhi
 
         URHI_VALIDATE(c.desc.src != c.desc.dst, "Source and destination textures are the same — blit requires distinct textures");
 
-        vkSrc->transitionLayout(m_cmd, vk::ImageLayout::eTransferSrcOptimal);
-        vkDst->transitionLayout(m_cmd, vk::ImageLayout::eTransferDstOptimal);
+        vkSrc->transitionLayout(m_cmd,
+            vk::ImageLayout::eTransferSrcOptimal,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferRead);
+
+        vkDst->transitionLayout(m_cmd,
+            vk::ImageLayout::eTransferDstOptimal,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferWrite);
 
         vk::ImageBlit2 blit{};
 
@@ -643,6 +676,9 @@ namespace urhi
         blitInfo.filter         = VkConvert::filter(c.desc.filter);
 
         m_cmd.blitImage2(blitInfo);
+
+        vkSrc->transitionLayout(m_cmd, srcOldLayout, srcOldStage, srcOldAccess);
+        vkDst->transitionLayout(m_cmd, dstOldLayout, dstOldStage, dstOldAccess);
 
         vkSrc->lifetime().markUsed(m_queueType, m_submitValue);
         vkDst->lifetime().markUsed(m_queueType, m_submitValue);

@@ -19,7 +19,7 @@ namespace urhi
 
         ImGuiIO &io = ImGui::GetIO();
         io.BackendPlatformName = "urhi_Platform";
-        io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+        io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures | ImGuiBackendFlags_RendererHasVtxOffset;
         io.Fonts->TexDesiredFormat = ImTextureFormat_RGBA32;
         io.DisplaySize = ImVec2(
             static_cast<float>(m_window->width()),
@@ -69,8 +69,11 @@ namespace urhi
         std::vector<uint32_t> indices{};
         indices.reserve(m_drawData->TotalIdxCount);
 
-        std::vector<uint32_t> listIndexOffsets{};
-        listIndexOffsets.resize(m_drawData->CmdListsCount);
+        std::vector<uint32_t> indexOffsets{};
+        indexOffsets.resize(m_drawData->CmdListsCount);
+
+        std::vector<uint32_t> vertexOffsets{};
+        vertexOffsets.resize(m_drawData->CmdListsCount);
 
         uint32_t vertexOffset = 0;
         uint32_t indexOffset  = 0;
@@ -79,18 +82,20 @@ namespace urhi
         for(int n = 0; n < m_drawData->CmdListsCount; n++)
         {
             const ImDrawList *cmdListImGui = m_drawData->CmdLists[n];
-            listIndexOffsets[n] = indexOffset;
+            indexOffsets[n] = indexOffset;
+            vertexOffsets[n] = vertexOffset;
 
             for(int v = 0; v < cmdListImGui->VtxBuffer.Size; v++)
                 vertices.push_back(cmdListImGui->VtxBuffer[v]);
 
             for(int i = 0; i < cmdListImGui->IdxBuffer.Size; i++)
-                indices.push_back(static_cast<uint32_t>(cmdListImGui->IdxBuffer[i]) + vertexOffset); // specifically this
+                indices.push_back(cmdListImGui->IdxBuffer[i]);
 
             vertexOffset += cmdListImGui->VtxBuffer.Size;
             indexOffset  += cmdListImGui->IdxBuffer.Size;
         }
 
+        m_device->waitIdle();
         cmdList->updateBuffer(m_vertexBuffer, vertices);
         cmdList->updateBuffer(m_indexBuffer, indices);
 
@@ -114,31 +119,36 @@ namespace urhi
 
         for(int n = 0; n < m_drawData->CmdListsCount; n++)
         {
-            const ImDrawList *cmdListImGui = m_drawData->CmdLists[n];
-            const uint32_t baseIndex = listIndexOffsets[n];
+            const ImDrawList* cmdListImGui = m_drawData->CmdLists[n];
+            const uint32_t baseVertex = vertexOffsets[n];
+            const uint32_t baseIndex  = indexOffsets[n];
 
             for(int cmd_i = 0; cmd_i < cmdListImGui->CmdBuffer.Size; cmd_i++)
             {
-                const ImDrawCmd &pcmd = cmdListImGui->CmdBuffer[cmd_i];
+                const ImDrawCmd& pcmd = cmdListImGui->CmdBuffer[cmd_i];
 
-                const Rect2D scissor = calculateScissorRect(pcmd);
-                renderPass->setScissor(scissor);
+                renderPass->setScissor(calculateScissorRect(pcmd));
 
                 ImGuiImage* image = pcmd.GetTexID();
 
                 clogr::ensure(image != nullptr, "ImGui - Image is null");
-                clogr::ensure(image->view != nullptr, "ImGui - Texture View to render is null");
+                clogr::ensure(image->view != nullptr, "ImGui - Texture View is null");
 
                 if(image->sampler == nullptr)
                 {
-                    SamplerDesc samplerDesc {};
+                    SamplerDesc samplerDesc{};
                     image->sampler = m_device->createSampler(samplerDesc);
                 }
 
                 renderPass->setTexture("ImGuiTexture", image->view);
                 renderPass->setSampler("ImGuiSampler", image->sampler);
 
-                renderPass->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
+                renderPass->drawIndexed(
+                    pcmd.ElemCount,
+                    1,
+                    baseIndex + pcmd.IdxOffset,
+                    static_cast<int32_t>(baseVertex + pcmd.VtxOffset)
+                );
             }
         }
 
@@ -232,11 +242,9 @@ namespace urhi
 
                 case ImTextureStatus_WantUpdates:
                 {
-                    // Optional: implement partial updates if you care.
-                    // For font atlas you can often ignore this, but robust backends handle it.
-                    // texData->Updates / texData->UpdateRect give regions to update.
+                    // TODO implement partial updates if you care.
                     destroyTexture(texData);
-                    ImGuiImage* img = createTexture(texData);         // create from updated pixels
+                    ImGuiImage* img = createTexture(texData);
                     texData->SetTexID(img);
                     texData->SetStatus(ImTextureStatus_OK);
                     break;
@@ -303,8 +311,7 @@ namespace urhi
 
     void ImGuiController::destroyTexture(const ImTextureData *texData) const
     {
-        const ImGuiIO& io = ImGui::GetIO();
-        const ImGuiImage* img = io.Fonts->TexData->TexID;
+        const ImGuiImage* img = texData->GetTexID();
         delete img;
     }
 

@@ -106,13 +106,30 @@ namespace urhi
         return m_image;
     }
 
-    void VkTexture::transitionLayout(const vk::CommandBuffer cmd, const vk::ImageLayout newLayout)
+    void VkTexture::transitionLayout(
+         const vk::CommandBuffer cmd,
+         const vk::ImageLayout newLayout,
+         const vk::PipelineStageFlags2 dstStageMask,
+         const vk::AccessFlags2 dstAccessMask)
     {
-        if(m_currentLayout == newLayout) return;
-        
-        vk::ImageMemoryBarrier barrier;
-        barrier.oldLayout = m_currentLayout;
-        barrier.newLayout = newLayout;
+        if (newLayout == vk::ImageLayout::eUndefined ||
+            newLayout == vk::ImageLayout::ePreinitialized)
+        {
+            return;
+        }
+
+        vk::ImageMemoryBarrier2 barrier{};
+
+        // 1. Use the tracked history for the Source!
+        barrier.srcStageMask  = m_currentStage;
+        barrier.srcAccessMask = m_currentAccess;
+        barrier.oldLayout     = m_currentLayout;
+
+        // 2. Use the user's request for the Destination!
+        barrier.dstStageMask  = dstStageMask;
+        barrier.dstAccessMask = dstAccessMask;
+        barrier.newLayout     = newLayout;
+
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = m_image;
@@ -122,85 +139,25 @@ namespace urhi
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-        vk::PipelineStageFlags srcStage = {};
-        vk::PipelineStageFlags dstStage = {};
+        vk::DependencyInfo depInfo{};
+        depInfo.imageMemoryBarrierCount = 1;
+        depInfo.pImageMemoryBarriers = &barrier;
 
+        cmd.pipelineBarrier2(depInfo);
 
-        switch (m_currentLayout)
-        {
-            case vk::ImageLayout::eUndefined:
-                barrier.srcAccessMask = {};
-                srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-                break;
-
-            case vk::ImageLayout::eTransferDstOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-                srcStage = vk::PipelineStageFlagBits::eTransfer;
-                break;
-
-            case vk::ImageLayout::eTransferSrcOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-                srcStage = vk::PipelineStageFlagBits::eTransfer;
-                break;
-
-            case vk::ImageLayout::eColorAttachmentOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-                srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-                break;
-
-            case vk::ImageLayout::eDepthStencilAttachmentOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-                srcStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
-                break;
-
-            case vk::ImageLayout::eShaderReadOnlyOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
-                srcStage = vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eComputeShader;
-                break;
-
-            default:
-                barrier.srcAccessMask = {};
-                srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        }
-
-        switch (newLayout)
-        {
-            case vk::ImageLayout::eTransferDstOptimal:
-                barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-                dstStage = vk::PipelineStageFlagBits::eTransfer;
-                break;
-
-            case vk::ImageLayout::eShaderReadOnlyOptimal:
-                barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-                dstStage = vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eComputeShader;
-                break;
-
-            case vk::ImageLayout::eColorAttachmentOptimal:
-                barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-                dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-                break;
-
-            case vk::ImageLayout::eDepthStencilAttachmentOptimal:
-                barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-                dstStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
-                break;
-
-            default:
-                barrier.dstAccessMask = {};
-                dstStage = vk::PipelineStageFlagBits::eBottomOfPipe;
-        }
-
-        cmd.pipelineBarrier(
-            srcStage,
-            dstStage,
-            {},
-            0, nullptr,
-            0, nullptr,
-            1, &barrier
-        );
-
+        // 3. IMPORTANT: Update the tracked history for the NEXT time this is called!
         m_currentLayout = newLayout;
+        m_currentStage  = dstStageMask;
+        m_currentAccess = dstAccessMask;
     }
+
+    void VkTexture::resetTrackedState(vk::ImageLayout layout, vk::PipelineStageFlags2 stage, vk::AccessFlags2 access)
+    {
+        m_currentLayout = layout;
+        m_currentStage = stage;
+        m_currentAccess = access;
+    }
+
 
     VkLifetime& VkTexture::lifetime()
     {
