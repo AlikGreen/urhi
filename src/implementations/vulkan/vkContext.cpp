@@ -52,8 +52,7 @@ namespace urhi
         // =============================================
         // Change this to switch validation profiles
         // =============================================
-        constexpr ValidationMode validationMode = ValidationMode::Full;
-
+        constexpr ValidationMode validationMode = ValidationMode::Standard;
         constexpr bool enableValidation = (validationMode != ValidationMode::None);
 
         vkb::InstanceBuilder builder;
@@ -79,14 +78,9 @@ namespace urhi
             switch (validationMode)
             {
             case ValidationMode::Standard:
-                // Just the base validation layer, no extras.
-                // Catches API misuse, object lifetime errors, threading violations.
-                // Low overhead.
                 break;
 
             case ValidationMode::Sync:
-                // Catches missing/incorrect barriers, layout transitions, WAR/WAW/RAW hazards.
-                // Moderate overhead. CANNOT be combined with GpuAssisted.
                 builder
                     .add_validation_feature_enable(
                         VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT)
@@ -95,11 +89,6 @@ namespace urhi
                 break;
 
             case ValidationMode::GpuAssisted:
-                // Instruments shaders on the GPU to catch:
-                //   - Out-of-bounds descriptor indexing (bindless)
-                //   - Out-of-bounds buffer access
-                //   - Invalid buffer device addresses
-                // High overhead. CANNOT be combined with Sync.
                 builder
                     .add_validation_feature_enable(
                         VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT)
@@ -110,8 +99,6 @@ namespace urhi
                 break;
 
             case ValidationMode::Full:
-                // Everything except GPU-assisted (to keep sync validation).
-                // Highest CPU overhead but catches the most.
                 builder
                     .add_validation_feature_enable(
                         VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT)
@@ -119,7 +106,6 @@ namespace urhi
                         VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT)
                     .add_validation_feature_enable(
                         VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT);
-                    // Note: debug printf replaces GPU-assisted — they're also mutually exclusive.
                     // Use debug printf to add print statements inside shaders:
                     //   debugPrintfEXT("value = %f", myValue);
                 break;
@@ -143,7 +129,8 @@ namespace urhi
         if (enableValidation)
         {
             clogr::info("Vulkan validation mode: {}", [&]() -> const char* {
-                switch (validationMode) {
+                switch (validationMode)
+                {
                     case ValidationMode::None:        return "None";
                     case ValidationMode::Standard:    return "Standard";
                     case ValidationMode::Sync:        return "Sync";

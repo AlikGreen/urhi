@@ -59,26 +59,40 @@ namespace urhi
     {
         m_width = width;
         m_height = height;
+        VkSwapchainKHR oldHandle = m_handle;
 
-        if(m_handle != nullptr)
-        {
-            m_device->getHandle().destroySwapchainKHR(m_handle);
-        }
+        vkb::SwapchainBuilder swapchainBuilder{
+            m_device->getPhysicalDevice(),
+            m_device->getHandle(),
+            m_window->getSurface()
+        };
 
-        vkb::SwapchainBuilder swapchainBuilder{ m_device->getPhysicalDevice(), m_device->getHandle(), m_window->getSurface() };
-
-        vkb::Swapchain vkbSwapchain = swapchainBuilder
-            //.use_default_format_selection()
-            .set_desired_format(VkSurfaceFormatKHR{ .format = static_cast<VkFormat>(m_imageFormat), .colorSpace = static_cast<VkColorSpaceKHR>(m_colorSpace) })
+        auto result = swapchainBuilder
+            .set_old_swapchain(oldHandle)
+            .set_desired_format(VkSurfaceFormatKHR{
+                .format = static_cast<VkFormat>(m_imageFormat),
+                .colorSpace = static_cast<VkColorSpaceKHR>(m_colorSpace)
+            })
             .set_desired_present_mode(static_cast<VkPresentModeKHR>(m_presentMode))
             .set_desired_extent(width, height)
             .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-            .build()
-            .value();
+            .build();
+
+        if (!result)
+        {
+            clogr::error("Failed to create new swapchain when resizing");
+            return;
+        }
+
+        vkb::Swapchain vkbSwapchain = result.value();
 
         m_extent = vkbSwapchain.extent;
-        //store swapchain and its related images
         m_handle = vkbSwapchain.swapchain;
+
+        if (oldHandle != VK_NULL_HANDLE)
+        {
+            m_device->getHandle().destroySwapchainKHR(oldHandle);
+        }
 
         PixelFormat swapchainFormat = VkConvert::pixelFormat(m_imageFormat, m_device.get());
 
@@ -101,8 +115,15 @@ namespace urhi
             m_textureViews.push_back(texView);
         }
 
+        const auto queueState = m_device->getQueueState(QueueType::Graphics);
+        std::scoped_lock lock(*queueState->mutex);
+        queueState->queue.waitIdle();
+
         for (const auto s : m_renderFinishedSemaphores)
+        {
             m_device->getHandle().destroySemaphore(s);
+        }
+
         m_renderFinishedSemaphores.clear();
 
         m_renderFinishedSemaphores.reserve(m_textureViews.size());
@@ -198,6 +219,8 @@ namespace urhi
         submitInfo.pCommandBufferInfos = &cmdInfo;
         submitInfo.signalSemaphoreInfoCount = 1;
         submitInfo.pSignalSemaphoreInfos = &signalInfo;
+
+        std::scoped_lock lock(*queueState->mutex);
 
         try
         {

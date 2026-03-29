@@ -85,11 +85,16 @@ namespace urhi
             indexOffsets[n] = indexOffset;
             vertexOffsets[n] = vertexOffset;
 
-            for(int v = 0; v < cmdListImGui->VtxBuffer.Size; v++)
-                vertices.push_back(cmdListImGui->VtxBuffer[v]);
+            vertices.insert(
+            vertices.end(),
+            cmdListImGui->VtxBuffer.begin(),
+            cmdListImGui->VtxBuffer.end());
 
-            for(int i = 0; i < cmdListImGui->IdxBuffer.Size; i++)
-                indices.push_back(cmdListImGui->IdxBuffer[i]);
+            indices.insert(
+                indices.end(),
+                cmdListImGui->IdxBuffer.begin(),
+                cmdListImGui->IdxBuffer.end());
+
 
             vertexOffset += cmdListImGui->VtxBuffer.Size;
             indexOffset  += cmdListImGui->IdxBuffer.Size;
