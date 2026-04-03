@@ -9,7 +9,7 @@ class VkPipeline;
 class VkCommandListEmitter
 {
 public:
-    explicit VkCommandListEmitter(VkDevice* device, QueueType queueType, uint64_t submitValue, vk::Semaphore timeline, vk::CommandBuffer cmd, VkCommandListTracker tracker, grl::Rc<VkLinearStagingAllocator> stagingAllocator);
+    VkCommandListEmitter(VkDevice* device, QueueType queueType, uint64_t submitValue, vk::Semaphore timeline, vk::CommandBuffer cmd, VkCommandListTracker tracker, grl::Rc<VkLinearStagingAllocator> stagingAllocator);
 
     void emit(const CmdBeginRenderPass& c);
     void emit(const CmdEndRenderPass& c);
@@ -25,6 +25,7 @@ public:
     void emit(const CmdDraw& c);
 
     void emit(const CmdReadbackTexture& c);
+    void emit(const CmdReadbackBuffer& c);
 
     void emit(const CmdUpdateBuffer& c);
     void emit(const CmdUpdateTexture& c);

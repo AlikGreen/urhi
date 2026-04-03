@@ -8,6 +8,7 @@
 
 #include "texture.h"
 #include "descriptions/blitTextureDesc.h"
+#include "descriptions/bufferReadbackDesc.h"
 #include "descriptions/renderPassDesc.h"
 #include "descriptions/textureReadbackDesc.h"
 #include "descriptions/textureUploadDesc.h"
@@ -34,7 +35,8 @@ public:
 
     grl::Rc<ReadbackRequest> readback(const grl::Rc<Texture>& texture) { return readback(TextureReadbackDesc{texture}); }
     virtual grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc) = 0;
-    // TODO add reading back buffers
+    grl::Rc<ReadbackRequest> readback(const grl::Rc<Buffer>& buffer) { return readback(BufferReadbackDesc{buffer}); }
+    virtual grl::Rc<ReadbackRequest> readback(const BufferReadbackDesc& desc) = 0;
 
     template<typename T>
     void updateBuffer(const grl::Rc<Buffer>& buffer, T& data) { updateBufferImpl(buffer, &data, sizeof(T)); }

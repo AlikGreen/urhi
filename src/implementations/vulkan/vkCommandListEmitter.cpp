@@ -284,12 +284,79 @@ namespace urhi
         vkTex->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
+    void VkCommandListEmitter::emit(const CmdReadbackBuffer &c)
+    {
+        const auto desc = c.desc;
+        const auto vkBuffer = dynamic_cast<VkBuffer*>(desc.buffer.get());
+
+        URHI_VALIDATE(vkBuffer != nullptr, "Buffer must not be null");
+
+        URHI_VALIDATE(desc.offset < vkBuffer->size(),
+            "Readback region out of bounds - offset ({}) cannot be greater than size of buffer ({})",
+            desc.offset, vkBuffer->size());
+
+        vk::BufferCopy region = {};
+        region.srcOffset = c.desc.offset;
+        region.dstOffset = 0;
+        region.size = c.desc.size;
+
+        const VkBufferCreateInfo bufferInfo = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size =  c.desc.size,
+            .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT
+        };
+
+        constexpr VmaAllocationCreateInfo allocInfo = {
+            .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                     VMA_ALLOCATION_CREATE_MAPPED_BIT,
+            .usage = VMA_MEMORY_USAGE_AUTO
+        };
+
+        VmaAllocation allocation;
+        VmaAllocationInfo allocRes;
+        vk::Buffer buffer;
+
+        auto res = vmaCreateBuffer(
+            m_device->getAllocator(),
+            &bufferInfo,
+            &allocInfo,
+            reinterpret_cast<::VkBuffer*>(&buffer),
+            &allocation,
+            &allocRes
+        );
+
+        URHI_VALIDATE(res == VK_SUCCESS, "Failed to create buffer allocation - vmaCreateBuffer returned {}", vk::to_string(static_cast<vk::Result>(res)));
+
+        vkBuffer->barrier(m_cmd,
+            vk::PipelineStageFlagBits2::eAllCommands, vk::AccessFlagBits2::eMemoryWrite,
+            vk::PipelineStageFlagBits2::eTransfer,    vk::AccessFlagBits2::eTransferRead);
+
+        m_cmd.copyBuffer(
+           vkBuffer->handle(),
+           buffer,
+           1,
+           &region
+       );
+
+        c.request->m_device = m_device;
+        c.request->m_mapped = allocRes.pMappedData;
+        c.request->m_buffer = buffer;
+        c.request->m_size = c.desc.size;
+        c.request->m_bufferAllocation = allocation;
+        c.request->m_timeline = m_timeline;
+        c.request->m_waitValue = m_submitValue;
+
+        m_idx++;
+
+        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
+    }
+
     void VkCommandListEmitter::emit(const CmdUpdateBuffer &c)
     {
         if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(c.buffer.get()))
         {
             m_stagingAllocator->upload(c.data.data(), c.data.size(), vkStaged->handle(), 0, m_cmd);
-            vkStaged->barrier(m_cmd);
+            vkStaged->barrierAfterUpload(m_cmd);
             vkStaged->lifetime().markUsed(m_queueType, m_submitValue);
         }
         else if(const auto vkMapped = dynamic_cast<VkMappedBuffer*>(c.buffer.get()))

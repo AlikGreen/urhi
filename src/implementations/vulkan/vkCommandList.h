@@ -17,12 +17,13 @@ struct CmdEndComputePass   {};
 
 struct CmdBeginCommandBuffer   {};
 
-struct CmdUpdateTexture   { TextureUploadDesc desc; std::vector<uint8_t> data; };
-struct CmdUpdateBuffer    { grl::Rc<Buffer> buffer; std::vector<uint8_t> data; };
-struct CmdGenerateMips    { grl::Rc<Texture> texture; };
-struct CmdBlitTexture     { BlitTextureDesc desc; };
+struct CmdUpdateTexture    { TextureUploadDesc desc; std::vector<uint8_t> data; };
+struct CmdUpdateBuffer     { grl::Rc<Buffer> buffer; std::vector<uint8_t> data; };
+struct CmdGenerateMips     { grl::Rc<Texture> texture; };
+struct CmdBlitTexture      { BlitTextureDesc desc; };
 
-struct CmdReadbackTexture    { grl::Rc<VkReadbackRequest> request; TextureReadbackDesc desc; };
+struct CmdReadbackTexture  { grl::Rc<VkReadbackRequest> request; TextureReadbackDesc desc; };
+struct CmdReadbackBuffer   { grl::Rc<VkReadbackRequest> request; BufferReadbackDesc desc; };
 
 struct CmdSetPipeline      { grl::Rc<Pipeline> pipeline; vk::PipelineBindPoint bindPoint; };
 
@@ -49,7 +50,8 @@ using Command = std::variant<
     CmdBeginRenderPass, CmdBeginComputePass,
     CmdEndRenderPass, CmdEndComputePass,
     CmdUpdateTexture, CmdUpdateBuffer,
-    CmdGenerateMips, CmdReadbackTexture,
+    CmdGenerateMips,
+    CmdReadbackTexture, CmdReadbackBuffer,
     CmdBlitTexture, CmdSetPipeline,
     CmdSetTexture, CmdSetSampler, CmdSetImage,
     CmdSetVertexBuffer, CmdSetIndexBuffer,
@@ -72,6 +74,7 @@ public:
     void blitTexture(const BlitTextureDesc& desc) override;
 
     grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc) override;
+    grl::Rc<ReadbackRequest> readback(const BufferReadbackDesc &desc) override;
 protected:
     void updateBufferImpl(const grl::Rc<Buffer> &buffer, void *data, uint32_t size) override;
 private:

@@ -16,10 +16,10 @@ public:
     explicit VkStagedBuffer(VkDevice* device, BufferDesc desc);
     ~VkStagedBuffer() override;
 
-    void barrier(vk::CommandBuffer cmd) const;
+    void barrierAfterUpload(vk::CommandBuffer cmd) const;
 
-    vk::Buffer handle() const override;
-    uint64_t size() const override;
+    [[nodiscard]] vk::Buffer handle() const override;
+    [[nodiscard]] uint64_t size() const override;
     VkLifetime& lifetime() override;
 private:
     VkDevice* m_device;

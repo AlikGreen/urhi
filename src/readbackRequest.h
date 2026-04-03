@@ -13,11 +13,11 @@ public:
     ReadbackRequest(const ReadbackRequest&) = delete;
     ReadbackRequest& operator= (const ReadbackRequest&) = delete;
 
-    virtual bool isReady() const = 0;
+    [[nodiscard]] virtual bool isReady() const = 0;
     virtual void wait() const = 0;
 
-    virtual const void* data() const = 0;
-    virtual size_t size() const = 0;
+    [[nodiscard]] virtual const void* data() const = 0;
+    [[nodiscard]] virtual size_t size() const = 0;
 
     template<typename T>
     std::span<const T> as() const

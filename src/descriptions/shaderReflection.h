@@ -19,7 +19,7 @@ struct ShaderReflection
         ConstantBuffer,
         Texture,
         Sampler,
-        StorageImage,
+        StorageImage
     };
 
     enum class DataType

@@ -37,7 +37,7 @@ namespace urhi
         });
     }
 
-    void VkStagedBuffer::barrier(const vk::CommandBuffer cmd) const
+    void VkStagedBuffer::barrierAfterUpload(const vk::CommandBuffer cmd) const
     {
         vk::BufferMemoryBarrier2 barrier{};
         barrier.buffer = m_buffer;
