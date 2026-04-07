@@ -1,6 +1,5 @@
 #include "vkCommandListEmitter.h"
 
-#include <numeric>
 #include <ranges>
 #include <unordered_set>
 #include <utility>
@@ -20,8 +19,28 @@
 
 namespace urhi
 {
-    VkCommandListEmitter::VkCommandListEmitter(VkDevice* device, QueueType queueType, uint64_t submitValue, const vk::Semaphore timeline, const vk::CommandBuffer cmd, VkCommandListTracker tracker, grl::Rc<VkLinearStagingAllocator> stagingAllocator)
-        : m_device(device), m_cmd(cmd), m_tracker(std::move(tracker)), m_submitValue(submitValue), m_timeline(timeline), m_queueType(queueType), m_stagingAllocator(std::move(stagingAllocator)) { }
+    VkCommandListEmitter::VkCommandListEmitter(VkDevice *device, VkCommandListTracker tracker, const vk::CommandBuffer cmd,
+        VkCommandQueue* commandQueue, const uint64_t submitValue)
+            : m_device(device), m_cmd(cmd), m_tracker(std::move(tracker)), m_submitValue(submitValue), m_commandQueue(commandQueue)
+    { }
+
+    void VkCommandListEmitter::endRecording()
+    {
+        for (const auto &texture: m_tracker.m_textureUses | std::views::keys)
+        {
+            const auto vkTex = dynamic_cast<VkTexture*>(texture);
+
+            if (vkTex->isSwapchainTexture())
+            {
+                vkTex->transitionLayout(m_cmd,
+                    vk::ImageLayout::ePresentSrcKHR,
+                    vk::PipelineStageFlagBits2::eAllCommands,
+                    vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead);
+            }
+        }
+
+        m_cmd.end();
+    }
 
     void VkCommandListEmitter::emit(const CmdDrawIndexed &c)
     {
@@ -53,9 +72,10 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBeginRenderPass &c)
     {
-        m_isRendering = true;
+        m_currentBindings.clear();
+        m_renderPassActive = true;
         m_currentRenderPassDesc = c.desc;
-        m_boundResources.clear();
+        m_boundPipeline = nullptr;
 
         for (auto& [texture, useList] : m_tracker.m_textureUses)
         {
@@ -85,7 +105,7 @@ namespace urhi
         {
             auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
             auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
-            vkView->markUsed(m_queueType, m_submitValue);
+            vkView->markUsed(m_commandQueue, m_submitValue);
             vkTex->transitionLayout(m_cmd,
                 vk::ImageLayout::eColorAttachmentOptimal,
                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
@@ -134,7 +154,7 @@ namespace urhi
         {
             const auto vkView = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
             const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
-            vkView->markUsed(m_queueType, m_submitValue);
+            vkView->markUsed(m_commandQueue, m_submitValue);
             vkTex->transitionLayout(m_cmd,
                 vk::ImageLayout::eDepthAttachmentOptimal,
                 vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
@@ -246,7 +266,7 @@ namespace urhi
         vk::Buffer buffer;
 
         auto res = vmaCreateBuffer(
-            m_device->getAllocator(),
+            m_device->allocator(),
             &bufferInfo,
             &allocInfo,
             reinterpret_cast<::VkBuffer*>(&buffer),
@@ -274,14 +294,14 @@ namespace urhi
         c.request->m_buffer = buffer;
         c.request->m_size = size;
         c.request->m_bufferAllocation = allocation;
-        c.request->m_timeline = m_timeline;
+        c.request->m_timeline = m_commandQueue->timelineSemaphore();
         c.request->m_waitValue = m_submitValue;
 
         vkTex->transitionLayout(m_cmd, oldLayout, oldStage, oldAccess);
 
         m_idx++;
 
-        vkTex->lifetime().markUsed(m_queueType, m_submitValue);
+        vkTex->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdReadbackBuffer &c)
@@ -317,7 +337,7 @@ namespace urhi
         vk::Buffer buffer;
 
         auto res = vmaCreateBuffer(
-            m_device->getAllocator(),
+            m_device->allocator(),
             &bufferInfo,
             &allocInfo,
             reinterpret_cast<::VkBuffer*>(&buffer),
@@ -343,26 +363,26 @@ namespace urhi
         c.request->m_buffer = buffer;
         c.request->m_size = c.desc.size;
         c.request->m_bufferAllocation = allocation;
-        c.request->m_timeline = m_timeline;
+        c.request->m_timeline = m_commandQueue->timelineSemaphore();
         c.request->m_waitValue = m_submitValue;
 
         m_idx++;
 
-        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
+        vkBuffer->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdUpdateBuffer &c)
     {
         if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(c.buffer.get()))
         {
-            m_stagingAllocator->upload(c.data.data(), c.data.size(), vkStaged->handle(), 0, m_cmd);
+            m_commandQueue->submissionContext().stagingAllocator().upload(c.data.data(), c.data.size(), vkStaged->handle(), 0, m_cmd);
             vkStaged->barrierAfterUpload(m_cmd);
-            vkStaged->lifetime().markUsed(m_queueType, m_submitValue);
+            vkStaged->lifetime().markUsed(m_commandQueue, m_submitValue);
         }
         else if(const auto vkMapped = dynamic_cast<VkMappedBuffer*>(c.buffer.get()))
         {
             vkMapped->upload(c.data.data(), c.data.size());
-            vkMapped->lifetime().markUsed(m_queueType, m_submitValue);
+            vkMapped->lifetime().markUsed(m_commandQueue, m_submitValue);
         }else
         {
             URHI_VALIDATE(false, "Failed to update buffer - Buffer was not of type VkStagedBuffer or VkMappedBuffer");
@@ -376,106 +396,108 @@ namespace urhi
         auto desc = c.desc;
         desc.data = c.data.data();
 
-        m_stagingAllocator->uploadToImage(desc, m_cmd);
+        m_commandQueue->submissionContext().stagingAllocator().uploadToImage(desc, m_cmd);
 
         m_idx++;
 
-       dynamic_cast<VkTexture*>(c.desc.texture.get())->lifetime().markUsed(m_queueType, m_submitValue);
+       dynamic_cast<VkTexture*>(c.desc.texture.get())->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
-    void VkCommandListEmitter::emit(const CmdSetUniformBuffer &c)
+    void VkCommandListEmitter::emit(const CmdSetBuffer &c)
     {
-        URHI_VALIDATE(m_boundPipeline != nullptr, " No pipeline set — compute dispatch requires a compute pipeline to be set first");
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
+
+        const auto layoutBinding = m_boundPipeline->bindingInfo(c.name);
+        if (!layoutBinding.has_value())
+        {
+            URHI_WARNING(false, "Binding a resource ({}) that the shader doesnt use - you should not bind resources that are not used in the shader", c.name);
+            return;
+        }
 
         const auto vkBuffer = dynamic_cast<VkBuffer*>(c.buffer.get());
 
-        m_boundResources[c.name] = BoundResource{
-            .type = ShaderReflection::ResourceType::ConstantBuffer,
-            .bufferInfo = { vkBuffer->handle(), 0, vkBuffer->size() }
-        };
+        ResourceBinding rb{};
+        rb.set = layoutBinding->set;
+        rb.binding = layoutBinding->binding;
+        rb.type = layoutBinding->type;
+        rb.isImage = false;
 
+        rb.bufferInfo.buffer = vkBuffer->handle();
+        rb.bufferInfo.offset = 0;
+        rb.bufferInfo.range = vkBuffer->size();
+
+        m_currentBindings[c.name] = rb;
+
+        vkBuffer->lifetime().markUsed(m_commandQueue, m_submitValue);
         m_idx++;
-
-        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
     }
 
-    void VkCommandListEmitter::emit(const CmdSetStorageBuffer &c)
+    void VkCommandListEmitter::emit(const CmdSetTexture &c)
     {
-        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set — compute dispatch requires a compute pipeline to be set first");
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
 
-        const auto vkBuffer = dynamic_cast<VkBuffer*>(c.buffer.get());
+        const auto layoutBinding = m_boundPipeline->bindingInfo(c.name);
+        if (!layoutBinding.has_value())
+        {
+            URHI_WARNING(false, "Binding a resource ({}) that the shader doesnt use - you should not bind resources that are not used in the shader", c.name);
+            return;
+        }
 
-        m_boundResources[c.name] = BoundResource{
-            .type = ShaderReflection::ResourceType::StorageBuffer,
-            .bufferInfo = { vkBuffer->handle(), 0, vkBuffer->size() }
-        };
+        const auto vkView = dynamic_cast<VkTextureView*>(c.texture.get());
 
+        ResourceBinding rb{};
+        rb.set = layoutBinding->set;
+        rb.binding = layoutBinding->binding;
+        rb.type = layoutBinding->type;
+        rb.isImage = true;
+
+        rb.imageInfo.imageView = vkView->getHandle();
+        rb.imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+
+        m_currentBindings[c.name] = rb;
+
+        vkView->lifetime().markUsed(m_commandQueue, m_submitValue);
         m_idx++;
+    }
 
-        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
+    void VkCommandListEmitter::emit(const CmdSetSampler &c)
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
+
+        const auto layoutBinding = m_boundPipeline->bindingInfo(c.name);
+        if (!layoutBinding.has_value())
+        {
+            URHI_WARNING(false, "Binding a resource ({}) that the shader doesnt use - you should not bind resources that are not used in the shader", c.name);
+            return;
+        }
+
+        const auto vkSampler = dynamic_cast<VkSampler*>(c.sampler.get());
+
+        ResourceBinding rb{};
+        rb.set = layoutBinding->set;
+        rb.binding = layoutBinding->binding;
+        rb.type = layoutBinding->type;
+        rb.isImage = true;
+
+        rb.imageInfo.sampler = vkSampler->getHandle();
+
+        m_currentBindings[c.name] = rb;
+
+        vkSampler->lifetime().markUsed(m_commandQueue, m_submitValue);
+        m_idx++;
     }
 
     void VkCommandListEmitter::emit(const CmdPushConstants &c)
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - push constants require a pipeline to be bound first");
         URHI_VALIDATE(!c.data.empty(), "No data uploaded");
-        URHI_VALIDATE(m_boundPipeline->m_pushConstantRange != nullptr, "This shader attached to the bound pipeline has no push constants");
-        URHI_VALIDATE(m_boundPipeline->m_pushConstantRange->size == c.data.size(), "Size of uploaded data ({} bytes) doesnt match shader struct ({} bytes)", c.data.size(), m_boundPipeline->m_pushConstantRange->size);
 
-        m_cmd.pushConstants(m_boundPipeline->getLayout(), m_boundPipeline->m_pushConstantRange->stageFlags, m_boundPipeline->m_pushConstantRange->offset, c.data.size(), c.data.data());
+        const auto pcr = m_boundPipeline->pushConstantsRange();
 
-        m_idx++;
-    }
+        URHI_VALIDATE(pcr != nullptr, "This shader attached to the bound pipeline has no push constants");
+        URHI_VALIDATE(pcr->size == c.data.size(), "Size of uploaded data ({} bytes) doesnt match shader struct ({} bytes)", c.data.size(), pcr->size);
 
-    void VkCommandListEmitter::emit(const CmdSetTexture &c)
-    {
-        URHI_VALIDATE(m_boundPipeline != nullptr, "Pipeline must be set before setting texture.");
-
-        const auto vkView = dynamic_cast<VkTextureView*>(c.texture.get());
-
-        m_boundResources[c.name] = BoundResource{
-            .type = ShaderReflection::ResourceType::Texture,
-            .imageInfo = { nullptr, vkView->getHandle(), vk::ImageLayout::eShaderReadOnlyOptimal }
-        };
-
-        m_idx++;
-
-        vkView->markUsed(m_queueType, m_submitValue);
-    }
-
-    void VkCommandListEmitter::emit(const CmdSetSampler &c)
-    {
-        URHI_VALIDATE(m_boundPipeline != nullptr, "Pipeline must be set before setting sampler.");
-
-        const auto vkSampler = dynamic_cast<VkSampler*>(c.sampler.get());
-
-        m_boundResources[c.name] = BoundResource{
-            .type = ShaderReflection::ResourceType::Sampler,
-            .imageInfo = { vkSampler->getHandle(), nullptr, vk::ImageLayout::eUndefined }
-        };
-
-        m_idx++;
-
-        vkSampler->lifetime().markUsed(m_queueType, m_submitValue);
-    }
-
-    void VkCommandListEmitter::emit(const CmdSetImage &c)
-    {
-        URHI_VALIDATE(m_boundPipeline != nullptr, "Pipeline must be set before setting image.");
-
-        const auto vkView = dynamic_cast<VkTextureView*>(c.texture.get());
-        const auto vkTex  = dynamic_cast<VkTexture*>(vkView->texture().get());
-
-        vkTex->transitionLayout(m_cmd,
-            vk::ImageLayout::eGeneral,
-            vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eFragmentShader,
-           vk::AccessFlagBits2::eShaderStorageWrite | vk::AccessFlagBits2::eShaderStorageRead
-           );
-
-        m_boundResources[c.name] = BoundResource{
-            .type      = ShaderReflection::ResourceType::StorageImage,
-            .imageInfo = { nullptr, vkView->getHandle(), vk::ImageLayout::eGeneral }
-        };
+        m_cmd.pushConstants(m_boundPipeline->layout(), pcr->stageFlags, pcr->offset, c.data.size(), c.data.data());
 
         m_idx++;
     }
@@ -487,7 +509,7 @@ namespace urhi
 
         m_idx++;
 
-        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
+        vkBuffer->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetIndexBuffer &c)
@@ -497,7 +519,7 @@ namespace urhi
 
         m_idx++;
 
-        vkBuffer->lifetime().markUsed(m_queueType, m_submitValue);
+        vkBuffer->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetScissor &c)
@@ -623,7 +645,7 @@ namespace urhi
 
         m_idx++;
 
-        texture->lifetime().markUsed(m_queueType, m_submitValue);
+        texture->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdBlitTexture &c) const
@@ -747,8 +769,8 @@ namespace urhi
         vkSrc->transitionLayout(m_cmd, srcOldLayout, srcOldStage, srcOldAccess);
         vkDst->transitionLayout(m_cmd, dstOldLayout, dstOldStage, dstOldAccess);
 
-        vkSrc->lifetime().markUsed(m_queueType, m_submitValue);
-        vkDst->lifetime().markUsed(m_queueType, m_submitValue);
+        vkSrc->lifetime().markUsed(m_commandQueue, m_submitValue);
+        vkDst->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdDispatchCompute &c)
@@ -767,7 +789,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdEndRenderPass &c)
     {
-        m_isRendering = false;
+        m_renderPassActive = false;
         m_cmd.endRendering();
 
         m_idx++;
@@ -775,12 +797,15 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBeginComputePass &c)
     {
-        m_boundResources.clear();
+        m_currentBindings.clear();
+        m_computePassActive = true;
+        m_boundPipeline = nullptr;
         m_idx++;
     }
 
     void VkCommandListEmitter::emit(const CmdEndComputePass &c)
     {
+        m_computePassActive = false;
         m_idx++;
     }
 
@@ -792,14 +817,16 @@ namespace urhi
         m_idx++;
     }
 
+
     void VkCommandListEmitter::emit(const CmdSetPipeline &c)
     {
         URHI_VALIDATE(c.pipeline != nullptr, "Pipeline must not be null");
         m_boundPipeline = std::dynamic_pointer_cast<VkPipeline>(c.pipeline);
+
         m_boundPipelineBindPoint = c.bindPoint;
 
         #if defined(URHI_ENABLE_VALIDATION)
-            if(m_isRendering && c.bindPoint == vk::PipelineBindPoint::eGraphics)
+            if(m_renderPassActive && c.bindPoint == vk::PipelineBindPoint::eGraphics)
             {
                 const auto& pipelineDesc = dynamic_cast<VkGraphicsPipeline*>(m_boundPipeline.get())->m_desc;
                 const auto& renderPassDesc = m_currentRenderPassDesc;
@@ -864,48 +891,65 @@ namespace urhi
             }
         #endif
 
-        m_cmd.bindPipeline(c.bindPoint, m_boundPipeline->getHandle());
+        m_cmd.bindPipeline(c.bindPoint, m_boundPipeline->handle());
         m_idx++;
     }
 
     void VkCommandListEmitter::pushDescriptors()
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - descriptors cannot be pushed before binding a pipeline");
-        std::unordered_set<uint32_t> seenBindings;
-        std::vector<vk::WriteDescriptorSet> writes;
-        writes.reserve(m_boundResources.size());
 
-        for(const auto& [stage, shader] : m_boundPipeline->m_shaderMap)
+#if defined(URHI_ENABLE_VALIDATION)
+        for (const auto& [resourceName, expectedLayout] : m_boundPipeline->bindingInfo())
         {
-            for (const auto& resource : shader->entryPoint().reflection.resources)
-            {
-                if (!seenBindings.insert(resource.binding).second) continue;
+            URHI_VALIDATE(m_currentBindings.contains(resourceName),
+                "Missing Shader Resource! The pipeline expects a resource named '{}' (Set: {}, Binding: {}), "
+                "but it was never bound to the command list.",
+                resourceName, expectedLayout.set, expectedLayout.binding);
+        }
+#endif
 
-                auto it = m_boundResources.find(resource.name);
-                URHI_VALIDATE(it != m_boundResources.end(), "Resource ({}) not bound - expected a resource to be bound to every shader resource ", resource.name);
 
-                vk::WriteDescriptorSet write{};
-                write.dstBinding = resource.binding;
-                write.descriptorCount = 1;
-                write.descriptorType = VkConvert::resourceType(resource.type);
+        auto& allocator = m_commandQueue->submissionContext().descriptorAllocator();
+        const uint32_t numSets = m_boundPipeline->descriptorSetLayouts().size();
+        std::vector<vk::DescriptorSet> allocatedSets(numSets);
 
-                if (resource.type == ShaderReflection::ResourceType::ConstantBuffer)
-                {
-                    write.pBufferInfo = &it->second.bufferInfo;
-                } else
-                {
-                    write.pImageInfo = &it->second.imageInfo;
-                }
-
-                writes.push_back(write);
-            }
+        for(uint32_t i = 0; i < numSets; i++)
+        {
+            allocatedSets[i] = allocator.allocate(m_boundPipeline->descriptorSetLayout(i));
         }
 
-        m_cmd.pushDescriptorSetKHR(
-            m_boundPipelineBindPoint,
-            m_boundPipeline->getLayout(),
-            0, // always 0 for now might change
-            writes
+        std::vector<vk::WriteDescriptorSet> writes;
+        writes.reserve(m_currentBindings.size());
+
+        for (auto& [name, rb] : m_currentBindings)
+        {
+            vk::WriteDescriptorSet write{};
+            write.dstSet = allocatedSets[rb.set];
+            write.dstBinding = rb.binding;
+            write.dstArrayElement = 0;
+            write.descriptorCount = 1;
+            write.descriptorType = rb.type;
+
+            if (rb.isImage)
+            {
+                write.pImageInfo = &rb.imageInfo;
+            } else
+            {
+                write.pBufferInfo = &rb.bufferInfo;
+            }
+
+            writes.push_back(write);
+        }
+
+        m_device->handle().updateDescriptorSets(writes, {});
+
+        m_cmd.bindDescriptorSets(
+            vk::PipelineBindPoint::eGraphics,
+            m_boundPipeline->layout(),
+            0,
+            allocatedSets,
+            {}
         );
     }
 }

@@ -3,10 +3,8 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <glm/glm.hpp>
 
 #include "enums/resourceAccess.h"
-#include "enums/shaderStage.h"
 #include "enums/textureType.h"
 
 namespace urhi
@@ -48,7 +46,7 @@ struct ShaderReflection
         ResourceType type = ResourceType::ConstantBuffer;
         uint32_t set = 0;
         uint32_t binding = 0;
-        uint32_t arrayCount = 1;
+        uint32_t count = 1;
         ResourceAccess access = ResourceAccess::ReadOnly;
 
         uint32_t totalSize = 0;
@@ -83,6 +81,7 @@ struct ShaderReflection
         std::string name;
         uint32_t size;
         uint32_t offset;
+        std::vector<Member> members;
     };
 
     struct VertexAttribute
@@ -90,6 +89,7 @@ struct ShaderReflection
         std::string name;
         DataType type;
         uint32_t location;
+        uint32_t binding;
         uint32_t offset;
     };
 
@@ -98,10 +98,13 @@ struct ShaderReflection
     {
         uint32_t binding = 0;
         uint32_t stride = 0;
-        std::string structName;
-        std::vector<VertexAttribute> attributes;
     };
 
+    struct VertexInput
+    {
+        std::vector<VertexAttribute> attributes;
+        std::vector<VertexBinding> bindings;
+    };
 
     struct ComputeInfo
     {
@@ -111,7 +114,7 @@ struct ShaderReflection
     };
 
     std::vector<Resource> resources;
-    std::vector<VertexBinding> vertexBindings;
+    VertexInput vertexInput;
     std::optional<PushConstant> pushConstant;
     std::optional<ComputeInfo> computeInfo;
 };

@@ -1,7 +1,5 @@
 #include "vkSwapchain.h"
 
-#include <iostream>
-
 #include "clogr.h"
 #include "validation.h"
 #include "VkBootstrap.h"
@@ -24,16 +22,16 @@ namespace urhi
         m_frames.resize(m_maxFramesInFlight);
         for (auto& frame : m_frames)
         {
-            frame.imageAvailableSemaphore = m_device->getHandle().createSemaphore({});
-            frame.transitionPool = m_device->getHandle().createCommandPool({vk::CommandPoolCreateFlagBits::eTransient, m_device->getQueueState(QueueType::Graphics)->family});
+            frame.imageAvailableSemaphore = m_device->handle().createSemaphore({});
+            frame.renderFinishedSemaphore = m_device->handle().createSemaphore({});
+            frame.transitionPool = m_device->handle().createCommandPool({vk::CommandPoolCreateFlagBits::eTransient, m_device->queue(QueueType::Graphics)->family()});
             vk::CommandBufferAllocateInfo allocInfo
             {
                 frame.transitionPool,
                 vk::CommandBufferLevel::ePrimary,
                 1
             };
-            frame.transitionCmd = m_device->getHandle().allocateCommandBuffers(allocInfo).front();
-            frame.inFlightFence = m_device->getHandle().createFence({vk::FenceCreateFlagBits::eSignaled});
+            frame.transitionCmd = m_device->handle().allocateCommandBuffers(allocInfo).front();;
         }
 
         uint32_t width = desc.width;
@@ -47,11 +45,11 @@ namespace urhi
 
     VkSwapchain::~VkSwapchain()
     {
-        m_device->getHandle().waitIdle();
+        m_device->handle().waitIdle();
         for (const auto& frame : m_frames)
         {
-            m_device->getHandle().destroySemaphore(frame.imageAvailableSemaphore);
-            m_device->getHandle().destroyCommandPool(frame.transitionPool);
+            m_device->handle().destroySemaphore(frame.imageAvailableSemaphore);
+            m_device->handle().destroyCommandPool(frame.transitionPool);
         }
     }
 
@@ -63,7 +61,7 @@ namespace urhi
 
         vkb::SwapchainBuilder swapchainBuilder{
             m_device->getPhysicalDevice(),
-            m_device->getHandle(),
+            m_device->handle(),
             m_window->getSurface()
         };
 
@@ -91,7 +89,7 @@ namespace urhi
 
         if (oldHandle != VK_NULL_HANDLE)
         {
-            m_device->getHandle().destroySwapchainKHR(oldHandle);
+            m_device->handle().destroySwapchainKHR(oldHandle);
         }
 
         PixelFormat swapchainFormat = VkConvert::pixelFormat(m_imageFormat, m_device.get());
@@ -115,40 +113,22 @@ namespace urhi
             m_textureViews.push_back(texView);
         }
 
-        const auto queueState = m_device->getQueueState(QueueType::Graphics);
-        std::scoped_lock lock(*queueState->mutex);
-        queueState->queue.waitIdle();
-
-        for (const auto s : m_renderFinishedSemaphores)
-        {
-            m_device->getHandle().destroySemaphore(s);
-        }
-
-        m_renderFinishedSemaphores.clear();
-
-        m_renderFinishedSemaphores.reserve(m_textureViews.size());
-        for (size_t i = 0; i < m_textureViews.size(); ++i)
-            m_renderFinishedSemaphores.push_back(m_device->getHandle().createSemaphore({}));
+        const auto queue = m_device->queue(QueueType::Graphics);
+        std::scoped_lock lock(queue->mutex());
+        queue->handle().waitIdle();
     }
 
     grl::Rc<TextureView> VkSwapchain::acquireNextImage()
     {
         const auto& frame = m_frames[m_frameIndex];
 
-        const auto res = m_device->getHandle().waitForFences(
-            frame.inFlightFence, VK_TRUE, UINT64_MAX
-        );
-        URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to wait for fence - vk::Device::waitForFences returned {}", vk::to_string(res));
-
-        m_device->getHandle().resetFences(frame.inFlightFence);
-
-        const auto result = m_device->getHandle().acquireNextImageKHR(
+        auto result = m_device->handle().acquireNextImageKHR(
             m_handle,
             UINT64_MAX,
             frame.imageAvailableSemaphore
         );
 
-        URHI_VALIDATE(result.has_value(), "Failed to acquire image - vk::Device::acquireNextImageKHR returned {}", vk::to_string(res));
+        URHI_VALIDATE(result.has_value(), "Failed to acquire swapchain image");
 
         m_semaphoreConsumed = false;
 
@@ -166,92 +146,66 @@ namespace urhi
 
     void VkSwapchain::present()
     {
-        auto& frame = m_frames[m_frameIndex];
-        if(frame.maxTimelineValue > 0)
+        auto queue = m_device->queue(QueueType::Graphics);
+
+        std::vector<vk::SemaphoreSubmitInfo> waitInfos;
+
+        vk::SemaphoreSubmitInfo timelineWait{};
+        timelineWait.semaphore = queue->timelineSemaphore();
+        timelineWait.value = queue->timelineValue();
+        timelineWait.stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+        waitInfos.push_back(timelineWait);
+
+        vk::Semaphore unconsumedReady = consumeReadySemaphore();
+        if (unconsumedReady)
         {
-            vk::SemaphoreWaitInfo waitInfo{};
-            waitInfo.semaphoreCount = 1;
-            waitInfo.pSemaphores = &m_device->getQueueState(QueueType::Graphics)->timeline;
-            waitInfo.pValues = &frame.maxTimelineValue;
-            const auto res = m_device->getHandle().waitSemaphores(waitInfo, UINT64_MAX);
-            URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to wait on semaphore");
+            vk::SemaphoreSubmitInfo readyWait{};
+            readyWait.semaphore = unconsumedReady;
+            readyWait.value = 0;
+            readyWait.stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+            waitInfos.push_back(readyWait);
         }
 
-        const auto queueState = m_device->getQueueState(QueueType::Graphics);
+        vk::SemaphoreSubmitInfo binarySignal{};
+        binarySignal.semaphore = m_frames[m_frameIndex].renderFinishedSemaphore;
+        binarySignal.value = 0;
+        binarySignal.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
 
-        m_device->getHandle().resetCommandPool(m_frames[m_frameIndex].transitionPool, {});
-        const auto& cmd = m_frames[m_frameIndex].transitionCmd;
-        cmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-        dynamic_cast<VkTexture*>(m_textures[m_imageIndex].get())->transitionLayout(cmd,
-            vk::ImageLayout::ePresentSrcKHR,
-            vk::PipelineStageFlagBits2::eNone,
-            vk::AccessFlagBits2::eNone);
-
-        cmd.end();
-
-        // Build wait semaphore infos
-        std::vector<vk::SemaphoreSubmitInfo> waitSemaphoreInfos;
-
-        if (queueState->nextTimelineValue > 0)
-        {
-            vk::SemaphoreSubmitInfo timelineWait{};
-            timelineWait.semaphore = queueState->timeline;
-            timelineWait.value = queueState->nextTimelineValue;
-            timelineWait.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
-            waitSemaphoreInfos.push_back(timelineWait);
-        }
-
-        // Signal semaphore info (binary)
-        vk::SemaphoreSubmitInfo signalInfo{};
-        signalInfo.semaphore = m_renderFinishedSemaphores[m_imageIndex];
-        signalInfo.value = 0; // binary semaphore
-        signalInfo.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
-
-        // Command buffer info
-        vk::CommandBufferSubmitInfo cmdInfo{};
-        cmdInfo.commandBuffer = cmd;
-
-        // Submit info
         vk::SubmitInfo2 submitInfo{};
-        submitInfo.waitSemaphoreInfoCount = static_cast<uint32_t>(waitSemaphoreInfos.size());
-        submitInfo.pWaitSemaphoreInfos = waitSemaphoreInfos.data();
-        submitInfo.commandBufferInfoCount = 1;
-        submitInfo.pCommandBufferInfos = &cmdInfo;
+        submitInfo.waitSemaphoreInfoCount = static_cast<uint32_t>(waitInfos.size());
+        submitInfo.pWaitSemaphoreInfos = waitInfos.data();
         submitInfo.signalSemaphoreInfoCount = 1;
-        submitInfo.pSignalSemaphoreInfos = &signalInfo;
+        submitInfo.pSignalSemaphoreInfos = &binarySignal;
 
-        std::scoped_lock lock(*queueState->mutex);
-
-        try
         {
-            queueState->queue.submit2({submitInfo}, m_frames[m_frameIndex].inFlightFence);
-        } catch (const vk::SystemError& e)
-        {
-            clogr::error("Present submit2 failed: {}", e.what());
-            throw;
+            std::scoped_lock lock(queue->mutex());
+            queue->handle().submit2({submitInfo});
         }
 
-        // Present
         vk::PresentInfoKHR presentInfo{};
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[m_imageIndex];
+        presentInfo.pWaitSemaphores = &m_frames[m_frameIndex].renderFinishedSemaphore;
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &m_handle;
         presentInfo.pImageIndices = &m_imageIndex;
 
-        const auto res = queueState->queue.presentKHR(presentInfo);
+        const auto res = m_device->queue(QueueType::Graphics)->handle().presentKHR(presentInfo);
         URHI_VALIDATE(res == vk::Result::eSuccess, "Failed to present image");
 
-        frame.maxTimelineValue = queueState->nextTimelineValue;
         m_frameIndex = (m_frameIndex + 1) % m_maxFramesInFlight;
     }
 
-    vk::Semaphore VkSwapchain::consumeSemaphore()
+    vk::Semaphore VkSwapchain::consumeReadySemaphore()
     {
         if(m_semaphoreConsumed)
             return nullptr;
 
         m_semaphoreConsumed = true;
         return m_frames[m_frameIndex].imageAvailableSemaphore;
+    }
+
+    vk::Semaphore VkSwapchain::renderFinishedSemaphore()
+    {
+        return m_frames[m_frameIndex].renderFinishedSemaphore;
     }
 }

@@ -14,12 +14,9 @@ public:
 
     void setPipeline(const grl::Rc<Pipeline> &pipeline) override;
 
-    void setUniformBuffer(const std::string &name, const grl::Rc<Buffer> &buffer) override;
-    void setStorageBuffer(const std::string &name, const grl::Rc<Buffer> &buffer) override;
-
+    void setBuffer(const std::string &name, const grl::Rc<Buffer> &buffer) override;
     void setTexture(const std::string &name, const grl::Rc<TextureView> &texture) override;
     void setSampler(const std::string &name, const grl::Rc<Sampler> &sampler) override;
-    void setImage(const std::string &name, const grl::Rc<TextureView> &texture, ResourceAccess access) override;
 
     void pushConstants(void *data, size_t size) override;
 

@@ -17,29 +17,19 @@ namespace urhi
         m_commands.emplace_back(CmdSetPipeline{pipeline, vk::PipelineBindPoint::eCompute});
     }
 
-    void VkComputePass::setUniformBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
+    void VkComputePass::setBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
     {
-        m_commands.emplace_back(CmdSetUniformBuffer{ name, buffer });
-    }
-
-    void VkComputePass::setStorageBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
-    {
-        m_commands.emplace_back(CmdSetStorageBuffer{ name, buffer });
+        m_commands.emplace_back(CmdSetBuffer{name, buffer});
     }
 
     void VkComputePass::setTexture(const std::string &name, const grl::Rc<TextureView> &texture)
     {
-        m_commands.emplace_back(CmdSetTexture{ name, texture });
+        m_commands.emplace_back(CmdSetTexture{name, texture});
     }
 
     void VkComputePass::setSampler(const std::string &name, const grl::Rc<Sampler> &sampler)
     {
-        m_commands.emplace_back(CmdSetSampler{ name, sampler });
-    }
-
-    void VkComputePass::setImage(const std::string &name, const grl::Rc<TextureView> &texture, const ResourceAccess access)
-    {
-        m_commands.emplace_back(CmdSetImage{ name, texture, access });
+        m_commands.emplace_back(CmdSetSampler{name, sampler});
     }
 
     void VkComputePass::pushConstants(void *data, const size_t size)

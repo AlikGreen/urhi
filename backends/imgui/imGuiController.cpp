@@ -6,7 +6,7 @@
 
 #include "imGuiExtensions.h"
 #include "imguiShader.h"
-#include "shaderCompiler.h"
+#include "slangCompiler.h"
 #include "glm/glm.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 
@@ -144,6 +144,7 @@ namespace urhi
                     SamplerDesc samplerDesc{};
                     image->sampler = m_device->createSampler(samplerDesc);
                 }
+
 
                 renderPass->setTexture("ImGuiTexture", image->view);
                 renderPass->setSampler("ImGuiSampler", image->sampler);
@@ -322,15 +323,14 @@ namespace urhi
 
     void ImGuiController::createPipeline()
     {
-        ShaderCompileDesc compileDesc{};
-        compileDesc.path = "imgui.slang";
-        compileDesc.source = imGuiShaderSource;
-        const auto shaders = ShaderCompiler::compile(compileDesc);
-        const auto shader1 = m_device->createShader(shaders.at(0));
-        const auto shader2 = m_device->createShader(shaders.at(1));
+        SlangCompileDesc compileDesc{};
+        compileDesc.modules.push_back({"imgui", "imgui.slang", imGuiShaderSource });
+        const auto shaders = SlangCompiler::compile(compileDesc);
+        const auto vertexShader = m_device->createShader(*shaders.find(ShaderStage::Vertex));
+        const auto fragmentShader = m_device->createShader(*shaders.find(ShaderStage::Fragment));
 
         GraphicsPipelineDesc pipelineDescription{};
-        pipelineDescription.shaders         = { shader1, shader2 };
+        pipelineDescription.shaders         = { vertexShader, fragmentShader };
         pipelineDescription.primitiveType   = PrimitiveType::TriangleList;
         pipelineDescription.rasterizerState = { .cullMode = CullMode::None, .enableScissorTest = true };
         pipelineDescription.depthState      = { .hasDepthTarget = false, .enableDepthTest = false };

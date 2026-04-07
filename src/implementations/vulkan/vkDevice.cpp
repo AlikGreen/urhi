@@ -48,7 +48,6 @@ namespace urhi
 
         vkb::PhysicalDeviceSelector selector { context->getVkbInstance() };
         vkb::PhysicalDevice physicalDevice = selector
-            .add_required_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)
             .set_minimum_version(1, 3)
             .set_required_features_13(features13)
             .set_required_features_12(features12)
@@ -70,30 +69,6 @@ namespace urhi
         VULKAN_HPP_DEFAULT_DISPATCHER.init(context->getVkInstance());
         VULKAN_HPP_DEFAULT_DISPATCHER.init(m_handle);
 
-        vk::SemaphoreTypeCreateInfo typeCreateInfo
-        {
-            vk::SemaphoreType::eTimeline,
-            0
-        };
-
-        m_queueStates[0] = grl::makeRc<VkQueueState>();
-        m_queueStates[0]->queue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
-        m_queueStates[0]->family = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
-        m_queueStates[0]->mutex = grl::makeBox<std::mutex>();
-        m_queueStates[0]->timeline = m_handle.createSemaphore({{}, typeCreateInfo});
-
-        m_queueStates[1] = grl::makeRc<VkQueueState>();
-        m_queueStates[1]->queue = vkbDevice.get_queue(vkb::QueueType::compute).value();
-        m_queueStates[1]->family = vkbDevice.get_queue_index(vkb::QueueType::compute).value();
-        m_queueStates[1]->mutex = grl::makeBox<std::mutex>();
-        m_queueStates[1]->timeline = m_handle.createSemaphore({{}, typeCreateInfo});
-
-        m_queueStates[2] = grl::makeRc<VkQueueState>();
-        m_queueStates[2]->queue = vkbDevice.get_queue(vkb::QueueType::transfer).value();
-        m_queueStates[2]->family = vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
-        m_queueStates[2]->mutex = grl::makeBox<std::mutex>();
-        m_queueStates[2]->timeline = m_handle.createSemaphore({{}, typeCreateInfo});
-
         VmaAllocatorCreateInfo allocatorCI{
             .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
             .physicalDevice = m_physicalDevice,
@@ -102,6 +77,26 @@ namespace urhi
             .instance = context->getVkInstance()
         };
         vmaCreateAllocator(&allocatorCI, &m_allocator);
+
+
+        m_commandQueues[0] = grl::makeRc<VkCommandQueue>(
+            this,
+            QueueType::Graphics,
+            vkbDevice.get_queue_index(vkb::QueueType::graphics).value(),
+            vkbDevice.get_queue(vkb::QueueType::graphics).value());
+
+        m_commandQueues[1] = grl::makeRc<VkCommandQueue>(
+            this,
+            QueueType::Compute,
+            vkbDevice.get_queue_index(vkb::QueueType::compute).value(),
+            vkbDevice.get_queue(vkb::QueueType::compute).value());
+
+        m_commandQueues[2] = grl::makeRc<VkCommandQueue>(
+            this,
+            QueueType::Transfer,
+            vkbDevice.get_queue_index(vkb::QueueType::transfer).value(),
+            vkbDevice.get_queue(vkb::QueueType::transfer).value());
+
 
         VkPhysicalDeviceProperties physProps;
         vkGetPhysicalDeviceProperties(m_physicalDevice, &physProps);
@@ -138,7 +133,8 @@ namespace urhi
 
     grl::Rc<CommandList> VkDevice::acquireCommandList(QueueType queueType)
     {
-        return grl::makeRc<VkCommandList>(queueType, this);
+        auto queue = m_commandQueues[static_cast<size_t>(queueType)].get();
+        return grl::makeRc<VkCommandList>(this, queue, &queue->submissionContext());
     }
 
     grl::Rc<Texture> VkDevice::createTexture(const TextureDesc &desc)
@@ -163,8 +159,11 @@ namespace urhi
 
     grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
     {
-        URHI_VALIDATE(desc.size != 0, "Buffer size ({}) invalid for creation - buffer size must be greater than 0 and less than vram available", desc.size);
-       if (desc.usage == BufferUsage::Uniform && desc.size < 1024 * 8) // if < 8 KB use persistent mapped buffer
+        URHI_VALIDATE(desc.size != 0, "Invalid buffer size ({}) - buffer size must be greater than 0 and less than vram available", desc.size);
+        URHI_VALIDATE(desc.usage != BufferUsage::None, "Invalid buffer usage - buffer usage must not be BufferUsage::None");
+        URHI_VALIDATE(!(hasFlag(desc.usage, BufferUsage::Static) && hasFlag(desc.usage, BufferUsage::Dynaimic)), "Invalid buffer usage - buffer usage cannot have BufferUsage::Dynamic and BufferUsage::Static");
+
+        if ((hasFlag(desc.usage, BufferUsage::Uniform) && !hasFlag(desc.usage, BufferUsage::Static)) || hasFlag(desc.usage, BufferUsage::Dynaimic))
            return grl::makeRc<VkMappedBuffer>(this, desc);
 
         return grl::makeRc<VkStagedBuffer>(this, desc);
@@ -179,39 +178,26 @@ namespace urhi
     {
         const auto vkCmd = dynamic_cast<VkCommandList*>(cmdList.get());
 
-        auto& pool = m_commandListPools[m_cmdListIndex][static_cast<size_t>(vkCmd->m_queueType)];
-
-        if(!pool)
-        {
-            pool = grl::makeRc<VkCommandListPool>(
-                this,
-                m_queueStates[static_cast<size_t>(vkCmd->m_queueType)]
-            );
-        }
-
-        const vk::CommandBuffer commandBuffer = pool->acquire();
+        const auto commandQueue = vkCmd->queue();
+        const vk::CommandBuffer cmdBuffer = commandQueue->acquireCommandBuffer();
 
         VkCommandListTracker tracker;
-        for (auto& cmd : vkCmd->m_commands)
+        for (auto& cmd : vkCmd->commands())
             std::visit([&](auto& c) { tracker.record(c); }, cmd);
 
-        const uint64_t submitValue = pool->m_queueState->nextTimelineValue + 1;
+        const uint64_t submitValue = commandQueue->timelineValue() + 1;
 
-        VkCommandListEmitter emitter{ this, vkCmd->m_queueType, submitValue, pool->m_queueState->timeline, commandBuffer, tracker, pool->m_linearStagingAllocator };
-        for (auto& cmd : vkCmd->m_commands)
+        VkCommandListEmitter emitter{ this, tracker, cmdBuffer, commandQueue, submitValue };
+        for (auto& cmd : vkCmd->commands())
             std::visit([&](auto& c) { emitter.emit(c); }, cmd);
 
+        emitter.endRecording();
 
-        commandBuffer.end();
+        vk::Semaphore waitSwapchainSemaphore = nullptr;
+        if(commandQueue->type() == QueueType::Graphics)
+            waitSwapchainSemaphore = m_context->getSwapchain()->consumeReadySemaphore();
 
-        vk::Semaphore semaphore = nullptr;
-
-        if(vkCmd->m_queueType == QueueType::Graphics)
-            semaphore = m_context->getSwapchain()->consumeSemaphore();
-
-        pool->submit(commandBuffer, semaphore);
-
-        m_cmdListIndex = ++m_cmdListIndex % CMD_POOLS_PER_QUEUE;
+        commandQueue->submit(cmdBuffer, vkCmd->submissionContext(), waitSwapchainSemaphore);
 
         tryCollectGarbage();
     }
@@ -221,68 +207,44 @@ namespace urhi
         m_destroyQueue.emplace_back(lifetime, callback);
     }
 
-    vk::PhysicalDevice VkDevice::getPhysicalDevice() const
-    {
-        return m_physicalDevice;
-    }
-
-    vk::Device VkDevice::getHandle() const
-    {
-        return m_handle;
-    }
-
-    VmaAllocator VkDevice::getAllocator() const
-    {
-        return m_allocator;
-    }
-
-    grl::Rc<VkQueueState> VkDevice::getQueueState(QueueType queueType)
-    {
-        return m_queueStates[static_cast<size_t>(queueType)];
-    }
-
-    vk::Format VkDevice::depth24PlusStencil8Format() const
-    {
-        return m_depth24PlusStencil8Format;
-    }
-
     void VkDevice::tryCollectGarbage()
     {
         if(m_destroyQueue.empty()) return;
-
-        uint64_t completeValues[3] = {0, 0, 0};
 
         for (size_t i = 0; i < m_destroyQueue.size(); i++ )
         {
             auto& [lifetime, callback] = m_destroyQueue[i];
 
-            const auto queueIdx = static_cast<uint8_t>(lifetime.lastSubmitQueue);
-            uint64_t completeValue = completeValues[static_cast<uint8_t>(lifetime.lastSubmitQueue)];
-            if(completeValue == 0)
-            {
-                completeValue = m_handle.getSemaphoreCounterValue(m_queueStates[queueIdx]->timeline);
-                completeValues[queueIdx] = completeValue;
-            }
-
-            if(lifetime.lastSubmitValue <= completeValue)
+            if(!lifetime.lastSubmitQueue)
             {
                 callback(this);
                 m_destroyQueue[i] = std::move(m_destroyQueue.back());
                 m_destroyQueue.pop_back();
                 i--;
+            }else
+            {
+                const uint64_t completeValue = m_handle.getSemaphoreCounterValue(lifetime.lastSubmitQueue->timelineSemaphore());
+
+                if(lifetime.lastSubmitValue <= completeValue)
+                {
+                    callback(this);
+                    m_destroyQueue[i] = std::move(m_destroyQueue.back());
+                    m_destroyQueue.pop_back();
+                    i--;
+                }
             }
         }
 
         URHI_WARNING(m_destroyQueue.size() <= 512, "Too many resource destroys queued - {} destroys queued, you may have a memory leak", m_destroyQueue.size());
     }
 
-    float VkDevice::getMaxAnisotropy() const
-    {
-        return m_maxAnisotropy;
-    }
-
-    clogr::Logger& VkDevice::logger() const
+    clogr::Logger & VkDevice::logger() const
     {
         return m_context->logger();
+    }
+
+    grl::Rc<VkCommandQueue> VkDevice::queue(QueueType type) const
+    {
+        return m_commandQueues[static_cast<size_t>(type)];
     }
 }

@@ -1,7 +1,8 @@
 #pragma once
+
 #include "context.h"
-#include "VkBootstrap.h"
 #include <vulkan/vulkan.hpp>
+#include "VkBootstrap.h"
 
 #include "logger.h"
 
@@ -17,7 +18,7 @@ public:
     grl::Rc<Window> createWindow(const WindowDesc& desc) override;
     grl::Rc<Swapchain> createSwapchain(const SwapchainDesc& desc) override;
 
-    [[nodiscard]] vkb::Instance getVkbInstance() const;
+    [[nodiscard]] const vkb::Instance& getVkbInstance() const;
     [[nodiscard]] vk::Instance getVkInstance() const;
     [[nodiscard]] grl::Rc<VkSwapchain> getSwapchain() const;
 

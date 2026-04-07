@@ -3,7 +3,6 @@
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
-#include "vkTexture.h"
 #include "descriptions/textureUploadDesc.h"
 
 namespace urhi
@@ -11,11 +10,14 @@ namespace urhi
 class VkCommandList;
 class VkDevice;
 class VkCommandList;
+class VkTexture;
 
 class VkLinearStagingAllocator
 {
 public:
-    explicit VkLinearStagingAllocator(VkDevice* device);
+    VkLinearStagingAllocator() = default;
+    void init(VkDevice* device);
+    void destroy();
 
     VkLinearStagingAllocator(const VkLinearStagingAllocator&) = delete;
     VkLinearStagingAllocator& operator=(const VkLinearStagingAllocator&) = delete;

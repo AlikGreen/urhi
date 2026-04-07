@@ -1,10 +1,9 @@
 #pragma once
+#include <vulkan/vulkan.hpp>
 #include <vma/vk_mem_alloc.h>
 
 #include "texture.h"
 #include "descriptions/textureDesc.h"
-
-#include <vulkan/vulkan.hpp>
 
 #include "vkLifetime.h"
 
@@ -39,6 +38,8 @@ public:
     [[nodiscard]] vk::AccessFlags2 getAccess() const { return m_currentAccess; }
 
     VkLifetime& lifetime();
+
+    bool isSwapchainTexture();
 private:
     uint32_t m_width, m_height, m_depth;
     uint32_t m_mipLevels{};
@@ -55,6 +56,6 @@ private:
     vk::AccessFlags2 m_currentAccess = vk::AccessFlagBits2::eNone;
 
     VkLifetime m_life;
-    bool m_owned = true;
+    bool m_swapchainTexture = false;
 };
 }

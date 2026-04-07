@@ -1,4 +1,5 @@
 #pragma once
+#include "enumFlags.h"
 
 namespace urhi
 {
@@ -12,27 +13,5 @@ enum class ShaderStage : uint32_t
 };
 
 
-inline ShaderStage operator|(ShaderStage lhs, ShaderStage rhs)
-{
-    using U = std::underlying_type_t<ShaderStage>;
-    return static_cast<ShaderStage>(static_cast<U>(lhs) | static_cast<U>(rhs));
-}
-
-inline ShaderStage operator&(ShaderStage lhs, ShaderStage rhs)
-{
-    using U = std::underlying_type_t<ShaderStage>;
-    return static_cast<ShaderStage>(static_cast<U>(lhs) & static_cast<U>(rhs));
-}
-
-inline ShaderStage& operator|=(ShaderStage &lhs, const ShaderStage rhs)
-{
-    lhs = lhs | rhs;
-    return lhs;
-}
-
-inline ShaderStage& operator&=(ShaderStage &lhs, const ShaderStage rhs)
-{
-    lhs = lhs & rhs;
-    return lhs;
-}
+URHI_DEFINE_ENUM_FLAGS(ShaderStage);
 }

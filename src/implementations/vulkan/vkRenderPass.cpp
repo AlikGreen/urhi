@@ -23,14 +23,9 @@ namespace urhi
         m_commands.emplace_back(CmdSetPipeline{pipeline, vk::PipelineBindPoint::eGraphics});
     }
 
-    void VkRenderPass::setUniformBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
+    void VkRenderPass::setBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
     {
-        m_commands.emplace_back(CmdSetUniformBuffer{name, buffer});
-    }
-
-    void VkRenderPass::setStorageBuffer(const std::string &name, const grl::Rc<Buffer> &buffer)
-    {
-        m_commands.emplace_back(CmdSetStorageBuffer{name, buffer});
+        m_commands.emplace_back(CmdSetBuffer{name, buffer});
     }
 
     void VkRenderPass::setTexture(const std::string &name, const grl::Rc<TextureView> &texture)
@@ -41,11 +36,6 @@ namespace urhi
     void VkRenderPass::setSampler(const std::string &name, const grl::Rc<Sampler> &sampler)
     {
         m_commands.emplace_back(CmdSetSampler{name, sampler});
-    }
-
-    void VkRenderPass::setImage(const std::string &name, const grl::Rc<TextureView> &texture, const ResourceAccess access)
-    {
-        m_commands.emplace_back(CmdSetImage{name, texture, access});
     }
 
     void VkRenderPass::pushConstants(void *data, const size_t size)

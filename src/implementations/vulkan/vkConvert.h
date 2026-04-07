@@ -19,6 +19,7 @@
 #include "enums/pixelFormat.h"
 #include "enums/presentMode.h"
 #include "enums/primitiveType.h"
+#include "enums/shaderStage.h"
 #include "enums/storeOp.h"
 #include "enums/textureFilter.h"
 #include "enums/textureType.h"
@@ -41,9 +42,9 @@ public:
     static vk::Format pixelFormat(PixelFormat pixelFormat, const VkDevice* device);
     static PixelFormat pixelFormat(vk::Format format, const VkDevice* device);
 
-    static vk::BufferUsageFlags bufferUsage(BufferUsage bufferUsage);
+    static vk::BufferUsageFlags bufferUsage(BufferUsage usage);
 
-    static vk::DescriptorType resourceType(ShaderReflection::ResourceType type);
+    static vk::DescriptorType descriptorType(ShaderReflection::ResourceType type);
     static vk::ShaderStageFlags shaderStage(ShaderStage stage);
     static vk::ShaderStageFlagBits shaderStageBits(ShaderStage stage);
     static vk::Format format(ShaderReflection::DataType type);

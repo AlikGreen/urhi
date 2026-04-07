@@ -1,6 +1,7 @@
 #include "vkGraphicsPipeline.h"
 
 #include "clogr.h"
+#include "validation.h"
 #include "vkConvert.h"
 
 namespace urhi
@@ -14,34 +15,36 @@ namespace urhi
         {
             if(shader->entryPoint().stage == ShaderStage::Vertex)
             {
-                clogr::ensure(vertexShader == nullptr, "Shader contains multiple vertex shaders.");
+                URHI_VALIDATE(vertexShader == nullptr, "Shader contains multiple vertex shaders.");
                 vertexShader = dynamic_cast<VkShader*>(shader.get());
             }
             if(shader->entryPoint().stage == ShaderStage::Fragment)
             {
-                clogr::ensure(fragmentShader == nullptr, "Shader contains multiple fragment shaders.");
+                URHI_VALIDATE(fragmentShader == nullptr, "Shader contains multiple fragment shaders.");
                 fragmentShader = dynamic_cast<VkShader*>(shader.get());
             }
         }
 
-        clogr::ensure(vertexShader && fragmentShader, "Pipeline must contain a vertex and fragment shader");
+        URHI_VALIDATE(vertexShader && fragmentShader, "Pipeline must contain a vertex and fragment shader");
 
         std::vector<vk::VertexInputBindingDescription> vertexBindingDescs{};
         std::vector<vk::VertexInputAttributeDescription> vertexAttributeDescs{};
 
-        for(const auto& input : vertexShader->entryPoint().reflection.vertexBindings)
+        for(const auto& binding : vertexShader->entryPoint().reflection.vertexInput.bindings)
         {
             vk::VertexInputBindingDescription bindingDesc{};
-            bindingDesc.binding = input.binding;
-            bindingDesc.stride = input.stride;
+            bindingDesc.binding = binding.binding;
+            bindingDesc.stride = binding.stride;
             bindingDesc.inputRate = vk::VertexInputRate::eVertex;
             vertexBindingDescs.push_back(bindingDesc);
 
-            for(const auto& attrib : input.attributes)
+            for(const auto& attrib : vertexShader->entryPoint().reflection.vertexInput.attributes)
             {
+                if(attrib.binding != binding.binding) continue;
+
                 vk::VertexInputAttributeDescription attribDesc{};
                 attribDesc.location = attrib.location;
-                attribDesc.binding = input.binding;
+                attribDesc.binding = binding.binding;
                 attribDesc.format = VkConvert::format(attrib.type);
                 attribDesc.offset = attrib.offset;
                 vertexAttributeDescs.push_back(attribDesc);
@@ -162,7 +165,7 @@ namespace urhi
         pipelineInfo.renderPass = nullptr;
         pipelineInfo.subpass = 0;
 
-        auto result = m_device->getHandle().createGraphicsPipeline(nullptr, pipelineInfo);
+        auto result = m_device->handle().createGraphicsPipeline(nullptr, pipelineInfo);
         clogr::ensure(result.result == vk::Result::eSuccess, "Could not create pipeline");
         m_pipeline = result.value;
     }

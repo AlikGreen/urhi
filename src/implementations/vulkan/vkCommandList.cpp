@@ -1,21 +1,17 @@
 #include "vkCommandList.h"
 
-#include <utility>
-
 #include "clogr.h"
 #include "renderPass.h"
-#include "vkCommandListPool.h"
 #include "vkComputePass.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 #include "vkMappedBuffer.h"
-#include "vkStagedBuffer.h"
 #include "vkRenderPass.h"
 
 namespace urhi
 {
-    VkCommandList::VkCommandList(const QueueType queueType, VkDevice* device)
-        : m_device(device), m_queueType(queueType)
+    VkCommandList::VkCommandList(VkDevice *device, VkCommandQueue* queue, VkSubmissionContext* submissionContext)
+        : m_device(device), m_submissionContext(submissionContext), m_queue(queue)
     {
     }
 
@@ -27,6 +23,7 @@ namespace urhi
 
         m_commands.emplace_back(CmdBeginCommandBuffer{});
     }
+
 
     grl::Rc<RenderPass> VkCommandList::beginRenderPass(const RenderPassDesc &desc)
     {

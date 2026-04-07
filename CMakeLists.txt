@@ -38,6 +38,8 @@ file(GLOB_RECURSE
 
 add_library(urhi STATIC ${SRC_FILES})
 
+target_include_directories(urhi BEFORE PUBLIC ${Vulkan_INCLUDE_DIRS})
+
 if(URHI_ENABLE_VALIDATION)
     target_compile_definitions(urhi PUBLIC URHI_ENABLE_VALIDATION)
 endif()

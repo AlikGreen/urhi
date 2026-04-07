@@ -30,7 +30,7 @@ public:
     [[nodiscard]]  vk::ImageView getHandle() const;
     VkLifetime& lifetime();
 
-    void markUsed(QueueType type, uint64_t submitValue);
+    void markUsed(VkCommandQueue* queue, uint64_t submitValue);
 private:
     VkDevice* m_device;
     uint32_t m_baseMipLevel, m_baseArrayLayer;

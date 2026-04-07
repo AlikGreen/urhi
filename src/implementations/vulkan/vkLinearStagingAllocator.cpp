@@ -9,10 +9,16 @@
 
 namespace urhi
 {
-    VkLinearStagingAllocator::VkLinearStagingAllocator(VkDevice *device)
-        : m_device(device)
+
+    void VkLinearStagingAllocator::init(VkDevice *device)
     {
+        m_device = device;
         allocateNewPage(kDefaultBlockSize);
+    }
+
+    void VkLinearStagingAllocator::destroy()
+    {
+        // TODO
     }
 
     void VkLinearStagingAllocator::reset()
@@ -30,7 +36,7 @@ namespace urhi
         if (m_unusedFrames > kDecayFrames && m_pages.size() > m_highWatermark && m_pages.size() > 1)
         {
             vmaDestroyBuffer(
-                m_device->getAllocator(),
+                m_device->allocator(),
                 m_pages.back().buffer,
                 m_pages.back().allocation
             );
@@ -47,7 +53,7 @@ namespace urhi
         std::memcpy(allocation.mapped, srcData, size);
 
         vmaFlushAllocation(
-           m_device->getAllocator(),
+           m_device->allocator(),
            m_pages[allocation.pageIndex].allocation,
            allocation.offset,
            size
@@ -75,7 +81,7 @@ namespace urhi
         std::memcpy(allocation.mapped, uploadDesc.data, size);
 
         vmaFlushAllocation(
-            m_device->getAllocator(),
+            m_device->allocator(),
             m_pages[allocation.pageIndex].allocation,
             allocation.offset,
             size
@@ -158,7 +164,7 @@ namespace urhi
         StagingPage page;
 
         vmaCreateBuffer(
-            m_device->getAllocator(),
+            m_device->allocator(),
             &bufferInfo,
             &allocInfo,
             &rawBuffer,

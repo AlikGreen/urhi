@@ -1,7 +1,6 @@
 #pragma once
 #include "vkCommandList.h"
 #include "vkCommandListTracker.h"
-#include "descriptions/shaderReflection.h"
 
 namespace urhi
 {
@@ -9,7 +8,8 @@ class VkPipeline;
 class VkCommandListEmitter
 {
 public:
-    VkCommandListEmitter(VkDevice* device, QueueType queueType, uint64_t submitValue, vk::Semaphore timeline, vk::CommandBuffer cmd, VkCommandListTracker tracker, grl::Rc<VkLinearStagingAllocator> stagingAllocator);
+    VkCommandListEmitter(VkDevice* device, VkCommandListTracker tracker, vk::CommandBuffer cmd, VkCommandQueue* commandQueue, uint64_t submitValue);
+    void endRecording();
 
     void emit(const CmdBeginRenderPass& c);
     void emit(const CmdEndRenderPass& c);
@@ -30,13 +30,11 @@ public:
     void emit(const CmdUpdateBuffer& c);
     void emit(const CmdUpdateTexture& c);
 
-    void emit(const CmdSetUniformBuffer& c);
-    void emit(const CmdSetStorageBuffer& c);
-    void emit(const CmdPushConstants& c);
-
+    void emit(const CmdSetBuffer& c);
     void emit(const CmdSetTexture& c);
     void emit(const CmdSetSampler& c);
-    void emit(const CmdSetImage& c);
+
+    void emit(const CmdPushConstants& c);
 
     void emit(const CmdSetVertexBuffer& c);
     void emit(const CmdSetIndexBuffer& c);
@@ -49,7 +47,7 @@ public:
 
     void emit(const CmdDispatchCompute& c);
 private:
-    struct BoundResource;
+    struct ResourceBinding;
 
     void pushDescriptors();
 
@@ -58,24 +56,27 @@ private:
     VkCommandListTracker m_tracker;
 
     uint64_t m_submitValue;
-    vk::Semaphore m_timeline;
-    QueueType m_queueType;
+    VkCommandQueue* m_commandQueue;
 
-    grl::Rc<VkLinearStagingAllocator> m_stagingAllocator;
-
-    bool m_isRendering;
+    bool m_renderPassActive = false;
+    bool m_computePassActive = false;
     RenderPassDesc m_currentRenderPassDesc;
     grl::Rc<VkPipeline> m_boundPipeline;
     vk::PipelineBindPoint m_boundPipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-    std::unordered_map<std::string, BoundResource> m_boundResources;
+    std::unordered_map<std::string, ResourceBinding> m_currentBindings;
 
     uint32_t m_idx = 0;
 
-    struct BoundResource
+
+    struct ResourceBinding
     {
-        ShaderReflection::ResourceType type;
-        vk::DescriptorBufferInfo bufferInfo;
+        uint32_t set;
+        uint32_t binding;
+        vk::DescriptorType type;
+
+        bool isImage;
         vk::DescriptorImageInfo imageInfo;
+        vk::DescriptorBufferInfo bufferInfo;
     };
 };
 }

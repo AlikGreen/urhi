@@ -19,7 +19,8 @@ class VkCommandListTracker
 {
 public:
     void record(const CmdSetTexture& c);
-    void record(const CmdSetImage& c);
+    void record(const CmdBeginRenderPass& c);
+    void record(const CmdBlitTexture& c);
 
     template<typename T> void record(const T&) { m_idx++; }
 

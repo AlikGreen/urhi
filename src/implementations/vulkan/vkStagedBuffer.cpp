@@ -24,7 +24,7 @@ namespace urhi
             .usage = VMA_MEMORY_USAGE_GPU_ONLY
         };
 
-        vmaCreateBuffer(device->getAllocator(), reinterpret_cast<const VkBufferCreateInfo *>(&bufferCI), &bufferAllocCI,
+        vmaCreateBuffer(device->allocator(), reinterpret_cast<const VkBufferCreateInfo *>(&bufferCI), &bufferAllocCI,
                         reinterpret_cast<::VkBuffer *>(&m_buffer), &m_allocation, nullptr);
     }
 
@@ -33,7 +33,7 @@ namespace urhi
         m_device->queueDestroy(m_life,
         [buf = m_buffer, alloc = m_allocation](const VkDevice* device)
         {
-            vmaDestroyBuffer(device->getAllocator(), buf, alloc);
+            vmaDestroyBuffer(device->allocator(), buf, alloc);
         });
     }
 
@@ -65,7 +65,7 @@ namespace urhi
                 barrier.dstAccessMask = vk::AccessFlagBits2::eUniformRead;
                 break;
 
-            case BufferUsage::ShaderStorage:
+            case BufferUsage::Storage:
                 barrier.dstStageMask  = vk::PipelineStageFlagBits2::eAllGraphics |
                                         vk::PipelineStageFlagBits2::eComputeShader;
                 barrier.dstAccessMask = vk::AccessFlagBits2::eShaderStorageRead |

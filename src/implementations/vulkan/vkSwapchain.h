@@ -19,7 +19,8 @@ public:
     [[nodiscard]] grl::Rc<TextureView> acquireNextImage() override;
 
     void present() override;
-    vk::Semaphore consumeSemaphore();
+    vk::Semaphore consumeReadySemaphore();
+    vk::Semaphore renderFinishedSemaphore();
 private:
     bool m_semaphoreConsumed = true;
     uint32_t m_imageIndex = 0;
@@ -43,13 +44,11 @@ private:
     struct Frame
     {
         vk::Semaphore imageAvailableSemaphore;
+        vk::Semaphore renderFinishedSemaphore;
         vk::CommandPool transitionPool;
         vk::CommandBuffer transitionCmd;
-        vk::Fence inFlightFence;
         uint64_t maxTimelineValue = 0;
     };
-
-    std::vector<vk::Semaphore> m_renderFinishedSemaphores;
 
     std::vector<Frame> m_frames;
 };

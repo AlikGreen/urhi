@@ -33,7 +33,7 @@ namespace urhi
         allocCreateInfo.flags = 0;
 
         auto res = vmaCreateImage(
-            m_device->getAllocator(),
+            m_device->allocator(),
             reinterpret_cast<VkImageCreateInfo*>(&imageInfo),
             &allocCreateInfo,
             reinterpret_cast<VkImage*>(&m_image),
@@ -48,21 +48,22 @@ namespace urhi
         : m_width(width), m_height(height), m_depth(1),
           m_mipLevels(1), m_arrayLayers(1),
           m_format(format), m_type(TextureType::Texture2D),
-          m_device(device), m_allocation(nullptr), m_image(image), m_owned(false)
+          m_device(device), m_allocation(nullptr), m_image(image),
+          m_swapchainTexture(true)
     {
     }
 
     VkTexture::~VkTexture()
     {
-        if(!m_owned) return;
+        if(m_swapchainTexture) return;
 
         m_device->queueDestroy(m_life,
         [img = m_image, alloc = m_allocation](const VkDevice* device)
         {
             if(alloc != nullptr)
-                vmaDestroyImage(device->getAllocator(), img, alloc);
+                vmaDestroyImage(device->allocator(), img, alloc);
             else
-                device->getHandle().destroyImage(img);
+                device->handle().destroyImage(img);
         });
     }
 
@@ -162,5 +163,10 @@ namespace urhi
     VkLifetime& VkTexture::lifetime()
     {
         return m_life;
+    }
+
+    bool VkTexture::isSwapchainTexture()
+    {
+        return m_swapchainTexture;
     }
 }

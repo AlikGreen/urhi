@@ -158,7 +158,7 @@ namespace urhi
         return m_swapchain;
     }
 
-    vkb::Instance VkContext::getVkbInstance() const
+    const vkb::Instance& VkContext::getVkbInstance() const
     {
         return m_vkbInstance;
     }

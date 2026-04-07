@@ -3,7 +3,6 @@
 #include "validation.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
-#include "vkLinearStagingAllocator.h"
 
 namespace urhi
 {
@@ -21,15 +20,15 @@ namespace urhi
         bufferAllocCI.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         bufferAllocCI.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-        auto res = vmaCreateBuffer(device->getAllocator(), reinterpret_cast<const VkBufferCreateInfo*>(&bufferCI), &bufferAllocCI, reinterpret_cast<::VkBuffer*>(&m_buffer), &m_allocation, nullptr);
+        auto res = vmaCreateBuffer(device->allocator(), reinterpret_cast<const VkBufferCreateInfo*>(&bufferCI), &bufferAllocCI, reinterpret_cast<::VkBuffer*>(&m_buffer), &m_allocation, nullptr);
         URHI_VALIDATE(res == VK_SUCCESS, "Failed to create buffer allocation - vmaCreateBuffer returned {}", vk::to_string(static_cast<vk::Result>(res)));
 
         VmaAllocationInfo allocInfo;
-        vmaGetAllocationInfo(device->getAllocator(), m_allocation, &allocInfo);
+        vmaGetAllocationInfo(device->allocator(), m_allocation, &allocInfo);
         m_mappedPtr = allocInfo.pMappedData;
 
         VkMemoryPropertyFlags memFlags;
-        vmaGetAllocationMemoryProperties(device->getAllocator(), m_allocation, &memFlags);
+        vmaGetAllocationMemoryProperties(device->allocator(), m_allocation, &memFlags);
 
         m_hostCoherent = memFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     }
@@ -39,7 +38,7 @@ namespace urhi
         m_device->queueDestroy(m_life,
         [buf = m_buffer, alloc = m_allocation](const VkDevice* device)
         {
-            vmaDestroyBuffer(device->getAllocator(), buf, alloc);
+            vmaDestroyBuffer(device->allocator(), buf, alloc);
         });
     }
 
@@ -49,7 +48,7 @@ namespace urhi
 
         if (!m_hostCoherent)
         {
-            auto res = vmaFlushAllocation(m_device->getAllocator(), m_allocation, 0, size);
+            auto res = vmaFlushAllocation(m_device->allocator(), m_allocation, 0, size);
             URHI_VALIDATE(res == VK_SUCCESS, "Failed to flush buffer allocation - vmaFlushAllocation buffer returned {}", vk::to_string(static_cast<vk::Result>(res)));
         }
     }
