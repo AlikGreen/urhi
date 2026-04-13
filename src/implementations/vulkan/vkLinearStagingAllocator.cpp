@@ -18,7 +18,19 @@ namespace urhi
 
     void VkLinearStagingAllocator::destroy()
     {
-        // TODO
+        for (const auto& page : m_pages)
+        {
+            vmaDestroyBuffer(
+                m_device->allocator(),
+                page.buffer,
+                page.allocation
+            );
+        }
+
+        m_pages.clear();
+        m_activePageIndex = 0;
+        m_highWatermark = 1;
+        m_unusedFrames = 0;
     }
 
     void VkLinearStagingAllocator::reset()

@@ -51,9 +51,7 @@ namespace urhi
             {
                 const auto descriptorType = VkConvert::descriptorType(resource.type);
                 auto& setBindings = setsMap[resource.set]; // Access the map for this specific set
-
-                clogr::info("Resource: {} Set: {} Binding: {} Stage: {}", resource.name, resource.set, resource.binding, (uint32_t)stageBit);
-
+                
                 m_bindingInfo[resource.name] = {
                     resource.set,
                     resource.binding,

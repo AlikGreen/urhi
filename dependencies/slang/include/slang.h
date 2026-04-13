@@ -1327,6 +1327,9 @@ public:                                                              \
     */
     struct ISlangUnknown
     {
+    protected:
+        ~ISlangUnknown() = default;
+
         SLANG_COM_INTERFACE(
             0x00000000,
             0x0000,

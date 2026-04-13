@@ -6,9 +6,9 @@
 
 #include "imGuiExtensions.h"
 #include "imguiShader.h"
-#include "slangCompiler.h"
 #include "glm/glm.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
+#include "slang/compiler.h"
 
 namespace urhi
 {
@@ -323,9 +323,20 @@ namespace urhi
 
     void ImGuiController::createPipeline()
     {
-        SlangCompileDesc compileDesc{};
-        compileDesc.modules.push_back({"imgui", "imgui.slang", imGuiShaderSource });
-        const auto shaders = SlangCompiler::compile(compileDesc);
+        slang::CompileDesc compileDesc{};
+        compileDesc.moduleName = "imgui";
+        compileDesc.modulePath = "imgui.slang";
+        compileDesc.moduleSource = imGuiShaderSource;
+
+        const auto module = slang::Compiler::compileModule(compileDesc);
+
+        slang::LinkDesc linkDesc{};
+        linkDesc.modules = { module };
+
+        slang::Diagnostics diags;
+
+        const auto shaders = slang::Compiler::linkToShaderSet(linkDesc, &diags);
+
         const auto vertexShader = m_device->createShader(*shaders.find(ShaderStage::Vertex));
         const auto fragmentShader = m_device->createShader(*shaders.find(ShaderStage::Fragment));
 

@@ -19,7 +19,7 @@ namespace urhi
     {
         m_commandAllocator.destroy();
         m_stagingAllocator.destroy();
-        m_stagingAllocator.destroy();
+        m_descriptorAllocator.destroy();
     }
 
     void VkSubmissionContext::reset()

@@ -117,6 +117,8 @@ namespace urhi
         m_handle.waitIdle();
         tryCollectGarbage();
 
+        m_commandQueues.fill(nullptr);
+
         vmaDestroyAllocator(m_allocator);
         m_handle.destroy();
     }

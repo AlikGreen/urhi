@@ -26,7 +26,8 @@ namespace urhi
 
     VkCommandQueue::~VkCommandQueue()
     {
-        // TODO
+        if (m_timelineSemaphore)
+            m_device->handle().destroySemaphore(m_timelineSemaphore);
     }
 
     void VkCommandQueue::submit(const vk::CommandBuffer cmd, VkSubmissionContext* context, const vk::Semaphore waitSwapchainSemaphore)

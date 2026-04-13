@@ -791,6 +791,7 @@ namespace urhi
     {
         m_renderPassActive = false;
         m_cmd.endRendering();
+        m_boundPipeline = nullptr;
 
         m_idx++;
     }
@@ -800,12 +801,15 @@ namespace urhi
         m_currentBindings.clear();
         m_computePassActive = true;
         m_boundPipeline = nullptr;
+
         m_idx++;
     }
 
     void VkCommandListEmitter::emit(const CmdEndComputePass &c)
     {
         m_computePassActive = false;
+        m_boundPipeline = nullptr;
+
         m_idx++;
     }
 
