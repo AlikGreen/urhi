@@ -23,25 +23,26 @@ namespace urhi
         void* pUserData)
     {
         const char* id = data->pMessageIdName ? data->pMessageIdName : "VK";
+        const char* msg = data->pMessage       ? data->pMessage       : "(no message)";
 
         if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
-            clogr::error("[VK ERROR] [{}] {}", id, data->pMessage);
+            clogr::error("[VK] [{}] {}", id, msg);
         #if defined(_MSC_VER) && defined(_DEBUG)
             __debugbreak();
         #endif
         }
         else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            clogr::warn("[VK WARN] [{}] {}", id, data->pMessage);
+            clogr::warn("[VK] [{}] {}", id, msg);
         }
         else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
         {
-            clogr::info("[VK INFO] [{}] {}", id, data->pMessage);
+            clogr::info("[VK] [{}] {}", id, msg);
         }
         else
         {
-            clogr::trace("[VK VERBOSE] [{}] {}", id, data->pMessage);
+            clogr::trace("[VK] [{}] {}", id, msg);
         }
 
         return VK_FALSE;
@@ -52,7 +53,7 @@ namespace urhi
         // =============================================
         // Change this to switch validation profiles
         // =============================================
-        constexpr ValidationMode validationMode = ValidationMode::Standard;
+        constexpr ValidationMode validationMode = ValidationMode::Full;
         constexpr bool enableValidation = (validationMode != ValidationMode::None);
 
         vkb::InstanceBuilder builder;
@@ -154,7 +155,7 @@ namespace urhi
 
     grl::Rc<Swapchain> VkContext::createSwapchain(const SwapchainDesc &desc)
     {
-        m_swapchain = grl::makeRc<VkSwapchain>(desc);;
+        m_swapchain = grl::makeRc<VkSwapchain>(desc);
         return m_swapchain;
     }
 

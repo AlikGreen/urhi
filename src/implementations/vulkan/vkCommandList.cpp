@@ -43,7 +43,7 @@ namespace urhi
         vec.resize(size);
         std::memcpy(vec.data(), desc.data, size);
 
-        m_commands.emplace_back(CmdUpdateTexture{desc, vec});
+        m_commands.emplace_back(CmdUpdateTexture{grl::makeBox<TextureUploadDesc>(desc), vec});
     }
 
     void VkCommandList::generateMipmaps(const grl::Rc<Texture> &texture)
@@ -53,13 +53,13 @@ namespace urhi
 
     void VkCommandList::blitTexture(const BlitTextureDesc &desc)
     {
-        m_commands.emplace_back(CmdBlitTexture{desc});
+        m_commands.emplace_back(CmdBlitTexture{grl::makeBox<BlitTextureDesc>(desc)});
     }
 
     grl::Rc<ReadbackRequest> VkCommandList::readback(const TextureReadbackDesc &desc)
     {
         grl::Rc<VkReadbackRequest> request = grl::makeRc<VkReadbackRequest>();
-        m_commands.emplace_back(CmdReadbackTexture{request, desc});
+        m_commands.emplace_back(CmdReadbackTexture{request, grl::makeBox<TextureReadbackDesc>(desc)});
         return request;
     }
 

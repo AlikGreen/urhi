@@ -19,6 +19,41 @@
 
 namespace urhi
 {
+    namespace
+    {
+        vk::AccessFlags2 colorAttachmentAccess(const ColorAttachment& attachment)
+        {
+            vk::AccessFlags2 access{};
+
+            if (attachment.loadOp == LoadOp::Load)
+                access |= vk::AccessFlagBits2::eColorAttachmentRead;
+
+            if (attachment.loadOp == LoadOp::Clear ||
+                attachment.storeOp == StoreOp::Store)
+            {
+                access |= vk::AccessFlagBits2::eColorAttachmentWrite;
+            }
+
+            return access;
+        }
+
+        vk::AccessFlags2 depthAttachmentAccess(const DepthStencilAttachment& attachment)
+        {
+            vk::AccessFlags2 access{};
+
+            if (attachment.loadOp == LoadOp::Load)
+                access |= vk::AccessFlagBits2::eDepthStencilAttachmentRead;
+
+            if (attachment.loadOp == LoadOp::Clear ||
+                attachment.storeOp == StoreOp::Store)
+            {
+                access |= vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+            }
+
+            return access;
+        }
+    }
+
     VkCommandListEmitter::VkCommandListEmitter(VkDevice *device, VkCommandListTracker tracker, const vk::CommandBuffer cmd,
         VkCommandQueue* commandQueue, const uint64_t submitValue)
             : m_device(device), m_cmd(cmd), m_tracker(std::move(tracker)), m_submitValue(submitValue), m_commandQueue(commandQueue)
@@ -35,7 +70,8 @@ namespace urhi
                 vkTex->transitionLayout(m_cmd,
                     vk::ImageLayout::ePresentSrcKHR,
                     vk::PipelineStageFlagBits2::eAllCommands,
-                    vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead);
+                    vk::AccessFlagBits2::eNone);
+                vkTex->lifetime();
             }
         }
 
@@ -74,14 +110,33 @@ namespace urhi
     {
         m_currentBindings.clear();
         m_renderPassActive = true;
-        m_currentRenderPassDesc = c.desc;
+        m_currentRenderPassDesc = *c.desc;
         m_boundPipeline = nullptr;
+
+        const auto& desc = *c.desc;
+
+        std::unordered_set<Texture*> attachmentTextures;
+
+        for (const auto& attachment : desc.colorAttachments)
+        {
+            const auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
+            attachmentTextures.insert(vkView->texture().get());
+        }
+
+        if (desc.depthAttachment.has_value())
+        {
+            const auto vkView = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
+            attachmentTextures.insert(vkView->texture().get());
+        }
 
         for (auto& [texture, useList] : m_tracker.m_textureUses)
         {
+            if (attachmentTextures.contains(texture))
+                continue;
+
             for (const auto& use : useList)
             {
-                if (use.commandIndex >= m_idx)
+                if (use.commandIndex > m_idx)
                 {
                     const auto tex = dynamic_cast<VkTexture*>(texture);
                     tex->transitionLayout(m_cmd,
@@ -92,8 +147,6 @@ namespace urhi
                 }
             }
         }
-
-        const auto& desc = c.desc;
 
 
         std::vector<vk::RenderingAttachmentInfo> colorAttachments;
@@ -106,10 +159,17 @@ namespace urhi
             auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
             auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
             vkView->markUsed(m_commandQueue, m_submitValue);
+
+            URHI_VALIDATE(
+                attachment.loadOp != LoadOp::Load ||
+                vkTex->getLayout() != vk::ImageLayout::eUndefined,
+                "Cannot use LoadOp::Load on a color attachment with undefined contents"
+            );
+
             vkTex->transitionLayout(m_cmd,
                 vk::ImageLayout::eColorAttachmentOptimal,
                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead);
+                colorAttachmentAccess(attachment));
 
 
             if(renderArea.width == 0 && renderArea.height == 0)
@@ -155,10 +215,17 @@ namespace urhi
             const auto vkView = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
             const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
             vkView->markUsed(m_commandQueue, m_submitValue);
+
+            URHI_VALIDATE(
+                desc.depthAttachment->loadOp != LoadOp::Load ||
+                vkTex->getLayout() != vk::ImageLayout::eUndefined,
+                "Cannot use LoadOp::Load on a depth attachment with undefined contents"
+            );
+
             vkTex->transitionLayout(m_cmd,
                 vk::ImageLayout::eDepthAttachmentOptimal,
                 vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-                vk::AccessFlagBits2::eDepthStencilAttachmentWrite | vk::AccessFlagBits2::eDepthStencilAttachmentRead);
+                depthAttachmentAccess(*desc.depthAttachment));
 
             URHI_VALIDATE(
                 vkView->width()  >= renderArea.x + renderArea.width &&
@@ -196,7 +263,7 @@ namespace urhi
             1,
             0,
             colorAttachments,
-            &depthAttachment,
+            desc.depthAttachment.has_value() ? &depthAttachment : nullptr,
         };
 
         m_cmd.beginRendering(&renderingInfo);
@@ -212,7 +279,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdReadbackTexture &c)
     {
-        const auto desc = c.desc;
+        const auto& desc = *c.desc;
         const auto vkTex = dynamic_cast<VkTexture*>(desc.texture.get());
 
         const auto oldLayout = vkTex->getLayout();
@@ -393,14 +460,14 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdUpdateTexture &c)
     {
-        auto desc = c.desc;
+        auto& desc = *c.desc;
         desc.data = c.data.data();
 
         m_commandQueue->submissionContext().stagingAllocator().uploadToImage(desc, m_cmd);
 
         m_idx++;
 
-       dynamic_cast<VkTexture*>(c.desc.texture.get())->lifetime().markUsed(m_commandQueue, m_submitValue);
+       dynamic_cast<VkTexture*>(desc.texture.get())->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetBuffer &c)
@@ -444,6 +511,15 @@ namespace urhi
         }
 
         const auto vkView = dynamic_cast<VkTextureView*>(c.texture.get());
+        const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
+
+        if (!m_renderPassActive)
+        {
+            vkTex->transitionLayout(m_cmd,
+                vk::ImageLayout::eShaderReadOnlyOptimal,
+                vk::PipelineStageFlagBits2::eFragmentShader,
+                vk::AccessFlagBits2::eShaderSampledRead);
+        }
 
         ResourceBinding rb{};
         rb.set = layoutBinding->set;
@@ -456,7 +532,7 @@ namespace urhi
 
         m_currentBindings[c.name] = rb;
 
-        vkView->lifetime().markUsed(m_commandQueue, m_submitValue);
+        vkView->markUsed(m_commandQueue, m_submitValue);
         m_idx++;
     }
 
@@ -524,6 +600,9 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdSetScissor &c)
     {
+        URHI_VALIDATE(c.rect.x >= 0, "Scissor offset x ({}) is invalid - x offset must be >= 0", c.rect.x);
+        URHI_VALIDATE(c.rect.y >= 0, "Scissor offset y ({}) is invalid - y offset must be >= 0", c.rect.y);
+
         const vk::Rect2D scissorRect{{c.rect.x, c.rect.y}, {c.rect.width, c.rect.height}};
         m_cmd.setScissor(0, 1, &scissorRect);
 
@@ -650,8 +729,9 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBlitTexture &c) const
     {
-        const auto vkSrc = dynamic_cast<VkTexture*>(c.desc.src.get());
-        const auto vkDst = dynamic_cast<VkTexture*>(c.desc.dst.get());
+        const auto& desc = *c.desc;
+        const auto vkSrc = dynamic_cast<VkTexture*>(desc.src.get());
+        const auto vkDst = dynamic_cast<VkTexture*>(desc.dst.get());
 
         const auto srcOldLayout = vkSrc->getLayout();
         const auto srcOldStage  = vkSrc->getStage();
@@ -661,37 +741,37 @@ namespace urhi
         const auto dstOldStage  = vkDst->getStage();
         const auto dstOldAccess = vkDst->getAccess();
 
-        URHI_VALIDATE(c.desc.src != nullptr, "Source texture must not be null");
-        URHI_VALIDATE(c.desc.dst != nullptr, "Destination texture must not be null");
-        URHI_VALIDATE(c.desc.srcMipLevel < vkSrc->mipLevelCount(),
+        URHI_VALIDATE(desc.src != nullptr, "Source texture must not be null");
+        URHI_VALIDATE(desc.dst != nullptr, "Destination texture must not be null");
+        URHI_VALIDATE(desc.srcMipLevel < vkSrc->mipLevelCount(),
             "Source mip level {} out of range for texture with {} mip levels",
-            c.desc.srcMipLevel, vkSrc->mipLevelCount());
+            desc.srcMipLevel, vkSrc->mipLevelCount());
 
-        URHI_VALIDATE(c.desc.dstMipLevel < vkDst->mipLevelCount(),
+        URHI_VALIDATE(desc.dstMipLevel < vkDst->mipLevelCount(),
             "Destination mip level {} out of range for texture with {} mip levels",
-            c.desc.dstMipLevel, vkDst->mipLevelCount());
+            desc.dstMipLevel, vkDst->mipLevelCount());
 
-        URHI_VALIDATE(c.desc.srcArrayLayer < vkSrc->arrayLayerCount(),
+        URHI_VALIDATE(desc.srcArrayLayer < vkSrc->arrayLayerCount(),
             "Source array layer {} out of range for texture with {} layers",
-            c.desc.srcArrayLayer, vkSrc->arrayLayerCount());
+            desc.srcArrayLayer, vkSrc->arrayLayerCount());
 
-        URHI_VALIDATE(c.desc.dstArrayLayer < vkDst->arrayLayerCount(),
+        URHI_VALIDATE(desc.dstArrayLayer < vkDst->arrayLayerCount(),
             "Destination array layer {} out of range for texture with {} layers",
-            c.desc.dstArrayLayer, vkDst->arrayLayerCount());
+            desc.dstArrayLayer, vkDst->arrayLayerCount());
 
         URHI_VALIDATE(
-        static_cast<int32_t>(c.desc.srcOffset.x) >= 0 &&
-        static_cast<int32_t>(c.desc.srcOffset.y) >= 0 &&
-        static_cast<int32_t>(c.desc.srcOffset.z) >= 0,
+        static_cast<int32_t>(desc.srcOffset.x) >= 0 &&
+        static_cast<int32_t>(desc.srcOffset.y) >= 0 &&
+        static_cast<int32_t>(desc.srcOffset.z) >= 0,
         "Source offset must be non-negative");
 
         URHI_VALIDATE(
-            static_cast<int32_t>(c.desc.dstOffset.x) >= 0 &&
-            static_cast<int32_t>(c.desc.dstOffset.y) >= 0 &&
-            static_cast<int32_t>(c.desc.dstOffset.z) >= 0,
+            static_cast<int32_t>(desc.dstOffset.x) >= 0 &&
+            static_cast<int32_t>(desc.dstOffset.y) >= 0 &&
+            static_cast<int32_t>(desc.dstOffset.z) >= 0,
             "Destination offset must be non-negative");
 
-        URHI_VALIDATE(c.desc.src != c.desc.dst, "Source and destination textures are the same — blit requires distinct textures");
+        URHI_VALIDATE(desc.src != desc.dst, "Source and destination textures are the same — blit requires distinct textures");
 
         vkSrc->transitionLayout(m_cmd,
             vk::ImageLayout::eTransferSrcOptimal,
@@ -705,54 +785,54 @@ namespace urhi
 
         vk::ImageBlit2 blit{};
 
-        const int32_t srcMaxX = c.desc.srcExtent.x != 0 ? c.desc.srcExtent.x + static_cast<int32_t>(c.desc.srcOffset.x) : static_cast<int32_t>(vkSrc->width(c.desc.srcMipLevel));
-        const int32_t srcMaxY = c.desc.srcExtent.y != 0 ? c.desc.srcExtent.y + static_cast<int32_t>(c.desc.srcOffset.y) : static_cast<int32_t>(vkSrc->height(c.desc.srcMipLevel));
-        const int32_t srcMaxZ = c.desc.srcExtent.z != 0 ? c.desc.srcExtent.z + static_cast<int32_t>(c.desc.srcOffset.z) : static_cast<int32_t>(vkSrc->depth(c.desc.srcMipLevel)) ;
+        const int32_t srcMaxX = desc.srcExtent.x != 0 ? desc.srcExtent.x + static_cast<int32_t>(desc.srcOffset.x) : static_cast<int32_t>(vkSrc->width (desc.srcMipLevel));
+        const int32_t srcMaxY = desc.srcExtent.y != 0 ? desc.srcExtent.y + static_cast<int32_t>(desc.srcOffset.y) : static_cast<int32_t>(vkSrc->height(desc.srcMipLevel));
+        const int32_t srcMaxZ = desc.srcExtent.z != 0 ? desc.srcExtent.z + static_cast<int32_t>(desc.srcOffset.z) : static_cast<int32_t>(vkSrc->depth (desc.srcMipLevel)) ;
 
-        const int32_t dstMaxX = c.desc.dstExtent.x != 0 ? c.desc.dstExtent.x + static_cast<int32_t>(c.desc.dstOffset.x) : static_cast<int32_t>(vkDst->width(c.desc.dstMipLevel));
-        const int32_t dstMaxY = c.desc.dstExtent.y != 0 ? c.desc.dstExtent.y + static_cast<int32_t>(c.desc.dstOffset.y) : static_cast<int32_t>(vkDst->height(c.desc.dstMipLevel));
-        const int32_t dstMaxZ = c.desc.dstExtent.z != 0 ? c.desc.dstExtent.z + static_cast<int32_t>(c.desc.dstOffset.z) : static_cast<int32_t>(vkDst->depth(c.desc.dstMipLevel));
+        const int32_t dstMaxX = desc.dstExtent.x != 0 ? desc.dstExtent.x + static_cast<int32_t>(desc.dstOffset.x) : static_cast<int32_t>(vkDst->width (desc.dstMipLevel));
+        const int32_t dstMaxY = desc.dstExtent.y != 0 ? desc.dstExtent.y + static_cast<int32_t>(desc.dstOffset.y) : static_cast<int32_t>(vkDst->height(desc.dstMipLevel));
+        const int32_t dstMaxZ = desc.dstExtent.z != 0 ? desc.dstExtent.z + static_cast<int32_t>(desc.dstOffset.z) : static_cast<int32_t>(vkDst->depth (desc.dstMipLevel));
 
-        URHI_VALIDATE(srcMaxX > static_cast<int32_t>(c.desc.srcOffset.x) &&
-              srcMaxY > static_cast<int32_t>(c.desc.srcOffset.y) &&
-              srcMaxZ > static_cast<int32_t>(c.desc.srcOffset.z),
+        URHI_VALIDATE(srcMaxX > static_cast<int32_t>(desc.srcOffset.x) &&
+              srcMaxY > static_cast<int32_t>(desc.srcOffset.y) &&
+              srcMaxZ > static_cast<int32_t>(desc.srcOffset.z),
             "Source blit region must have non-zero extent");
 
-        URHI_VALIDATE(dstMaxX > static_cast<int32_t>(c.desc.dstOffset.x) &&
-                      dstMaxY > static_cast<int32_t>(c.desc.dstOffset.y) &&
-                      dstMaxZ > static_cast<int32_t>(c.desc.dstOffset.z),
+        URHI_VALIDATE(dstMaxX > static_cast<int32_t>(desc.dstOffset.x) &&
+                      dstMaxY > static_cast<int32_t>(desc.dstOffset.y) &&
+                      dstMaxZ > static_cast<int32_t>(desc.dstOffset.z),
             "Destination blit region must have non-zero extent");
 
-        URHI_VALIDATE(srcMaxX <= static_cast<int32_t>(vkSrc->width(c.desc.srcMipLevel)) &&
-                      srcMaxY <= static_cast<int32_t>(vkSrc->height(c.desc.srcMipLevel)) &&
-                      srcMaxZ <= static_cast<int32_t>(vkSrc->depth(c.desc.srcMipLevel)),
+        URHI_VALIDATE(srcMaxX <= static_cast<int32_t>(vkSrc->width(desc.srcMipLevel)) &&
+                      srcMaxY <= static_cast<int32_t>(vkSrc->height(desc.srcMipLevel)) &&
+                      srcMaxZ <= static_cast<int32_t>(vkSrc->depth(desc.srcMipLevel)),
             "Source blit region out of bounds for source mip {} (size: {}, {}, {})",
-            c.desc.srcMipLevel,
-            vkSrc->width(c.desc.srcMipLevel),
-            vkSrc->height(c.desc.srcMipLevel),
-            vkSrc->depth(c.desc.srcMipLevel));
+            desc.srcMipLevel,
+            vkSrc->width(desc.srcMipLevel),
+            vkSrc->height(desc.srcMipLevel),
+            vkSrc->depth(desc.srcMipLevel));
 
-        URHI_VALIDATE(dstMaxX <= static_cast<int32_t>(vkDst->width(c.desc.dstMipLevel)) &&
-                      dstMaxY <= static_cast<int32_t>(vkDst->height(c.desc.dstMipLevel)) &&
-                      dstMaxZ <= static_cast<int32_t>(vkDst->depth(c.desc.dstMipLevel)),
+        URHI_VALIDATE(dstMaxX <= static_cast<int32_t>(vkDst->width(desc.dstMipLevel)) &&
+                      dstMaxY <= static_cast<int32_t>(vkDst->height(desc.dstMipLevel)) &&
+                      dstMaxZ <= static_cast<int32_t>(vkDst->depth(desc.dstMipLevel)),
             "Destination blit region out of bounds for destination mip {} (size: {}, {}, {})",
-            c.desc.dstMipLevel,
-            vkDst->width(c.desc.dstMipLevel),
-            vkDst->height(c.desc.dstMipLevel),
-            vkDst->depth(c.desc.dstMipLevel));
+            desc.dstMipLevel,
+            vkDst->width(desc.dstMipLevel),
+            vkDst->height(desc.dstMipLevel),
+            vkDst->depth(desc.dstMipLevel));
 
         blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        blit.srcSubresource.mipLevel = c.desc.srcMipLevel;
-        blit.srcSubresource.baseArrayLayer = c.desc.srcArrayLayer;
+        blit.srcSubresource.mipLevel = desc.srcMipLevel;
+        blit.srcSubresource.baseArrayLayer = desc.srcArrayLayer;
         blit.srcSubresource.layerCount = 1;
-        blit.srcOffsets[0] = vk::Offset3D{static_cast<int32_t>(c.desc.srcOffset.x), static_cast<int32_t>(c.desc.srcOffset.y), static_cast<int32_t>(c.desc.srcOffset.z)};
+        blit.srcOffsets[0] = vk::Offset3D{static_cast<int32_t>(desc.srcOffset.x), static_cast<int32_t>(desc.srcOffset.y), static_cast<int32_t>(desc.srcOffset.z)};
         blit.srcOffsets[1] = vk::Offset3D{srcMaxX, srcMaxY, srcMaxZ};
 
         blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        blit.dstSubresource.mipLevel = c.desc.dstMipLevel;
-        blit.dstSubresource.baseArrayLayer = c.desc.dstArrayLayer;
+        blit.dstSubresource.mipLevel = desc.dstMipLevel;
+        blit.dstSubresource.baseArrayLayer = desc.dstArrayLayer;
         blit.dstSubresource.layerCount = 1;
-        blit.dstOffsets[0] = vk::Offset3D{static_cast<int32_t>(c.desc.dstOffset.x), static_cast<int32_t>(c.desc.dstOffset.y), static_cast<int32_t>(c.desc.dstOffset.z)};
+        blit.dstOffsets[0] = vk::Offset3D{static_cast<int32_t>(desc.dstOffset.x), static_cast<int32_t>(desc.dstOffset.y), static_cast<int32_t>(desc.dstOffset.z)};
         blit.dstOffsets[1] = vk::Offset3D{dstMaxX, dstMaxY, dstMaxZ};
 
         vk::BlitImageInfo2 blitInfo{};
@@ -762,7 +842,7 @@ namespace urhi
         blitInfo.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
         blitInfo.regionCount    = 1;
         blitInfo.pRegions       = &blit;
-        blitInfo.filter         = VkConvert::filter(c.desc.filter);
+        blitInfo.filter         = VkConvert::filter(desc.filter);
 
         m_cmd.blitImage2(blitInfo);
 

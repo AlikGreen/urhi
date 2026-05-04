@@ -47,7 +47,7 @@ namespace urhi
             vk::SemaphoreSubmitInfo waitInfo{};
             waitInfo.semaphore = waitSwapchainSemaphore;
             waitInfo.value = 0; // binary semaphore
-            waitInfo.stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+            waitInfo.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
             waitSemaphoreInfos.push_back(waitInfo);
         }
 

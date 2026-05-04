@@ -12,19 +12,19 @@ namespace urhi
 class VkDevice;
 class VkCommandListPool;
 
-struct CmdBeginRenderPass  { RenderPassDesc desc; };
-struct CmdBeginComputePass { RenderPassDesc desc; };
+struct CmdBeginRenderPass  { grl::Box<RenderPassDesc> desc; };
+struct CmdBeginComputePass {};
 struct CmdEndRenderPass    {};
 struct CmdEndComputePass   {};
 
 struct CmdBeginCommandBuffer   {};
 
-struct CmdUpdateTexture   { TextureUploadDesc desc; std::vector<uint8_t> data; };
+struct CmdUpdateTexture   { grl::Box<TextureUploadDesc> desc; std::vector<uint8_t> data; };
 struct CmdUpdateBuffer    { grl::Rc<Buffer> buffer; std::vector<uint8_t> data; };
 struct CmdGenerateMips    { grl::Rc<Texture> texture; };
-struct CmdBlitTexture     { BlitTextureDesc desc; };
+struct CmdBlitTexture     { grl::Rc<BlitTextureDesc> desc; };
 
-struct CmdReadbackTexture { grl::Rc<VkReadbackRequest> request; TextureReadbackDesc desc; };
+struct CmdReadbackTexture { grl::Rc<VkReadbackRequest> request; grl::Box<TextureReadbackDesc> desc; };
 struct CmdReadbackBuffer  { grl::Rc<VkReadbackRequest> request; BufferReadbackDesc desc; };
 
 struct CmdSetPipeline     { grl::Rc<Pipeline> pipeline; vk::PipelineBindPoint bindPoint; };

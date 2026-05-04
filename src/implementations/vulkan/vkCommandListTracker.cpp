@@ -4,6 +4,41 @@
 
 namespace urhi
 {
+    namespace
+    {
+        vk::AccessFlags2 colorAttachmentAccess(const ColorAttachment& attachment)
+        {
+            vk::AccessFlags2 access{};
+
+            if (attachment.loadOp == LoadOp::Load)
+                access |= vk::AccessFlagBits2::eColorAttachmentRead;
+
+            if (attachment.loadOp == LoadOp::Clear ||
+                attachment.storeOp == StoreOp::Store)
+            {
+                access |= vk::AccessFlagBits2::eColorAttachmentWrite;
+            }
+
+            return access;
+        }
+
+        vk::AccessFlags2 depthAttachmentAccess(const DepthStencilAttachment& attachment)
+        {
+            vk::AccessFlags2 access{};
+
+            if (attachment.loadOp == LoadOp::Load)
+                access |= vk::AccessFlagBits2::eDepthStencilAttachmentRead;
+
+            if (attachment.loadOp == LoadOp::Clear ||
+                attachment.storeOp == StoreOp::Store)
+            {
+                access |= vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+            }
+
+            return access;
+        }
+    }
+
     void VkCommandListTracker::record(const CmdSetTexture &c)
     {
         m_textureUses[dynamic_cast<VkTexture*>(dynamic_cast<VkTextureView*>(c.texture.get())->texture().get())].push_back(
@@ -17,7 +52,8 @@ namespace urhi
 
     void VkCommandListTracker::record(const CmdBeginRenderPass &c)
     {
-        for (const auto& attachment : c.desc.colorAttachments)
+        auto& desc = *c.desc;
+        for (const auto& attachment : desc.colorAttachments)
         {
             const auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
             const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
@@ -25,20 +61,20 @@ namespace urhi
             m_textureUses[vkTex].push_back({
                 vk::ImageLayout::eColorAttachmentOptimal,
                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eColorAttachmentRead,
+                colorAttachmentAccess(attachment),
                 m_idx
             });
         }
 
-        if (c.desc.depthAttachment.has_value())
+        if (desc.depthAttachment.has_value())
         {
-            const auto vkView = dynamic_cast<VkTextureView*>(c.desc.depthAttachment->target.get());
+            const auto vkView = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
             const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
 
             m_textureUses[vkTex].push_back({
                 vk::ImageLayout::eDepthAttachmentOptimal,
                 vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-                vk::AccessFlagBits2::eDepthStencilAttachmentWrite | vk::AccessFlagBits2::eDepthStencilAttachmentRead,
+                depthAttachmentAccess(*desc.depthAttachment),
                 m_idx
             });
         }
@@ -48,7 +84,8 @@ namespace urhi
 
     void VkCommandListTracker::record(const CmdBlitTexture &c)
     {
-        const auto vkSrc = dynamic_cast<VkTexture*>(c.desc.src.get());
+        const auto& desc = *c.desc;
+        const auto vkSrc = dynamic_cast<VkTexture*>(desc.src.get());
 
         m_textureUses[vkSrc].push_back({
             vk::ImageLayout::eTransferSrcOptimal,
@@ -57,7 +94,7 @@ namespace urhi
             m_idx
         });
 
-        const auto vkDst = dynamic_cast<VkTexture*>(c.desc.dst.get());
+        const auto vkDst = dynamic_cast<VkTexture*>(desc.dst.get());
 
         m_textureUses[vkDst].push_back({
             vk::ImageLayout::eTransferDstOptimal,

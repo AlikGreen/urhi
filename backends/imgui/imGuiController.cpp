@@ -421,8 +421,8 @@ namespace urhi
             return Rect2D{};
 
         Rect2D scissor{};
-        scissor.x      = static_cast<int>(clipRect.x);
-        scissor.y      = static_cast<int>(clipRect.y);
+        scissor.x      = std::max(0, static_cast<int>(clipRect.x));
+        scissor.y      = std::max(0, static_cast<int>(clipRect.y));
         scissor.width  = static_cast<int>(clipRect.z - clipRect.x);
         scissor.height = static_cast<int>(clipRect.w - clipRect.y);
 

@@ -121,12 +121,10 @@ namespace urhi
 
         vk::ImageMemoryBarrier2 barrier{};
 
-        // 1. Use the tracked history for the Source!
         barrier.srcStageMask  = m_currentStage;
         barrier.srcAccessMask = m_currentAccess;
         barrier.oldLayout     = m_currentLayout;
 
-        // 2. Use the user's request for the Destination!
         barrier.dstStageMask  = dstStageMask;
         barrier.dstAccessMask = dstAccessMask;
         barrier.newLayout     = newLayout;
@@ -146,7 +144,6 @@ namespace urhi
 
         cmd.pipelineBarrier2(depInfo);
 
-        // 3. IMPORTANT: Update the tracked history for the NEXT time this is called!
         m_currentLayout = newLayout;
         m_currentStage  = dstStageMask;
         m_currentAccess = dstAccessMask;

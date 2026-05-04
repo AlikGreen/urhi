@@ -15,7 +15,7 @@ namespace urhi
     VkRenderPass::VkRenderPass(std::vector<Command>& commands, const RenderPassDesc &desc)
         : m_commands(commands)
     {
-        m_commands.emplace_back(CmdBeginRenderPass{desc});
+        m_commands.emplace_back(CmdBeginRenderPass{grl::makeBox<RenderPassDesc>(desc)});
     }
 
     void VkRenderPass::setPipeline(const grl::Rc<Pipeline>& pipeline)

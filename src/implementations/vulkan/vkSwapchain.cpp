@@ -23,7 +23,6 @@ namespace urhi
         for (auto& frame : m_frames)
         {
             frame.imageAvailableSemaphore = m_device->handle().createSemaphore({});
-            frame.renderFinishedSemaphore = m_device->handle().createSemaphore({});
             frame.transitionPool = m_device->handle().createCommandPool({vk::CommandPoolCreateFlagBits::eTransient, m_device->queue(QueueType::Graphics)->family()});
             vk::CommandBufferAllocateInfo allocInfo
             {
@@ -31,8 +30,13 @@ namespace urhi
                 vk::CommandBufferLevel::ePrimary,
                 1
             };
-            frame.transitionCmd = m_device->handle().allocateCommandBuffers(allocInfo).front();;
+            frame.transitionCmd = m_device->handle().allocateCommandBuffers(allocInfo).front();
+
+            vk::FenceCreateInfo fenceInfo{};
+            fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+            frame.inFlightFence = m_device->handle().createFence(fenceInfo);
         }
+
 
         uint32_t width = desc.width;
         uint32_t height = desc.height;
@@ -50,6 +54,7 @@ namespace urhi
         {
             m_device->handle().destroySemaphore(frame.imageAvailableSemaphore);
             m_device->handle().destroyCommandPool(frame.transitionPool);
+            m_device->handle().destroyFence(frame.inFlightFence);
         }
     }
 
@@ -97,11 +102,13 @@ namespace urhi
 
         const auto rawImages = vkbSwapchain.get_images().value();
         m_textures.clear();
+        m_renderFinishedSemaphores.clear();
         m_textures.reserve(rawImages.size());
         for (VkImage raw : rawImages)
         {
             grl::Rc<VkTexture> tex = grl::makeRc<VkTexture>(m_device.get(), raw, swapchainFormat, m_width, m_height);
             m_textures.push_back(tex);
+            m_renderFinishedSemaphores.push_back(m_device->handle().createSemaphore({}));
         }
 
         const auto rawImageViews = vkbSwapchain.get_image_views().value();
@@ -122,6 +129,13 @@ namespace urhi
     {
         const auto& frame = m_frames[m_frameIndex];
 
+        auto waitResult = m_device->handle().waitForFences(
+            frame.inFlightFence,
+            VK_TRUE,
+            UINT64_MAX
+        );
+        m_device->handle().resetFences(frame.inFlightFence);
+
         auto result = m_device->handle().acquireNextImageKHR(
             m_handle,
             UINT64_MAX,
@@ -133,13 +147,6 @@ namespace urhi
         m_semaphoreConsumed = false;
 
         m_imageIndex = result.value;
-
-        auto* swapTex = dynamic_cast<VkTexture*>(m_textures[m_imageIndex].get());
-        swapTex->resetTrackedState(
-            vk::ImageLayout::eUndefined,
-            vk::PipelineStageFlagBits2::eColorAttachmentOutput, // Matches your QueueSubmit wait semaphore
-            vk::AccessFlagBits2::eNone
-        );
 
         return m_textureViews[m_imageIndex];
     }
@@ -162,12 +169,14 @@ namespace urhi
             vk::SemaphoreSubmitInfo readyWait{};
             readyWait.semaphore = unconsumedReady;
             readyWait.value = 0;
-            readyWait.stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+            readyWait.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
             waitInfos.push_back(readyWait);
         }
 
+        auto& frame = m_frames[m_frameIndex];
+
         vk::SemaphoreSubmitInfo binarySignal{};
-        binarySignal.semaphore = m_frames[m_frameIndex].renderFinishedSemaphore;
+        binarySignal.semaphore = m_renderFinishedSemaphores[m_imageIndex];
         binarySignal.value = 0;
         binarySignal.stageMask = vk::PipelineStageFlagBits2::eAllCommands;
 
@@ -179,12 +188,12 @@ namespace urhi
 
         {
             std::scoped_lock lock(queue->mutex());
-            queue->handle().submit2({submitInfo});
+            queue->handle().submit2({submitInfo}, frame.inFlightFence);
         }
 
         vk::PresentInfoKHR presentInfo{};
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &m_frames[m_frameIndex].renderFinishedSemaphore;
+        presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[m_imageIndex];
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &m_handle;
         presentInfo.pImageIndices = &m_imageIndex;
@@ -206,6 +215,6 @@ namespace urhi
 
     vk::Semaphore VkSwapchain::renderFinishedSemaphore()
     {
-        return m_frames[m_frameIndex].renderFinishedSemaphore;
+        return m_renderFinishedSemaphores[m_imageIndex];
     }
 }

@@ -44,12 +44,13 @@ private:
     struct Frame
     {
         vk::Semaphore imageAvailableSemaphore;
-        vk::Semaphore renderFinishedSemaphore;
+        vk::Fence     inFlightFence;
         vk::CommandPool transitionPool;
         vk::CommandBuffer transitionCmd;
         uint64_t maxTimelineValue = 0;
     };
 
     std::vector<Frame> m_frames;
+    std::vector<vk::Semaphore> m_renderFinishedSemaphores;
 };
 }
