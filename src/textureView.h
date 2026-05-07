@@ -16,6 +16,10 @@ public:
     TextureView(const TextureView&) = delete;
     TextureView& operator= (const TextureView&) = delete;
 
+    [[nodiscard]] uint32_t width() const { return texture()->width(); }
+    [[nodiscard]] uint32_t height() const { return texture()->height(); }
+    [[nodiscard]] uint32_t depth() const { return texture()->depth(); }
+
     [[nodiscard]] virtual uint32_t baseMipLevel() const = 0;
     [[nodiscard]] virtual uint32_t mipLevelCount() const = 0;
 

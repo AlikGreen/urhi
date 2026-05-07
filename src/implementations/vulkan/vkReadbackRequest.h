@@ -13,11 +13,11 @@ class VkReadbackRequest final : public ReadbackRequest
 public:
     VkReadbackRequest() = default;
     ~VkReadbackRequest() override;
-    bool isReady() const override;
+    [[nodiscard]] bool isReady() const override;
     void wait() const override;
 
-    const void* data() const override;
-    size_t size() const override;
+    [[nodiscard]] const void* data() const override;
+    [[nodiscard]] size_t size() const override;
 private:
     friend class VkCommandListEmitter;
     VkDevice* m_device{};

@@ -22,9 +22,6 @@
 [submodule "dependencies/yamlcpp"]
 	path = dependencies/yamlcpp
 	url = https://github.com/jbeder/yaml-cpp.git
-[submodule "dependencies/rapidyaml"]
-	path = dependencies/rapidyaml
-	url = https://github.com/biojppm/rapidyaml.git
 [submodule "dependencies/imguizmo"]
 	path = dependencies/imguizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git

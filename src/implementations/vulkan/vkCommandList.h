@@ -2,7 +2,9 @@
 #include "commandList.h"
 #include <vulkan/vulkan.hpp>
 
-#include "VkReadbackRequest.h"
+#include "vkCommandQueue.h"
+#include "vkReadbackRequest.h"
+#include "vkSubmissionContext.h"
 #include "enums/queueType.h"
 
 namespace urhi
@@ -10,28 +12,27 @@ namespace urhi
 class VkDevice;
 class VkCommandListPool;
 
-struct CmdBeginRenderPass  { RenderPassDesc desc; };
-struct CmdBeginComputePass { RenderPassDesc desc; };
+struct CmdBeginRenderPass  { grl::Box<RenderPassDesc> desc; };
+struct CmdBeginComputePass {};
 struct CmdEndRenderPass    {};
 struct CmdEndComputePass   {};
 
 struct CmdBeginCommandBuffer   {};
 
-struct CmdUpdateTexture   { TextureUploadDesc desc; std::vector<uint8_t> data; };
+struct CmdUpdateTexture   { grl::Box<TextureUploadDesc> desc; std::vector<uint8_t> data; };
 struct CmdUpdateBuffer    { grl::Rc<Buffer> buffer; std::vector<uint8_t> data; };
 struct CmdGenerateMips    { grl::Rc<Texture> texture; };
-struct CmdBlitTexture     { BlitTextureDesc desc; };
+struct CmdBlitTexture     { grl::Rc<BlitTextureDesc> desc; };
 
-struct CmdReadbackTexture    { grl::Rc<VkReadbackRequest> request; TextureReadbackDesc desc; };
+struct CmdReadbackTexture { grl::Rc<VkReadbackRequest> request; grl::Box<TextureReadbackDesc> desc; };
+struct CmdReadbackBuffer  { grl::Rc<VkReadbackRequest> request; BufferReadbackDesc desc; };
 
-struct CmdSetPipeline      { grl::Rc<Pipeline> pipeline; vk::PipelineBindPoint bindPoint; };
+struct CmdSetPipeline     { grl::Rc<Pipeline> pipeline; vk::PipelineBindPoint bindPoint; };
 
-struct CmdSetTexture       { std::string name; grl::Rc<TextureView> texture; };
-struct CmdSetSampler       { std::string name; grl::Rc<Sampler> sampler; };
-struct CmdSetImage         { std::string name; grl::Rc<TextureView> texture; ResourceAccess access; };
+struct CmdSetTexture { std::string name; grl::Rc<TextureView> texture; };
+struct CmdSetSampler { std::string name; grl::Rc<Sampler> sampler; };
+struct CmdSetBuffer  { std::string name; grl::Rc<Buffer> buffer; };
 
-struct CmdSetUniformBuffer { std::string name; grl::Rc<Buffer> buffer; };
-struct CmdSetStorageBuffer { std::string name; grl::Rc<Buffer> buffer; };
 struct CmdPushConstants    { std::vector<uint8_t> data; };
 
 struct CmdSetVertexBuffer  { uint32_t slot; grl::Rc<Buffer> buffer; };
@@ -49,11 +50,11 @@ using Command = std::variant<
     CmdBeginRenderPass, CmdBeginComputePass,
     CmdEndRenderPass, CmdEndComputePass,
     CmdUpdateTexture, CmdUpdateBuffer,
-    CmdGenerateMips, CmdReadbackTexture,
+    CmdGenerateMips,
+    CmdReadbackTexture, CmdReadbackBuffer,
     CmdBlitTexture, CmdSetPipeline,
-    CmdSetTexture, CmdSetSampler, CmdSetImage,
+    CmdSetTexture, CmdSetSampler, CmdSetBuffer,
     CmdSetVertexBuffer, CmdSetIndexBuffer,
-    CmdSetUniformBuffer, CmdSetStorageBuffer,
     CmdPushConstants, CmdSetScissor, CmdSetViewport,
     CmdDrawIndexed, CmdDraw, CmdDispatchCompute
 >;
@@ -61,7 +62,7 @@ using Command = std::variant<
 class VkCommandList final : public CommandList
 {
 public:
-    explicit VkCommandList(QueueType queueType, VkDevice* device);
+    explicit VkCommandList(VkDevice* device, VkCommandQueue* queue, VkSubmissionContext* submissionContext);
     void begin() override;
 
     grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc &desc) override;
@@ -72,17 +73,17 @@ public:
     void blitTexture(const BlitTextureDesc& desc) override;
 
     grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc) override;
+    grl::Rc<ReadbackRequest> readback(const BufferReadbackDesc &desc) override;
+
+    [[nodiscard]] VkSubmissionContext* submissionContext() const { return m_submissionContext; }
+    [[nodiscard]] VkCommandQueue* queue() const { return m_queue; }
+    [[nodiscard]] const std::vector<Command>& commands() const { return m_commands; }
 protected:
     void updateBufferImpl(const grl::Rc<Buffer> &buffer, void *data, uint32_t size) override;
 private:
-    friend class VkCommandListPool;
-    friend class VkRenderPass;
-    friend class VkComputePass;
-    friend class VkDevice;
-
     VkDevice* m_device;
-    QueueType m_queueType;
-    grl::Rc<VkCommandListPool> m_pool;
+    VkSubmissionContext* m_submissionContext;
+    VkCommandQueue* m_queue;
 
     std::vector<Command> m_commands{};
     std::vector<grl::Rc<VkReadbackRequest>> m_readbackRequests{};

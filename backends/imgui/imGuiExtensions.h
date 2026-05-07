@@ -36,7 +36,4 @@ namespace ImGui
     bool DragFloat2(const char* label, glm::vec2& input, float speed = 1.0f, float minValue = 0.0f, float maxValue = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0);
     bool DragFloat3(const char* label, glm::vec3& input, float speed = 1.0f, float minValue = 0.0f, float maxValue = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0);
     bool DragFloat4(const char* label, glm::vec4& input, float speed = 1.0f, float minValue = 0.0f, float maxValue = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0);
-
-    bool SaveStyle(const std::string &filepath, const ImGuiStyle& style);
-    bool LoadStyle(const std::string &filepath, ImGuiStyle& style);
 }

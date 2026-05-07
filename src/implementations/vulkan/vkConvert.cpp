@@ -356,19 +356,20 @@ namespace urhi
         }
     }
 
-    vk::BufferUsageFlags VkConvert::bufferUsage(const BufferUsage bufferUsage)
+    vk::BufferUsageFlags VkConvert::bufferUsage(const BufferUsage usage)
     {
-        switch (bufferUsage)
-        {
-            case BufferUsage::Index: return vk::BufferUsageFlagBits::eIndexBuffer;
-            case BufferUsage::Vertex: return vk::BufferUsageFlagBits::eVertexBuffer;
-            case BufferUsage::ShaderStorage: return vk::BufferUsageFlagBits::eStorageBuffer;
-            case BufferUsage::Uniform: return vk::BufferUsageFlagBits::eUniformBuffer;
-            default: return vk::BufferUsageFlagBits::eUniformBuffer;
-        }
+        constexpr vk::BufferUsageFlags flags = vk::BufferUsageFlagBits::eShaderDeviceAddress;
+
+        if (hasFlag(usage, BufferUsage::Vertex))   return flags | vk::BufferUsageFlagBits::eVertexBuffer;
+        if (hasFlag(usage, BufferUsage::Index))    return flags | vk::BufferUsageFlagBits::eIndexBuffer;
+        if (hasFlag(usage, BufferUsage::Uniform))  return flags | vk::BufferUsageFlagBits::eUniformBuffer;
+        if (hasFlag(usage, BufferUsage::Storage))  return flags | vk::BufferUsageFlagBits::eStorageBuffer;
+        if (hasFlag(usage, BufferUsage::Indirect)) return flags | vk::BufferUsageFlagBits::eIndirectBuffer;
+
+        return flags;
     }
 
-    vk::DescriptorType VkConvert::resourceType(const ShaderReflection::ResourceType type)
+    vk::DescriptorType VkConvert::descriptorType(const ShaderReflection::ResourceType type)
     {
         switch (type)
         {

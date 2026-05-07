@@ -27,7 +27,7 @@ namespace urhi
             }
         };
 
-        m_imageView = device->getHandle().createImageView(viewInfo);
+        m_imageView = device->handle().createImageView(viewInfo);
     }
 
     VkTextureView::VkTextureView(VkDevice *device, const grl::Rc<VkTexture> &texture, const PixelFormat format, const vk::ImageView view)
@@ -40,9 +40,9 @@ namespace urhi
         if(!m_owned) return;
 
         m_device->queueDestroy(m_life,
-        [h = m_imageView](const vk::Device device)
+        [h = m_imageView](const VkDevice* device)
         {
-            device.destroyImageView(h);
+            device->handle().destroyImageView(h);
         });
     }
 
@@ -84,5 +84,11 @@ namespace urhi
     VkLifetime& VkTextureView::lifetime()
     {
         return m_life;
+    }
+
+    void VkTextureView::markUsed(VkCommandQueue* queue, const uint64_t submitValue)
+    {
+        lifetime().markUsed(queue, submitValue);
+        m_texture->lifetime().markUsed(queue, submitValue);
     }
 }

@@ -10,14 +10,17 @@ namespace urhi
 struct TextureUse
 {
     vk::ImageLayout requiredLayout;
+    vk::PipelineStageFlags2 requiredStageMask;
+    vk::AccessFlags2 requiredAccessMask;
     uint32_t commandIndex;
 };
 
 class VkCommandListTracker
 {
 public:
-    void record(const CmdBeginRenderPass& c);
     void record(const CmdSetTexture& c);
+    void record(const CmdBeginRenderPass& c);
+    void record(const CmdBlitTexture& c);
 
     template<typename T> void record(const T&) { m_idx++; }
 

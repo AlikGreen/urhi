@@ -1,6 +1,7 @@
 #include "vkWindow.h"
 
 #include "clogr.h"
+#include "validation.h"
 #include "VkBootstrap.h"
 #include "vkContext.h"
 #include "vkConvert.h"
@@ -10,7 +11,8 @@ namespace urhi
 {
     VkWindow::VkWindow(const WindowDesc &options, const VkContext *context)
     {
-        clogr::ensure(glfwInit(), "Failed to initialize GLFW");
+        const int suc = glfwInit();
+        URHI_VALIDATE(suc != 0, "Failed to initialize GLFW");
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
@@ -20,10 +22,10 @@ namespace urhi
         int height = options.height;
 
         GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-        clogr::ensure(primaryMonitor != nullptr, "Failed to get primary monitor");
+        URHI_VALIDATE(primaryMonitor != nullptr, "Failed to get primary monitor - returned null");
 
         const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
-        clogr::ensure(mode != nullptr, "Couldn't get video mode");
+        URHI_VALIDATE(mode != nullptr, "Failed get video mode - glfwGetVideoMode returned null");
 
         if(width <= 0)
             width = static_cast<int>(mode->width * 0.75);
@@ -36,7 +38,7 @@ namespace urhi
 
         GLFWmonitor* monitor = options.fullscreen ? primaryMonitor : nullptr;
         m_handle = glfwCreateWindow(width, height, options.title, monitor, nullptr);
-        clogr::ensure(m_handle != nullptr, "Failed to create GLFW window");
+        URHI_VALIDATE(m_handle != nullptr, "Failed to create GLFW window - glfwCreateWindow returned null");
 
         glfwSetWindowUserPointer(m_handle, this);
 
@@ -50,8 +52,8 @@ namespace urhi
         glfwSetDropCallback(       m_handle, dropCallback);
 
         VkSurfaceKHR rawSurface;
-        const VkResult err = glfwCreateWindowSurface(context->getVkInstance(), m_handle, nullptr, &rawSurface);
-        clogr::ensure(err == VK_SUCCESS, "Failed to create vulkan window surface");
+        auto res = glfwCreateWindowSurface(context->getVkInstance(), m_handle, nullptr, &rawSurface);
+        URHI_VALIDATE(res == VK_SUCCESS, "Failed to create vulkan window surface - glfwCreateWindowSurface returned {}", vk::to_string(static_cast<vk::Result>(res)));
         m_surface = rawSurface;
     }
 

@@ -1,21 +1,17 @@
 #include "vkCommandList.h"
 
-#include <utility>
-
 #include "clogr.h"
 #include "renderPass.h"
-#include "vkCommandListPool.h"
 #include "vkComputePass.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 #include "vkMappedBuffer.h"
-#include "vkStagedBuffer.h"
 #include "vkRenderPass.h"
 
 namespace urhi
 {
-    VkCommandList::VkCommandList(const QueueType queueType, VkDevice* device)
-        : m_device(device), m_queueType(queueType)
+    VkCommandList::VkCommandList(VkDevice *device, VkCommandQueue* queue, VkSubmissionContext* submissionContext)
+        : m_device(device), m_submissionContext(submissionContext), m_queue(queue)
     {
     }
 
@@ -25,8 +21,9 @@ namespace urhi
 
         m_commands.clear();
 
-        m_commands.push_back(CmdBeginCommandBuffer{});
+        m_commands.emplace_back(CmdBeginCommandBuffer{});
     }
+
 
     grl::Rc<RenderPass> VkCommandList::beginRenderPass(const RenderPassDesc &desc)
     {
@@ -46,23 +43,30 @@ namespace urhi
         vec.resize(size);
         std::memcpy(vec.data(), desc.data, size);
 
-        m_commands.push_back(CmdUpdateTexture{desc, vec});
+        m_commands.emplace_back(CmdUpdateTexture{grl::makeBox<TextureUploadDesc>(desc), vec});
     }
 
     void VkCommandList::generateMipmaps(const grl::Rc<Texture> &texture)
     {
-        m_commands.push_back(CmdGenerateMips{texture});
+        m_commands.emplace_back(CmdGenerateMips{texture});
     }
 
     void VkCommandList::blitTexture(const BlitTextureDesc &desc)
     {
-        m_commands.push_back(CmdBlitTexture{desc});
+        m_commands.emplace_back(CmdBlitTexture{grl::makeBox<BlitTextureDesc>(desc)});
     }
 
     grl::Rc<ReadbackRequest> VkCommandList::readback(const TextureReadbackDesc &desc)
     {
         grl::Rc<VkReadbackRequest> request = grl::makeRc<VkReadbackRequest>();
-        m_commands.push_back(CmdReadbackTexture{request, desc});
+        m_commands.emplace_back(CmdReadbackTexture{request, grl::makeBox<TextureReadbackDesc>(desc)});
+        return request;
+    }
+
+    grl::Rc<ReadbackRequest> VkCommandList::readback(const BufferReadbackDesc &desc)
+    {
+        grl::Rc<VkReadbackRequest> request = grl::makeRc<VkReadbackRequest>();
+        m_commands.emplace_back(CmdReadbackBuffer{request, desc});
         return request;
     }
 
@@ -72,6 +76,6 @@ namespace urhi
         vec.resize(size);
         std::memcpy(vec.data(), data, size);
 
-        m_commands.push_back(CmdUpdateBuffer{buffer, vec});
+        m_commands.emplace_back(CmdUpdateBuffer{buffer, vec});
     }
 }

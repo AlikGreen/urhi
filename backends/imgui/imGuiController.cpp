@@ -6,9 +6,9 @@
 
 #include "imGuiExtensions.h"
 #include "imguiShader.h"
-#include "shaderCompiler.h"
 #include "glm/glm.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
+#include "slang/compiler.h"
 
 namespace urhi
 {
@@ -19,7 +19,7 @@ namespace urhi
 
         ImGuiIO &io = ImGui::GetIO();
         io.BackendPlatformName = "urhi_Platform";
-        io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+        io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures | ImGuiBackendFlags_RendererHasVtxOffset;
         io.Fonts->TexDesiredFormat = ImTextureFormat_RGBA32;
         io.DisplaySize = ImVec2(
             static_cast<float>(m_window->width()),
@@ -69,8 +69,11 @@ namespace urhi
         std::vector<uint32_t> indices{};
         indices.reserve(m_drawData->TotalIdxCount);
 
-        std::vector<uint32_t> listIndexOffsets{};
-        listIndexOffsets.resize(m_drawData->CmdListsCount);
+        std::vector<uint32_t> indexOffsets{};
+        indexOffsets.resize(m_drawData->CmdListsCount);
+
+        std::vector<uint32_t> vertexOffsets{};
+        vertexOffsets.resize(m_drawData->CmdListsCount);
 
         uint32_t vertexOffset = 0;
         uint32_t indexOffset  = 0;
@@ -79,18 +82,25 @@ namespace urhi
         for(int n = 0; n < m_drawData->CmdListsCount; n++)
         {
             const ImDrawList *cmdListImGui = m_drawData->CmdLists[n];
-            listIndexOffsets[n] = indexOffset;
+            indexOffsets[n] = indexOffset;
+            vertexOffsets[n] = vertexOffset;
 
-            for(int v = 0; v < cmdListImGui->VtxBuffer.Size; v++)
-                vertices.push_back(cmdListImGui->VtxBuffer[v]);
+            vertices.insert(
+            vertices.end(),
+            cmdListImGui->VtxBuffer.begin(),
+            cmdListImGui->VtxBuffer.end());
 
-            for(int i = 0; i < cmdListImGui->IdxBuffer.Size; i++)
-                indices.push_back(static_cast<uint32_t>(cmdListImGui->IdxBuffer[i]) + vertexOffset); // specifically this
+            indices.insert(
+                indices.end(),
+                cmdListImGui->IdxBuffer.begin(),
+                cmdListImGui->IdxBuffer.end());
+
 
             vertexOffset += cmdListImGui->VtxBuffer.Size;
             indexOffset  += cmdListImGui->IdxBuffer.Size;
         }
 
+        m_device->waitIdle();
         cmdList->updateBuffer(m_vertexBuffer, vertices);
         cmdList->updateBuffer(m_indexBuffer, indices);
 
@@ -114,31 +124,37 @@ namespace urhi
 
         for(int n = 0; n < m_drawData->CmdListsCount; n++)
         {
-            const ImDrawList *cmdListImGui = m_drawData->CmdLists[n];
-            const uint32_t baseIndex = listIndexOffsets[n];
+            const ImDrawList* cmdListImGui = m_drawData->CmdLists[n];
+            const uint32_t baseVertex = vertexOffsets[n];
+            const uint32_t baseIndex  = indexOffsets[n];
 
             for(int cmd_i = 0; cmd_i < cmdListImGui->CmdBuffer.Size; cmd_i++)
             {
-                const ImDrawCmd &pcmd = cmdListImGui->CmdBuffer[cmd_i];
+                const ImDrawCmd& pcmd = cmdListImGui->CmdBuffer[cmd_i];
 
-                const Rect2D scissor = calculateScissorRect(pcmd);
-                renderPass->setScissor(scissor);
+                renderPass->setScissor(calculateScissorRect(pcmd));
 
                 ImGuiImage* image = pcmd.GetTexID();
 
                 clogr::ensure(image != nullptr, "ImGui - Image is null");
-                clogr::ensure(image->view != nullptr, "ImGui - Texture View to render is null");
+                clogr::ensure(image->view != nullptr, "ImGui - Texture View is null");
 
                 if(image->sampler == nullptr)
                 {
-                    SamplerDesc samplerDesc {};
+                    SamplerDesc samplerDesc{};
                     image->sampler = m_device->createSampler(samplerDesc);
                 }
+
 
                 renderPass->setTexture("ImGuiTexture", image->view);
                 renderPass->setSampler("ImGuiSampler", image->sampler);
 
-                renderPass->drawIndexed(pcmd.ElemCount, 1, baseIndex + pcmd.IdxOffset);
+                renderPass->drawIndexed(
+                    pcmd.ElemCount,
+                    1,
+                    baseIndex + pcmd.IdxOffset,
+                    static_cast<int32_t>(baseVertex + pcmd.VtxOffset)
+                );
             }
         }
 
@@ -232,11 +248,9 @@ namespace urhi
 
                 case ImTextureStatus_WantUpdates:
                 {
-                    // Optional: implement partial updates if you care.
-                    // For font atlas you can often ignore this, but robust backends handle it.
-                    // texData->Updates / texData->UpdateRect give regions to update.
+                    // TODO implement partial updates if you care.
                     destroyTexture(texData);
-                    ImGuiImage* img = createTexture(texData);         // create from updated pixels
+                    ImGuiImage* img = createTexture(texData);
                     texData->SetTexID(img);
                     texData->SetStatus(ImTextureStatus_OK);
                     break;
@@ -303,22 +317,31 @@ namespace urhi
 
     void ImGuiController::destroyTexture(const ImTextureData *texData) const
     {
-        const ImGuiIO& io = ImGui::GetIO();
-        const ImGuiImage* img = io.Fonts->TexData->TexID;
+        const ImGuiImage* img = texData->GetTexID();
         delete img;
     }
 
     void ImGuiController::createPipeline()
     {
-        ShaderCompileDesc compileDesc{};
-        compileDesc.path = "imgui.slang";
-        compileDesc.source = imGuiShaderSource;
-        const auto shaders = ShaderCompiler::compile(compileDesc);
-        const auto shader1 = m_device->createShader(shaders.at(0));
-        const auto shader2 = m_device->createShader(shaders.at(1));
+        slang::CompileDesc compileDesc{};
+        compileDesc.moduleName = "imgui";
+        compileDesc.modulePath = "imgui.slang";
+        compileDesc.moduleSource = imGuiShaderSource;
+
+        const auto module = slang::Compiler::compileModule(compileDesc);
+
+        slang::LinkDesc linkDesc{};
+        linkDesc.modules = { module };
+
+        slang::Diagnostics diags;
+
+        const auto shaders = slang::Compiler::linkToShaderSet(linkDesc, &diags);
+
+        const auto vertexShader = m_device->createShader(*shaders.find(ShaderStage::Vertex));
+        const auto fragmentShader = m_device->createShader(*shaders.find(ShaderStage::Fragment));
 
         GraphicsPipelineDesc pipelineDescription{};
-        pipelineDescription.shaders         = { shader1, shader2 };
+        pipelineDescription.shaders         = { vertexShader, fragmentShader };
         pipelineDescription.primitiveType   = PrimitiveType::TriangleList;
         pipelineDescription.rasterizerState = { .cullMode = CullMode::None, .enableScissorTest = true };
         pipelineDescription.depthState      = { .hasDepthTarget = false, .enableDepthTest = false };
@@ -398,8 +421,8 @@ namespace urhi
             return Rect2D{};
 
         Rect2D scissor{};
-        scissor.x      = static_cast<int>(clipRect.x);
-        scissor.y      = static_cast<int>(clipRect.y);
+        scissor.x      = std::max(0, static_cast<int>(clipRect.x));
+        scissor.y      = std::max(0, static_cast<int>(clipRect.y));
         scissor.width  = static_cast<int>(clipRect.z - clipRect.x);
         scissor.height = static_cast<int>(clipRect.w - clipRect.y);
 

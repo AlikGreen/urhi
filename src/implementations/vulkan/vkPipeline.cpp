@@ -1,10 +1,12 @@
 #include "vkPipeline.h"
 
 #include <ranges>
+#include <unordered_set>
 #include <utility>
 #include <vulkan/vulkan.hpp>
 
 #include "clogr.h"
+#include "validation.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 #include "vkShader.h"
@@ -15,11 +17,18 @@ namespace urhi
     VkPipeline::VkPipeline(VkDevice* device, const std::vector<grl::Rc<Shader>> &shaders)
         : m_device(device)
     {
+        std::unordered_map<uint32_t, std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding>> setsMap;
+        std::unordered_map<vk::DescriptorType, uint32_t> typeCounts;
 
-        std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding> layoutBindingsMap;
-
-        auto processReflection = [&](const ShaderEntryPoint& entryPoint)
+        for(const auto& shader : shaders)
         {
+            URHI_VALIDATE(!m_shaderMap.contains(shader->entryPoint().stage), "Duplicate shader types - Pipeline cannot be created with multiple shaders of the same type");
+            auto vkShader = std::dynamic_pointer_cast<VkShader>(shader);
+            auto entryPoint = vkShader->entryPoint();
+            auto stageBit = VkConvert::shaderStage(entryPoint.stage);
+
+            m_shaderMap.emplace(entryPoint.stage, vkShader);
+
             if(entryPoint.reflection.pushConstant.has_value())
             {
                 const auto pc = entryPoint.reflection.pushConstant.value();
@@ -37,68 +46,87 @@ namespace urhi
                 }
             }
 
+
             for (const auto& resource : entryPoint.reflection.resources)
             {
-                auto it = layoutBindingsMap.find(resource.binding);
-                if (it != layoutBindingsMap.end())
+                const auto descriptorType = VkConvert::descriptorType(resource.type);
+                auto& setBindings = setsMap[resource.set]; // Access the map for this specific set
+                
+                m_bindingInfo[resource.name] = {
+                    resource.set,
+                    resource.binding,
+                    descriptorType,
+                    resource.name,
+                };
+
+                if (setBindings.contains(resource.binding))
                 {
-                    it->second.stageFlags |= VkConvert::shaderStage(entryPoint.stage);
-                }
-                else
+                    setBindings[resource.binding].stageFlags |= stageBit;
+
+                } else
                 {
-                    vk::DescriptorSetLayoutBinding binding{};
-                    binding.binding = resource.binding;
-                    binding.descriptorType = VkConvert::resourceType(resource.type);
-                    binding.descriptorCount = resource.arrayCount;
-                    binding.stageFlags = VkConvert::shaderStage(entryPoint.stage);
-                    layoutBindingsMap[resource.binding] = binding;
+                    vk::DescriptorSetLayoutBinding b{};
+                    b.binding = resource.binding;
+                    b.descriptorType = VkConvert::descriptorType(resource.type);
+                    b.descriptorCount = std::max(1u, resource.count);
+                    b.stageFlags = stageBit;
+                    setBindings[resource.binding] = b;
+
+                    if(typeCounts.contains(descriptorType))
+                    {
+                        typeCounts[descriptorType]++;
+                    }else
+                    {
+                        typeCounts[descriptorType] = 1;
+                    }
                 }
             }
-        };
-
-        for(const auto& shader : shaders)
-        {
-            clogr::ensure(!m_shaderMap.contains(shader->entryPoint().stage), "Pipeline cannot be created with multiple shaders of the same type.");
-            auto vkShader = std::dynamic_pointer_cast<VkShader>(shader);
-            m_shaderMap.emplace(shader->entryPoint().stage, vkShader);
-            processReflection(vkShader->entryPoint());
         }
 
-        std::vector<vk::DescriptorSetLayoutBinding> layoutBindings;
-        layoutBindings.reserve(layoutBindingsMap.size());
-        for (const auto &val: layoutBindingsMap | std::views::values)
+        // Determine the max set index to handle gaps if necessary
+        uint32_t maxSet = 0;
+        for (const auto &setIdx: setsMap | std::views::keys) maxSet = std::max(maxSet, setIdx);
+
+        for (uint32_t i = 0; i <= maxSet; i++)
         {
-            layoutBindings.push_back(val);
+            std::vector<vk::DescriptorSetLayoutBinding> bindings;
+            if (setsMap.contains(i))
+            {
+                for (const auto &b: setsMap[i] | std::views::values)
+                {
+                    bindings.push_back(b);
+                }
+            }
+
+
+            vk::DescriptorSetLayoutCreateInfo layoutInfo{};
+            layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+            layoutInfo.pBindings = bindings.data();
+
+            m_descriptorSetLayouts.push_back(m_device->handle().createDescriptorSetLayout(layoutInfo));
         }
 
-        vk::DescriptorSetLayoutCreateInfo descriptorLayoutInfo{};
-        descriptorLayoutInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR;
-        descriptorLayoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-        descriptorLayoutInfo.pBindings = layoutBindings.data();
-
-        auto descriptorSetLayout = m_device->getHandle().createDescriptorSetLayout(descriptorLayoutInfo);
-
+        // 3. Create Pipeline Layout with all sets
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_descriptorSetLayouts.size());
+        pipelineLayoutInfo.pSetLayouts = m_descriptorSetLayouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = m_pushConstantRange ? 1 : 0;
         pipelineLayoutInfo.pPushConstantRanges = m_pushConstantRange;
 
-        m_layout = m_device->getHandle().createPipelineLayout(pipelineLayoutInfo);
+        m_layout = m_device->handle().createPipelineLayout(pipelineLayoutInfo);
     }
 
-    vk::Pipeline VkPipeline::getHandle() const
+    std::optional<VkPipeline::BindingInfo> VkPipeline::bindingInfo(const std::string &name)
     {
-        return m_pipeline;
+        const auto it = m_bindingInfo.find(name);
+        if(it != m_bindingInfo.end())
+            return it->second;
+
+        return std::nullopt;
     }
 
-    vk::PipelineLayout VkPipeline::getLayout() const
+    const std::unordered_map<std::string, VkPipeline::BindingInfo> & VkPipeline::bindingInfo()
     {
-        return m_layout;
-    }
-
-    ShaderReflection VkPipeline::getReflection(const ShaderStage stage) const
-    {
-        return m_shaderMap.at(stage)->entryPoint().reflection;
+        return m_bindingInfo;
     }
 }

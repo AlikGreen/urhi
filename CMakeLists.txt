@@ -3,16 +3,16 @@ project(urhi)
 
 set(CMAKE_CXX_STANDARD 23)
 
+option(URHI_ENABLE_VALIDATION "Enable URHI runtime validation" OFF)
+
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
 
 set(ENABLE_OPT OFF CACHE BOOL "" FORCE)
 add_subdirectory(${DEPS_DIR}/glm)
 add_subdirectory(${DEPS_DIR}/glfw)
-add_subdirectory(${DEPS_DIR}/glad)
 add_subdirectory(${DEPS_DIR}/spirv-cross)
 add_subdirectory(${DEPS_DIR}/clogr)
 add_subdirectory(${DEPS_DIR}/vk-bootstrap)
-add_subdirectory(${DEPS_DIR}/rapidyaml)
 add_subdirectory(${DEPS_DIR}/vma)
 
 find_package(Vulkan REQUIRED)
@@ -38,6 +38,12 @@ file(GLOB_RECURSE
 
 add_library(urhi STATIC ${SRC_FILES})
 
+target_include_directories(urhi BEFORE PUBLIC ${Vulkan_INCLUDE_DIRS})
+
+if(URHI_ENABLE_VALIDATION)
+    target_compile_definitions(urhi PUBLIC URHI_ENABLE_VALIDATION)
+endif()
+
 target_compile_definitions(urhi PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 target_compile_definitions(urhi PRIVATE GLFW_INCLUDE_NONE)
 
@@ -46,7 +52,6 @@ target_include_directories(urhi PUBLIC include/ "${DEPS_DIR}/slang/include")
 target_link_libraries(urhi PUBLIC
         glfw
         glm::glm
-        glad
         clogr
         ${SLANG_LIBRARY}
         spirv-cross-c
@@ -95,7 +100,7 @@ add_library(urhi_imgui STATIC
         backends/imgui/imGuiExtensions.cpp)
 
 target_include_directories(urhi_imgui PUBLIC backends/)
-target_link_libraries(urhi_imgui PUBLIC urhi imgui_static ryml::ryml c4core::c4core)
+target_link_libraries(urhi_imgui PUBLIC urhi imgui_static)
 
 target_compile_definitions(urhi_imgui PRIVATE
         IMGUI_USER_CONFIG="imgui/imGuiConfig.h"

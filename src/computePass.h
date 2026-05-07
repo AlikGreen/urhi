@@ -6,7 +6,6 @@
 #include "pipeline.h"
 #include "sampler.h"
 #include "textureView.h"
-#include "enums/resourceAccess.h"
 
 namespace urhi
 {
@@ -21,12 +20,9 @@ public:
 
     virtual void setPipeline(const grl::Rc<Pipeline>& pipeline) = 0;
 
-    virtual void setUniformBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
-    virtual void setStorageBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
-
+    virtual void setBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
     virtual void setTexture(const std::string& name, const grl::Rc<TextureView>& texture) = 0;
     virtual void setSampler(const std::string& name, const grl::Rc<Sampler>& sampler) = 0;
-    virtual void setImage(const std::string& name, const grl::Rc<TextureView>& texture, ResourceAccess access) = 0;
 
     template<typename T>
     void pushConstants(T& data) { pushConstants(&data, sizeof(T)); }

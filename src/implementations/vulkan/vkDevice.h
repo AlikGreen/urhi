@@ -6,25 +6,16 @@
 
 #include "device.h"
 #include "logger.h"
+#include "vkCommandQueue.h"
+#include "vkLifetime.h"
 #include "descriptions/deviceDesc.h"
 #include "descriptions/shaderEntryPoint.h"
 #include "enums/queueType.h"
-#include "vkCommandListPool.h"
 
 namespace urhi
 {
     class VkCommandListPool;
     class VkContext;
-
-struct VkQueueState
-{
-    VkQueueState() = default;
-    vk::Queue queue = VK_NULL_HANDLE;
-    uint32_t family = 0;
-    grl::Box<std::mutex> mutex{};
-    vk::Semaphore timeline;
-    uint64_t nextTimelineValue{};
-};
 
 class VkDevice final : public Device
 {
@@ -44,39 +35,39 @@ public:
     grl::Rc<Shader> createShader(const ShaderEntryPoint& entryPoint) override;
 
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
+
+    void waitIdle() override;
+
     void submit(const grl::Rc<CommandList> &cmdList) override;
 
-    void queueDestroy(VkLifetime lifetime, std::function<void(vk::Device device)> callback);
+    void queueDestroy(VkLifetime lifetime, const std::function<void(VkDevice* device)> &callback);
 
-    [[nodiscard]] vk::PhysicalDevice getPhysicalDevice() const;
-    [[nodiscard]] vk::Device getHandle() const;
-    [[nodiscard]] VmaAllocator getAllocator() const;
-    [[nodiscard]] float getMaxAnisotropy() const;
+    [[nodiscard]] vk::Device handle() const { return m_handle; }
+    [[nodiscard]] vk::PhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
+    [[nodiscard]] VmaAllocator allocator() const { return m_allocator; }
 
-    clogr::Logger& logger() const;
-    grl::Rc<VkQueueState> getQueueState(QueueType queueType);
+    [[nodiscard]] float maxAnisotropy() const { return m_maxAnisotropy; }
+    [[nodiscard]] vk::Format depth24PlusStencil8Format() const { return m_depth24PlusStencil8Format; }
 
-    vk::Format depth24PlusStencil8Format() const;
+    [[nodiscard]] clogr::Logger& logger() const;
+
+    [[nodiscard]] grl::Rc<VkCommandQueue> queue(QueueType type) const;
+
 private:
     friend class VkSwapchain;
-
-    static constexpr size_t CMD_POOLS_PER_QUEUE = 4;
-    static constexpr size_t QUEUE_TYPES = 3;
+    static constexpr uint32_t kQueueTypes = 3;
 
     void tryCollectGarbage();
 
     VkContext* m_context;
-    std::atomic<uint32_t> m_cmdListIndex;
 
     vk::PhysicalDevice m_physicalDevice;
     vk::Device m_handle;
     VmaAllocator m_allocator{};
 
-    std::array<std::array<grl::Rc<VkCommandListPool>, QUEUE_TYPES>, CMD_POOLS_PER_QUEUE> m_commandListPools; // 4 command list pools per queue (so they get a chance to be reset)
+    std::array<grl::Rc<VkCommandQueue>, kQueueTypes> m_commandQueues{};
 
-    std::array<grl::Rc<VkQueueState>, 3> m_queueStates{};
-
-    std::vector<std::pair<VkLifetime, std::function<void(vk::Device device)>>> m_destroyQueue{};
+    std::vector<std::pair<VkLifetime, std::function<void(VkDevice* device)>>> m_destroyQueue{};
 
     float m_maxAnisotropy = 0.0f;
     vk::Format m_depth24PlusStencil8Format;

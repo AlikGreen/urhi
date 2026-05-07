@@ -1,5 +1,6 @@
 #pragma once
 #include <grl/mem.h>
+#include "texture.h"
 
 namespace urhi
 {

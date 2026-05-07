@@ -12,7 +12,7 @@ namespace urhi
             entryPoint.spirv
         };
 
-        m_shaderModule = m_device->getHandle().createShaderModule(shaderModuleInfo);
+        m_shaderModule = m_device->handle().createShaderModule(shaderModuleInfo);
     }
 
     ShaderEntryPoint VkShader::entryPoint()

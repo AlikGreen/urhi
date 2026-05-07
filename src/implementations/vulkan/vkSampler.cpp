@@ -19,7 +19,7 @@ namespace urhi
             VkConvert::addressMode(desc.addressModeW),
             desc.lodBias,
             true,
-            device->getMaxAnisotropy(),
+            device->maxAnisotropy(),
             desc.enableCompare,
             VkConvert::compareOp(desc.compareOp),
             0.0f,
@@ -28,15 +28,15 @@ namespace urhi
             desc.unnormalizedCoordinates
         };
 
-        m_handle = device->getHandle().createSampler(samplerCI);
+        m_handle = device->handle().createSampler(samplerCI);
     }
 
     VkSampler::~VkSampler()
     {
         m_device->queueDestroy(m_life,
-    [h = m_handle](const vk::Device device)
+        [h = m_handle](const VkDevice* device)
         {
-            device.destroySampler(h);
+            device->handle().destroySampler(h);
         });
     }
 

@@ -1,5 +1,6 @@
 #include "vkTexture.h"
 
+#include "validation.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 
@@ -31,35 +32,38 @@ namespace urhi
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         allocCreateInfo.flags = 0;
 
-        VmaAllocation alloc;
-
-        auto res1 = vmaCreateImage(
-            m_device->getAllocator(),
+        auto res = vmaCreateImage(
+            m_device->allocator(),
             reinterpret_cast<VkImageCreateInfo*>(&imageInfo),
             &allocCreateInfo,
             reinterpret_cast<VkImage*>(&m_image),
-            &alloc,
+            &m_allocation,
             nullptr
         );
+
+        URHI_VALIDATE(res == VK_SUCCESS, "Failed to create texture allocation - vmaCreateImage returned {}", vk::to_string(static_cast<vk::Result>(res)));
     }
 
     VkTexture::VkTexture(VkDevice *device, const vk::Image image, const PixelFormat format, const uint32_t width, const uint32_t height)
         : m_width(width), m_height(height), m_depth(1),
-        m_mipLevels(1), m_arrayLayers(1),
-        m_format(format), m_type(TextureType::Texture2D),
-        m_device(device), m_image(image), m_owned(false)
+          m_mipLevels(1), m_arrayLayers(1),
+          m_format(format), m_type(TextureType::Texture2D),
+          m_device(device), m_allocation(nullptr), m_image(image),
+          m_swapchainTexture(true)
     {
     }
 
     VkTexture::~VkTexture()
     {
-        if(!m_owned) return;
+        if(m_swapchainTexture) return;
 
         m_device->queueDestroy(m_life,
-        [h = m_image](const vk::Device device)
+        [img = m_image, alloc = m_allocation](const VkDevice* device)
         {
-
-            device.destroyImage(h);
+            if(alloc != nullptr)
+                vmaDestroyImage(device->allocator(), img, alloc);
+            else
+                device->handle().destroyImage(img);
         });
     }
 
@@ -103,13 +107,28 @@ namespace urhi
         return m_image;
     }
 
-    void VkTexture::transitionLayout(const vk::CommandBuffer cmd, const vk::ImageLayout newLayout)
+    void VkTexture::transitionLayout(
+         const vk::CommandBuffer cmd,
+         const vk::ImageLayout newLayout,
+         const vk::PipelineStageFlags2 dstStageMask,
+         const vk::AccessFlags2 dstAccessMask)
     {
-        if(m_currentLayout == newLayout) return;
-        
-        vk::ImageMemoryBarrier barrier;
-        barrier.oldLayout = m_currentLayout;
-        barrier.newLayout = newLayout;
+        if (newLayout == vk::ImageLayout::eUndefined ||
+            newLayout == vk::ImageLayout::ePreinitialized)
+        {
+            return;
+        }
+
+        vk::ImageMemoryBarrier2 barrier{};
+
+        barrier.srcStageMask  = m_currentStage;
+        barrier.srcAccessMask = m_currentAccess;
+        barrier.oldLayout     = m_currentLayout;
+
+        barrier.dstStageMask  = dstStageMask;
+        barrier.dstAccessMask = dstAccessMask;
+        barrier.newLayout     = newLayout;
+
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = m_image;
@@ -119,88 +138,32 @@ namespace urhi
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-        vk::PipelineStageFlags srcStage = {};
-        vk::PipelineStageFlags dstStage = {};
+        vk::DependencyInfo depInfo{};
+        depInfo.imageMemoryBarrierCount = 1;
+        depInfo.pImageMemoryBarriers = &barrier;
 
-
-        switch (m_currentLayout)
-        {
-            case vk::ImageLayout::eUndefined:
-                barrier.srcAccessMask = {};
-                srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-                break;
-
-            case vk::ImageLayout::eTransferDstOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-                srcStage = vk::PipelineStageFlagBits::eTransfer;
-                break;
-
-            case vk::ImageLayout::eTransferSrcOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-                srcStage = vk::PipelineStageFlagBits::eTransfer;
-                break;
-
-            case vk::ImageLayout::eColorAttachmentOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-                srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-                break;
-
-            case vk::ImageLayout::eDepthStencilAttachmentOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-                srcStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
-                break;
-
-            case vk::ImageLayout::eShaderReadOnlyOptimal:
-                barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
-                srcStage = vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eComputeShader;
-                break;
-
-            default:
-                barrier.srcAccessMask = {};
-                srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        }
-
-        switch (newLayout)
-        {
-            case vk::ImageLayout::eTransferDstOptimal:
-                barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-                dstStage = vk::PipelineStageFlagBits::eTransfer;
-                break;
-
-            case vk::ImageLayout::eShaderReadOnlyOptimal:
-                barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-                dstStage = vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eComputeShader;
-                break;
-
-            case vk::ImageLayout::eColorAttachmentOptimal:
-                barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-                dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-                break;
-
-            case vk::ImageLayout::eDepthStencilAttachmentOptimal:
-                barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-                dstStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
-                break;
-
-            default:
-                barrier.dstAccessMask = {};
-                dstStage = vk::PipelineStageFlagBits::eBottomOfPipe;
-        }
-
-        cmd.pipelineBarrier(
-            srcStage,
-            dstStage,
-            {},
-            0, nullptr,
-            0, nullptr,
-            1, &barrier
-        );
+        cmd.pipelineBarrier2(depInfo);
 
         m_currentLayout = newLayout;
+        m_currentStage  = dstStageMask;
+        m_currentAccess = dstAccessMask;
     }
+
+    void VkTexture::resetTrackedState(vk::ImageLayout layout, vk::PipelineStageFlags2 stage, vk::AccessFlags2 access)
+    {
+        m_currentLayout = layout;
+        m_currentStage = stage;
+        m_currentAccess = access;
+    }
+
 
     VkLifetime& VkTexture::lifetime()
     {
         return m_life;
+    }
+
+    bool VkTexture::isSwapchainTexture()
+    {
+        return m_swapchainTexture;
     }
 }

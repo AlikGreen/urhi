@@ -39,6 +39,8 @@ public:
     virtual grl::Rc<Shader> createShader(const ShaderEntryPoint& entryPoint) = 0;
     virtual grl::Rc<Buffer> createBuffer(const BufferDesc& desc) = 0;
 
+    virtual void waitIdle() = 0;
+
     virtual void submit(const grl::Rc<CommandList>& commandList) = 0;
 };
 }

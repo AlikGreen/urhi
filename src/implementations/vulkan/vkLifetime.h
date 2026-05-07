@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "enums/queueType.h"
+#include "vkCommandQueue.h"
 
 namespace urhi
 {
@@ -9,9 +9,9 @@ class VkDevice;
 struct VkLifetime
 {
     uint64_t lastSubmitValue = 0;
-    QueueType lastSubmitQueue = QueueType::Graphics;
+    VkCommandQueue* lastSubmitQueue = nullptr;
 
-    void markUsed(const QueueType q, const uint64_t value)
+    void markUsed(VkCommandQueue* q, const uint64_t value)
     {
         lastSubmitQueue = q;
         if (value > lastSubmitValue) lastSubmitValue = value;

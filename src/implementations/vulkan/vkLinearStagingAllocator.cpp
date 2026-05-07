@@ -1,6 +1,7 @@
 #include "vkLinearStagingAllocator.h"
 
 #include "clogr.h"
+#include "validation.h"
 #include "vkConvert.h"
 #include "vkDevice.h"
 #include "vkTexture.h"
@@ -8,10 +9,28 @@
 
 namespace urhi
 {
-    VkLinearStagingAllocator::VkLinearStagingAllocator(VkDevice *device)
-        : m_device(device)
+
+    void VkLinearStagingAllocator::init(VkDevice *device)
     {
+        m_device = device;
         allocateNewPage(kDefaultBlockSize);
+    }
+
+    void VkLinearStagingAllocator::destroy()
+    {
+        for (const auto& page : m_pages)
+        {
+            vmaDestroyBuffer(
+                m_device->allocator(),
+                page.buffer,
+                page.allocation
+            );
+        }
+
+        m_pages.clear();
+        m_activePageIndex = 0;
+        m_highWatermark = 1;
+        m_unusedFrames = 0;
     }
 
     void VkLinearStagingAllocator::reset()
@@ -29,7 +48,7 @@ namespace urhi
         if (m_unusedFrames > kDecayFrames && m_pages.size() > m_highWatermark && m_pages.size() > 1)
         {
             vmaDestroyBuffer(
-                m_device->getAllocator(),
+                m_device->allocator(),
                 m_pages.back().buffer,
                 m_pages.back().allocation
             );
@@ -46,7 +65,7 @@ namespace urhi
         std::memcpy(allocation.mapped, srcData, size);
 
         vmaFlushAllocation(
-           m_device->getAllocator(),
+           m_device->allocator(),
            m_pages[allocation.pageIndex].allocation,
            allocation.offset,
            size
@@ -67,20 +86,22 @@ namespace urhi
     {
         const auto texture = dynamic_cast<VkTexture*>(uploadDesc.texture.get());
 
-        clogr::ensure(uploadDesc.data != nullptr, "Trying to upload nullptr data to texture.");
+        URHI_VALIDATE(uploadDesc.data != nullptr, "Texture upload data is nullptr - update texture requires non null data");
         const uint32_t size = uploadDesc.width*uploadDesc.height*uploadDesc.depth*VkConvert::pixelFormatBytes(texture->format(), m_device);
         const StagingAllocation allocation = allocate(size);
 
         std::memcpy(allocation.mapped, uploadDesc.data, size);
 
         vmaFlushAllocation(
-            m_device->getAllocator(),
+            m_device->allocator(),
             m_pages[allocation.pageIndex].allocation,
             allocation.offset,
             size
         );
 
-        texture->transitionLayout(cmd, vk::ImageLayout::eTransferDstOptimal);
+        texture->transitionLayout(cmd, vk::ImageLayout::eTransferDstOptimal,
+            vk::PipelineStageFlagBits2::eTransfer,
+            vk::AccessFlagBits2::eTransferWrite);
 
         vk::BufferImageCopy region;
         region.bufferOffset = allocation.offset;
@@ -102,8 +123,6 @@ namespace urhi
             1,
             &region
         );
-
-        texture->transitionLayout(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 
 
@@ -128,10 +147,11 @@ namespace urhi
         allocateNewPage(newPageSize);
         m_activePageIndex++;
 
-        page = m_pages[m_activePageIndex];
-        allocation.buffer = page.buffer;
+        StagingPage& newPage = m_pages[m_activePageIndex];
+        newPage.offset = size;
+        allocation.buffer = newPage.buffer;
         allocation.offset = 0;
-        allocation.mapped = page.mappedData;
+        allocation.mapped = newPage.mappedData;
         allocation.pageIndex = m_activePageIndex;
 
         return allocation;
@@ -156,7 +176,7 @@ namespace urhi
         StagingPage page;
 
         vmaCreateBuffer(
-            m_device->getAllocator(),
+            m_device->allocator(),
             &bufferInfo,
             &allocInfo,
             &rawBuffer,

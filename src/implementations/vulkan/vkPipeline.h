@@ -3,29 +3,47 @@
 
 #include "pipeline.h"
 #include "vkShader.h"
-#include "descriptions/graphicsPipelineDesc.h"
 
 namespace urhi
 {
-class VkDevice;
+    class VkBindGroup;
+    class VkDevice;
 class VkPipeline : public Pipeline
 {
 public:
+    struct BindingInfo;
+
     VkPipeline(VkDevice* device, const std::vector<grl::Rc<Shader>> &shaders);
     ~VkPipeline() override = default;
 
-    [[nodiscard]] vk::Pipeline getHandle() const;
-    [[nodiscard]] vk::PipelineLayout getLayout() const;
-    [[nodiscard]] ShaderReflection getReflection(ShaderStage stage) const;
+    [[nodiscard]] vk::Pipeline handle() const { return m_pipeline; }
+    [[nodiscard]] vk::PipelineLayout layout() const { return m_layout; }
+
+    [[nodiscard]] vk::DescriptorSetLayout descriptorSetLayout(const uint32_t index) const { return m_descriptorSetLayouts.at(index); }
+    [[nodiscard]] const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts() const { return m_descriptorSetLayouts; }
+
+    ShaderReflection reflection(const ShaderStage stage) { return m_shaderMap[stage]->entryPoint().reflection; }
+    [[nodiscard]] vk::PushConstantRange* pushConstantsRange() const { return m_pushConstantRange; }
+
+    std::optional<BindingInfo> bindingInfo(const std::string &name);
+    const std::unordered_map<std::string, BindingInfo>& bindingInfo();
 protected:
-    friend class VkCommandListEmitter;
+    VkDevice* m_device;
+    std::unordered_map<ShaderStage, grl::Rc<VkShader>> m_shaderMap{};
+    std::unordered_map<std::string, BindingInfo> m_bindingInfo;
 
     vk::PipelineLayout m_layout;
     vk::Pipeline m_pipeline;
-    VkDevice* m_device;
 
-    std::unordered_map<ShaderStage, grl::Rc<VkShader>> m_shaderMap{};
-
+    std::vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
     vk::PushConstantRange* m_pushConstantRange{};
+public:
+    struct BindingInfo
+    {
+        uint32_t set;
+        uint32_t binding;
+        vk::DescriptorType type;
+        std::string name;
+    };
 };
 }
