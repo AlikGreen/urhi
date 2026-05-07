@@ -54,6 +54,14 @@ target_link_libraries(urhi PUBLIC
         Vulkan::Vulkan
         VulkanMemoryAllocator)
 
+if (WIN32)
+    target_link_libraries(urhi PUBLIC
+            d3d12
+            dxgi
+            dxguid
+    )
+endif()
+
 file(COPY ${SLANG_DLLS}
         DESTINATION "${CMAKE_BINARY_DIR}")
 

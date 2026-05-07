@@ -37,6 +37,8 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBeginRenderPass &c)
     {
+        m_boundResources.clear();
+
         for (auto& attachment : c.desc.colorAttachments)
         {
             const auto tex = dynamic_cast<VkTexture*>(dynamic_cast<VkTextureView*>(attachment.target.get())->texture().get());
@@ -532,6 +534,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBeginComputePass &c)
     {
+        m_boundResources.clear();
         m_idx++;
     }
 
@@ -601,7 +604,5 @@ namespace urhi
             0, // always 0 for now might change
             writes
         );
-
-        m_boundResources.clear();
     }
 }
