@@ -2,6 +2,7 @@
 #include <grl/mem.h>
 
 #include "buffer.h"
+#include "commandStream.h"
 #include "pipeline.h"
 #include "sampler.h"
 #include "textureView.h"
@@ -11,34 +12,55 @@
 
 namespace urhi
 {
+    class CommandStream;
+
 class RenderPass
 {
 public:
-  RenderPass() = default;
-  virtual ~RenderPass() = default;
+    RenderPass(const RenderPass&)            = delete;
+    RenderPass& operator=(const RenderPass&) = delete;
+    RenderPass(RenderPass&&)                 = delete;
+    RenderPass& operator=(RenderPass&&)      = delete;
 
-  virtual void setPipeline(const grl::Rc<Pipeline>& pipeline) = 0;
+    void setPipeline(const grl::Rc<Pipeline>& pipeline);
 
-  virtual void setBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
-  virtual void setTexture(const std::string& name, const grl::Rc<TextureView>& texture) = 0;
-  virtual void setSampler(const std::string& name, const grl::Rc<Sampler>& sampler) = 0;
+    void setBuffer(const HashedName &name, const grl::Rc<Buffer>& buffer) const
+    {
+        m_commands->emplace(CmdSetBuffer{name.hash, buffer});
+    }
 
-  template<typename T>
-  void pushConstants(T& data) { pushConstants(&data, sizeof(T)); }
-  virtual void pushConstants(void* data, size_t size) = 0;
+    void setTexture(const HashedName &name, const grl::Rc<TextureView>& texture) const
+    {
+        m_commands->emplace(CmdSetTexture{name.hash, texture});
+    }
 
-  virtual void setVertexBuffer(uint32_t index, const grl::Rc<Buffer>& vertexBuffer) = 0;
-  virtual void setIndexBuffer(const grl::Rc<Buffer>& indexBuffer, IndexFormat indexFormat) = 0;
+    void setSampler(const HashedName &name, const grl::Rc<Sampler>& sampler) const
+    {
+        m_commands->emplace(CmdSetSampler{name.hash, sampler});
+    }
 
-  virtual void setScissor(Rect2D rect) = 0;
-  virtual void setViewport(Viewport viewport) = 0;
+    void setBuffer(std::string_view name, const grl::Rc<Buffer>& buffer);
+    void setTexture(std::string_view name, const grl::Rc<TextureView>& texture);
+    void setSampler(std::string_view name, const grl::Rc<Sampler>& sampler);
 
-  void draw(const uint32_t vertexCount, const uint32_t instanceCount = 1, const uint32_t firstVertex = 0, const uint32_t firstInstance = 0) { drawImpl(vertexCount, instanceCount, firstVertex, firstInstance); };
-  void drawIndexed(const uint32_t indexCount, const uint32_t instanceCount = 1, const uint32_t firstIndex = 0, const int vertexOffset = 0, const uint32_t firstInstance = 0) { drawIndexedImpl(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance); };
+    template<typename T>
+    void pushConstants(T& data) { pushConstants(&data, sizeof(T)); }
+    void pushConstants(const void* data, uint32_t size);
 
-  virtual void end() = 0;
-protected:
-  virtual void drawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
-  virtual void drawIndexedImpl(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int vertexOffset, uint32_t firstInstance) = 0;
+    void setVertexBuffer(uint32_t index, const grl::Rc<Buffer>& buffer);
+    void setIndexBuffer(const grl::Rc<Buffer>& buffer, IndexFormat format);
+
+    void setScissor(Rect2D rect);
+    void setViewport(const Viewport &viewport);
+
+    void draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
+    void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int vertexOffset = 0, uint32_t firstInstance = 0);
+
+    void end();
+private:
+    friend class CommandList;
+    explicit RenderPass(grl::Rc<CommandStream>& commands);
+
+    grl::Rc<CommandStream>& m_commands;
 };
 }

@@ -14,6 +14,7 @@ add_subdirectory(${DEPS_DIR}/spirv-cross)
 add_subdirectory(${DEPS_DIR}/clogr)
 add_subdirectory(${DEPS_DIR}/vk-bootstrap)
 add_subdirectory(${DEPS_DIR}/vma)
+add_subdirectory(${DEPS_DIR}/d3d12ma)
 
 find_package(Vulkan REQUIRED)
 
@@ -64,6 +65,8 @@ if (WIN32)
             d3d12
             dxgi
             dxguid
+            dxcompiler
+            D3D12MemoryAllocator
     )
 endif()
 
@@ -124,7 +127,7 @@ endif()
 ### IMGUI EXAMPLE
 add_executable(urhi_imgui_example examples/imgui.cpp)
 target_link_libraries(urhi_imgui_example PUBLIC urhi::imgui)
-
+target_compile_definitions(urhi_imgui_example PRIVATE URHI_ENABLE_VALIDATION=1)
 
 if(MINGW)
     target_link_options(urhi_imgui_example PRIVATE

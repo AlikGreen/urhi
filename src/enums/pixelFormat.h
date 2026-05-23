@@ -67,4 +67,65 @@ enum class PixelFormat : uint16_t
     Stencil8,
     Depth24PlusStencil8,
 };
+
+constexpr std::uint32_t bytesPerPixel(const PixelFormat format)
+{
+    switch (format)
+    {
+    case PixelFormat::R8UNorm:
+    case PixelFormat::R8SNorm:
+    case PixelFormat::R8UInt:
+    case PixelFormat::R8SInt:
+    case PixelFormat::Stencil8:
+        return 1;
+
+    case PixelFormat::R16UInt:
+    case PixelFormat::R16SInt:
+    case PixelFormat::R16Float:
+    case PixelFormat::RG8UNorm:
+    case PixelFormat::RG8SNorm:
+    case PixelFormat::RG8UInt:
+    case PixelFormat::RG8SInt:
+    case PixelFormat::Depth16UNorm:
+        return 2;
+
+    case PixelFormat::R32UInt:
+    case PixelFormat::R32SInt:
+    case PixelFormat::R32Float:
+    case PixelFormat::RG16UInt:
+    case PixelFormat::RG16SInt:
+    case PixelFormat::RG16Float:
+    case PixelFormat::RGBA8UNorm:
+    case PixelFormat::RGBA8UNormSrgb:
+    case PixelFormat::RGBA8SNorm:
+    case PixelFormat::RGBA8UInt:
+    case PixelFormat::RGBA8SInt:
+    case PixelFormat::BGRA8UNorm:
+    case PixelFormat::BGRA8UNormSrgb:
+    case PixelFormat::RGB9E5UFloat:
+    case PixelFormat::RGB10A2UInt:
+    case PixelFormat::RGB10A2UNorm:
+    case PixelFormat::RG11B10UFloat:
+    case PixelFormat::Depth32Float:
+    case PixelFormat::Depth24PlusStencil8:
+        return 4;
+
+    case PixelFormat::RG32UInt:
+    case PixelFormat::RG32SInt:
+    case PixelFormat::RG32Float:
+    case PixelFormat::RGBA16UInt:
+    case PixelFormat::RGBA16SInt:
+    case PixelFormat::RGBA16Float:
+        return 8;
+
+    case PixelFormat::RGBA32UInt:
+    case PixelFormat::RGBA32SInt:
+    case PixelFormat::RGBA32Float:
+        return 16;
+
+    case PixelFormat::Unknown:
+    default:
+        return 0;
+    }
+}
 }

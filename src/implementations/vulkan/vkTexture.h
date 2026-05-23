@@ -23,7 +23,6 @@ public:
     [[nodiscard]] uint32_t depth(uint32_t mip) const override;
 
     [[nodiscard]] uint32_t mipLevelCount() const override;
-    [[nodiscard]] uint32_t arrayLayerCount() const override;
 
     [[nodiscard]] PixelFormat format() const override;
     [[nodiscard]] TextureType type() const override;
@@ -43,7 +42,6 @@ public:
 private:
     uint32_t m_width, m_height, m_depth;
     uint32_t m_mipLevels{};
-    uint32_t m_arrayLayers;
     PixelFormat m_format;
     TextureType m_type;
 

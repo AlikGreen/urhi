@@ -69,6 +69,8 @@ private:
 
     std::vector<std::pair<VkLifetime, std::function<void(VkDevice* device)>>> m_destroyQueue{};
 
+    std::vector<grl::Rc<VkCommandList>> m_commandLists{};
+
     float m_maxAnisotropy = 0.0f;
     vk::Format m_depth24PlusStencil8Format;
 };

@@ -15,36 +15,44 @@
 
 namespace urhi
 {
+class CommandStream;
+
 class CommandList
 {
 public:
-    CommandList() = default;
+    CommandList();
     virtual ~CommandList() = default;
 
     CommandList(const CommandList&) = delete;
     CommandList& operator= (const CommandList&) = delete;
 
-    virtual void begin() = 0;
+    void begin();
 
-    virtual grl::Rc<RenderPass> beginRenderPass(const RenderPassDesc& desc) = 0;
-    virtual grl::Rc<ComputePass> beginComputePass() = 0;
+    RenderPass& beginRenderPass(const RenderPassDesc& desc);
+    // virtual grl::Rc<ComputePass> beginComputePass() = 0;
 
-    virtual void updateTexture(const TextureUploadDesc& desc) = 0;
-    virtual void generateMipmaps(const grl::Rc<Texture>& texture) = 0;
-    virtual void blitTexture(const BlitTextureDesc& desc) = 0;
+    void updateTexture(const TextureUploadDesc& desc);
+    void generateMipmaps(const grl::Rc<Texture>& texture);
+    void blitTexture(const BlitTextureDesc& desc);
 
     grl::Rc<ReadbackRequest> readback(const grl::Rc<Texture>& texture) { return readback(TextureReadbackDesc{texture}); }
-    virtual grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc) = 0;
-    grl::Rc<ReadbackRequest> readback(const grl::Rc<Buffer>& buffer) { return readback(BufferReadbackDesc{buffer}); }
-    virtual grl::Rc<ReadbackRequest> readback(const BufferReadbackDesc& desc) = 0;
+    grl::Rc<ReadbackRequest> readback(const TextureReadbackDesc& desc);
 
+    grl::Rc<ReadbackRequest> readback(const grl::Rc<Buffer>& buffer) { return readback(BufferReadbackDesc{buffer}); }
+    grl::Rc<ReadbackRequest> readback(const BufferReadbackDesc& desc);
+
+    void updateBuffer(const grl::Rc<Buffer>& buffer, const void* data, uint32_t size);
     template<typename T>
-    void updateBuffer(const grl::Rc<Buffer>& buffer, T& data) { updateBufferImpl(buffer, &data, sizeof(T)); }
+    void updateBuffer(const grl::Rc<Buffer>& buffer, T& data) { updateBuffer(buffer, &data, sizeof(T)); }
     template<typename T>
-    void updateBuffer(const grl::Rc<Buffer>& buffer, std::vector<T> data) { updateBufferImpl(buffer, data.data(), sizeof(T)*data.size()); }
+    void updateBuffer(const grl::Rc<Buffer>& buffer, std::vector<T> data) { updateBuffer(buffer, data.data(), sizeof(T)*data.size()); }
     template<typename T>
-    void updateBuffer(const grl::Rc<Buffer>& buffer, T* data) { updateBufferImpl(buffer, data, sizeof(T)); }
+    void updateBuffer(const grl::Rc<Buffer>& buffer, T* data) { updateBuffer(buffer, data, sizeof(T)); }
 protected:
-    virtual void updateBufferImpl(const grl::Rc<Buffer>& buffer, void* data, uint32_t size) = 0;
+    virtual grl::Rc<ReadbackRequest> createReadback() = 0;
+
+    bool m_inUse = false;
+    RenderPass m_renderPass;
+    grl::Rc<CommandStream> m_commands;
 };
 }

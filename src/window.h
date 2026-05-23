@@ -1,5 +1,6 @@
 #pragma once
 #include "event.h"
+#include <vector>
 
 namespace urhi
 {
@@ -11,6 +12,9 @@ public:
 
   Window(const Window&) = delete;
   Window& operator= (const Window&) = delete;
+
+  virtual void show() = 0;
+  virtual void hide() = 0;
 
   virtual void close() = 0;
   virtual std::vector<Event> pollEvents() = 0;

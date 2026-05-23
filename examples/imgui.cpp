@@ -9,7 +9,11 @@ int main()
     using namespace urhi;
     using namespace grl;
 
-    const auto context = Context::create(BackendAPI::Vulkan);
+    const auto context = Context::create({
+        .api = BackendAPI::Vulkan,
+        .cachePath = "./cache/shaders",
+        .debug = true,
+    });
 
     const auto window = context->createWindow({
         .title = "ImGui Example",
@@ -38,6 +42,11 @@ int main()
     bool  showDemo   = true;
     float clearColor[3] = { 0.39f, 0.58f, 0.93f };
 
+    window->show();
+
+    auto start = std::chrono::high_resolution_clock::now();
+    float dt = 0.0f;
+
     while (running)
     {
         auto events = window->pollEvents();
@@ -53,10 +62,11 @@ int main()
 
         imGui.newFrame();
 
+
         ImGui::Begin("Controls");
         ImGui::Checkbox("Show Demo Window", &showDemo);
         ImGui::ColorEdit3("Clear Color", clearColor);
-        ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+        ImGui::Text("%.1f FPS", 1.0f/dt);
         ImGui::End();
 
         if (showDemo)
@@ -77,6 +87,10 @@ int main()
 
         device->submit(cmd);
         swapchain->present();
+
+        auto end = std::chrono::high_resolution_clock::now();
+        dt = std::chrono::duration<float>(end - start).count();
+        start = end;
     }
 
     ImGui::DestroyContext();

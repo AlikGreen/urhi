@@ -8,20 +8,27 @@ namespace urhi
 {
     VkTexture::VkTexture(VkDevice* device, const TextureDesc &desc)
         : m_width(desc.width), m_height(desc.height), m_depth(desc.depth),
-        m_arrayLayers(desc.arrayLayers),
         m_format(desc.format), m_type(desc.type),
         m_device(device)
     {
         m_mipLevels = std::min(desc.maxMipLevels, static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1);
+
+        uint32_t arrayLayers = desc.depth;
+        uint32_t depth = 1;
+        if(desc.type == TextureType::Texture3D)
+        {
+            arrayLayers = 1;
+            depth = desc.depth;
+        }
 
         vk::ImageCreateInfo imageInfo
         {
             vk::ImageCreateFlags{0},
             VkConvert::textureType(desc.type),
             VkConvert::pixelFormat(desc.format, m_device),
-            {desc.width, desc.height, desc.depth},
+            {desc.width, desc.height, depth},
             m_mipLevels,
-            desc.arrayLayers,
+            arrayLayers,
             vk::SampleCountFlagBits::e1,
             vk::ImageTiling::eOptimal,
             VkConvert::textureUsage(desc.usage) | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc,
@@ -46,7 +53,7 @@ namespace urhi
 
     VkTexture::VkTexture(VkDevice *device, const vk::Image image, const PixelFormat format, const uint32_t width, const uint32_t height)
         : m_width(width), m_height(height), m_depth(1),
-          m_mipLevels(1), m_arrayLayers(1),
+          m_mipLevels(1),
           m_format(format), m_type(TextureType::Texture2D),
           m_device(device), m_allocation(nullptr), m_image(image),
           m_swapchainTexture(true)
@@ -85,11 +92,6 @@ namespace urhi
     uint32_t VkTexture::mipLevelCount() const
     {
         return m_mipLevels;
-    }
-
-    uint32_t VkTexture::arrayLayerCount() const
-    {
-        return m_arrayLayers;
     }
 
     PixelFormat VkTexture::format() const

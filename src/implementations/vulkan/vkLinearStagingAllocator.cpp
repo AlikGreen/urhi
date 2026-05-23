@@ -82,12 +82,13 @@ namespace urhi
 
     void VkLinearStagingAllocator::uploadToImage(
         const TextureUploadDesc& uploadDesc,
-        const vk::CommandBuffer cmd)
+        const vk::CommandBuffer cmd,
+        const void* data,
+        const uint32_t size)
     {
         const auto texture = dynamic_cast<VkTexture*>(uploadDesc.texture.get());
 
-        URHI_VALIDATE(uploadDesc.data != nullptr, "Texture upload data is nullptr - update texture requires non null data");
-        const uint32_t size = uploadDesc.width*uploadDesc.height*uploadDesc.depth*VkConvert::pixelFormatBytes(texture->format(), m_device);
+        URHI_VALIDATE(data != nullptr, "Texture upload data is nullptr - update texture requires non null data");
         const StagingAllocation allocation = allocate(size);
 
         std::memcpy(allocation.mapped, uploadDesc.data, size);

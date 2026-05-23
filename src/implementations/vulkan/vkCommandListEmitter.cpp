@@ -55,15 +55,15 @@ namespace urhi
     }
 
     VkCommandListEmitter::VkCommandListEmitter(VkDevice *device, VkCommandListTracker tracker, const vk::CommandBuffer cmd,
-        VkCommandQueue* commandQueue, const uint64_t submitValue)
-            : m_device(device), m_cmd(cmd), m_tracker(std::move(tracker)), m_submitValue(submitValue), m_commandQueue(commandQueue)
+        VkCommandQueue* commandQueue, const uint64_t submitValue, const grl::Rc<CommandStream> &cmdStream)
+            : m_device(device), m_cmd(cmd), m_tracker(std::move(tracker)), m_submitValue(submitValue), m_commandQueue(commandQueue), m_cmdStream(cmdStream)
     { }
 
     void VkCommandListEmitter::endRecording()
     {
         for (const auto &texture: m_tracker.m_textureUses | std::views::keys)
         {
-            const auto vkTex = dynamic_cast<VkTexture*>(texture);
+            const auto vkTex = static_cast<VkTexture*>(texture);
 
             if (vkTex->isSwapchainTexture())
             {
@@ -110,22 +110,22 @@ namespace urhi
     {
         m_currentBindings.clear();
         m_renderPassActive = true;
-        m_currentRenderPassDesc = *c.desc;
+        m_currentRenderPassDesc = c.desc;
         m_boundPipeline = nullptr;
 
-        const auto& desc = *c.desc;
+        const auto& desc = c.desc;
 
         std::unordered_set<Texture*> attachmentTextures;
 
         for (const auto& attachment : desc.colorAttachments)
         {
-            const auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
+            const auto vkView = static_cast<VkTextureView*>(attachment.target.get());
             attachmentTextures.insert(vkView->texture().get());
         }
 
         if (desc.depthAttachment.has_value())
         {
-            const auto vkView = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
+            const auto vkView = static_cast<VkTextureView*>(desc.depthAttachment->target.get());
             attachmentTextures.insert(vkView->texture().get());
         }
 
@@ -138,7 +138,7 @@ namespace urhi
             {
                 if (use.commandIndex > m_idx)
                 {
-                    const auto tex = dynamic_cast<VkTexture*>(texture);
+                    const auto tex = static_cast<VkTexture*>(texture);
                     tex->transitionLayout(m_cmd,
                         use.requiredLayout,
                         use.requiredStageMask,
@@ -156,8 +156,8 @@ namespace urhi
 
         for(const auto & attachment : desc.colorAttachments)
         {
-            auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
-            auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
+            auto vkView = static_cast<VkTextureView*>(attachment.target.get());
+            auto vkTex = static_cast<VkTexture*>(vkView->texture().get());
             vkView->markUsed(m_commandQueue, m_submitValue);
 
             URHI_VALIDATE(
@@ -212,8 +212,8 @@ namespace urhi
 
         if(desc.depthAttachment.has_value())
         {
-            const auto vkView = dynamic_cast<VkTextureView*>(desc.depthAttachment->target.get());
-            const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
+            const auto vkView = static_cast<VkTextureView*>(desc.depthAttachment->target.get());
+            const auto vkTex = static_cast<VkTexture*>(vkView->texture().get());
             vkView->markUsed(m_commandQueue, m_submitValue);
 
             URHI_VALIDATE(
@@ -279,8 +279,8 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdReadbackTexture &c)
     {
-        const auto& desc = *c.desc;
-        const auto vkTex = dynamic_cast<VkTexture*>(desc.texture.get());
+        const auto& desc = c.desc;
+        const auto vkTex = static_cast<VkTexture*>(desc.texture.get());
 
         const auto oldLayout = vkTex->getLayout();
         const auto oldStage  = vkTex->getStage();
@@ -292,16 +292,11 @@ namespace urhi
         URHI_VALIDATE(desc.mipLevel < vkTex->mipLevelCount(),
             "Readback mip level {} out of range for texture with {} mip levels",
             desc.mipLevel, vkTex->mipLevelCount());
-
-        URHI_VALIDATE(desc.baseArrayLayer + desc.arrayLayerCount <= vkTex->arrayLayerCount(),
-            "Readback array layer range [{}, {}) out of bounds for texture with {} layers",
-            desc.baseArrayLayer,
-            desc.baseArrayLayer + desc.arrayLayerCount,
-            vkTex->arrayLayerCount());
-
         URHI_VALIDATE(desc.x + desc.width  <= vkTex->width(0),  "Readback region out of bounds - x offset ({}) + width ({}) is not less than texture width ({})", desc.x, desc.width, vkTex->width(0));
         URHI_VALIDATE(desc.y + desc.height <= vkTex->height(0), "Readback region out of bounds - y offset ({}) + height ({}) is not less than texture height ({})", desc.y, desc.height, vkTex->height(0));
         URHI_VALIDATE(desc.z + desc.depth  <= vkTex->depth(0),  "Readback region out of bounds - z offset ({}) + depth ({}) is not less than texture depth ({})", desc.z, desc.depth, vkTex->depth(0));
+
+        const bool isArray = desc.texture->type() == TextureType::Texture2DArray || desc.texture->type() == TextureType::TextureCubeArray;
 
         vk::BufferImageCopy region = {};
         region.bufferOffset = 0;
@@ -310,8 +305,8 @@ namespace urhi
         region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
         region.imageSubresource.mipLevel = desc.mipLevel;
         region.imageSubresource.baseArrayLayer = desc.baseArrayLayer;
-        region.imageSubresource.layerCount = desc.arrayLayerCount;
-        region.imageOffset = vk::Offset3D{ static_cast<int32_t>(desc.x), static_cast<int32_t>(desc.y), static_cast<int32_t>(desc.z) };
+        region.imageSubresource.layerCount = isArray ? desc.depth : 1;
+        region.imageOffset = vk::Offset3D{ static_cast<int32_t>(desc.x), static_cast<int32_t>(desc.y), static_cast<int32_t>(isArray ? 1 : desc.z) };
         region.imageExtent = vk::Extent3D{ desc.width, desc.height, desc.depth };
 
         const uint32_t size = desc.width * desc.height * desc.depth * VkConvert::pixelFormatBytes(vkTex->format(), m_device);
@@ -356,13 +351,14 @@ namespace urhi
            &region
        );
 
-        c.request->m_device = m_device;
-        c.request->m_mapped = allocRes.pMappedData;
-        c.request->m_buffer = buffer;
-        c.request->m_size = size;
-        c.request->m_bufferAllocation = allocation;
-        c.request->m_timeline = m_commandQueue->timelineSemaphore();
-        c.request->m_waitValue = m_submitValue;
+        const auto request = std::static_pointer_cast<VkReadbackRequest>(c.request);
+        request->m_device = m_device;
+        request->m_mapped = allocRes.pMappedData;
+        request->m_buffer = buffer;
+        request->m_size = size;
+        request->m_bufferAllocation = allocation;
+        request->m_timeline = m_commandQueue->timelineSemaphore();
+        request->m_waitValue = m_submitValue;
 
         vkTex->transitionLayout(m_cmd, oldLayout, oldStage, oldAccess);
 
@@ -374,7 +370,7 @@ namespace urhi
     void VkCommandListEmitter::emit(const CmdReadbackBuffer &c)
     {
         const auto desc = c.desc;
-        const auto vkBuffer = dynamic_cast<VkBuffer*>(desc.buffer.get());
+        const auto vkBuffer = static_cast<VkBuffer*>(desc.buffer.get());
 
         URHI_VALIDATE(vkBuffer != nullptr, "Buffer must not be null");
 
@@ -425,13 +421,15 @@ namespace urhi
            &region
        );
 
-        c.request->m_device = m_device;
-        c.request->m_mapped = allocRes.pMappedData;
-        c.request->m_buffer = buffer;
-        c.request->m_size = c.desc.size;
-        c.request->m_bufferAllocation = allocation;
-        c.request->m_timeline = m_commandQueue->timelineSemaphore();
-        c.request->m_waitValue = m_submitValue;
+
+        const auto request = std::static_pointer_cast<VkReadbackRequest>(c.request);
+        request->m_device = m_device;
+        request->m_mapped = allocRes.pMappedData;
+        request->m_buffer = buffer;
+        request->m_size = c.desc.size;
+        request->m_bufferAllocation = allocation;
+        request->m_timeline = m_commandQueue->timelineSemaphore();
+        request->m_waitValue = m_submitValue;
 
         m_idx++;
 
@@ -440,15 +438,16 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdUpdateBuffer &c)
     {
-        if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(c.buffer.get()))
+        const void* data = m_cmdStream->getData(c.offset);
+        if(const auto vkStaged = static_cast<VkStagedBuffer*>(c.buffer.get()))
         {
-            m_commandQueue->submissionContext().stagingAllocator().upload(c.data.data(), c.data.size(), vkStaged->handle(), 0, m_cmd);
+            m_commandQueue->submissionContext().stagingAllocator().upload(data, c.size, vkStaged->handle(), 0, m_cmd);
             vkStaged->barrierAfterUpload(m_cmd);
             vkStaged->lifetime().markUsed(m_commandQueue, m_submitValue);
         }
-        else if(const auto vkMapped = dynamic_cast<VkMappedBuffer*>(c.buffer.get()))
+        else if(const auto vkMapped = static_cast<VkMappedBuffer*>(c.buffer.get()))
         {
-            vkMapped->upload(c.data.data(), c.data.size());
+            vkMapped->upload(data, c.size);
             vkMapped->lifetime().markUsed(m_commandQueue, m_submitValue);
         }else
         {
@@ -460,28 +459,28 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdUpdateTexture &c)
     {
-        auto& desc = *c.desc;
-        desc.data = c.data.data();
+        auto& desc = c.desc;
+        const void* data = m_cmdStream->getData(c.offset);
 
-        m_commandQueue->submissionContext().stagingAllocator().uploadToImage(desc, m_cmd);
+        m_commandQueue->submissionContext().stagingAllocator().uploadToImage(desc, m_cmd, data, c.size);
 
         m_idx++;
 
-       dynamic_cast<VkTexture*>(desc.texture.get())->lifetime().markUsed(m_commandQueue, m_submitValue);
+       static_cast<VkTexture*>(desc.texture.get())->lifetime().markUsed(m_commandQueue, m_submitValue);
     }
 
     void VkCommandListEmitter::emit(const CmdSetBuffer &c)
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
 
-        const auto layoutBinding = m_boundPipeline->bindingInfo(c.name);
+        const auto layoutBinding = m_boundPipeline->bindingInfo(c.nameHash);
         if (!layoutBinding.has_value())
         {
-            URHI_WARNING(false, "Binding a resource ({}) that the shader doesnt use - you should not bind resources that are not used in the shader", c.name);
+            URHI_WARNING(false, "Binding a resource that the shader doesnt use - you should not bind resources that are not used in the shader");
             return;
         }
 
-        const auto vkBuffer = dynamic_cast<VkBuffer*>(c.buffer.get());
+        const auto vkBuffer = static_cast<VkBuffer*>(c.buffer.get());
 
         ResourceBinding rb{};
         rb.set = layoutBinding->set;
@@ -493,7 +492,7 @@ namespace urhi
         rb.bufferInfo.offset = 0;
         rb.bufferInfo.range = vkBuffer->size();
 
-        m_currentBindings[c.name] = rb;
+        m_currentBindings[c.nameHash] = rb;
 
         vkBuffer->lifetime().markUsed(m_commandQueue, m_submitValue);
         m_idx++;
@@ -503,15 +502,15 @@ namespace urhi
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
 
-        const auto layoutBinding = m_boundPipeline->bindingInfo(c.name);
+        const auto layoutBinding = m_boundPipeline->bindingInfo(c.nameHash);
         if (!layoutBinding.has_value())
         {
-            URHI_WARNING(false, "Binding a resource ({}) that the shader doesnt use - you should not bind resources that are not used in the shader", c.name);
+            URHI_WARNING(false, "Binding a resource that the shader doesnt use - you should not bind resources that are not used in the shader");
             return;
         }
 
-        const auto vkView = dynamic_cast<VkTextureView*>(c.texture.get());
-        const auto vkTex = dynamic_cast<VkTexture*>(vkView->texture().get());
+        const auto vkView = static_cast<VkTextureView*>(c.texture.get());
+        const auto vkTex = static_cast<VkTexture*>(vkView->texture().get());
 
         if (!m_renderPassActive)
         {
@@ -530,7 +529,7 @@ namespace urhi
         rb.imageInfo.imageView = vkView->getHandle();
         rb.imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-        m_currentBindings[c.name] = rb;
+        m_currentBindings[c.nameHash] = rb;
 
         vkView->markUsed(m_commandQueue, m_submitValue);
         m_idx++;
@@ -540,14 +539,14 @@ namespace urhi
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
 
-        const auto layoutBinding = m_boundPipeline->bindingInfo(c.name);
+        const auto layoutBinding = m_boundPipeline->bindingInfo(c.nameHash);
         if (!layoutBinding.has_value())
         {
-            URHI_WARNING(false, "Binding a resource ({}) that the shader doesnt use - you should not bind resources that are not used in the shader", c.name);
+            URHI_WARNING(false, "Binding a resource that the shader doesnt use - you should not bind resources that are not used in the shader");
             return;
         }
 
-        const auto vkSampler = dynamic_cast<VkSampler*>(c.sampler.get());
+        const auto vkSampler = static_cast<VkSampler*>(c.sampler.get());
 
         ResourceBinding rb{};
         rb.set = layoutBinding->set;
@@ -557,7 +556,7 @@ namespace urhi
 
         rb.imageInfo.sampler = vkSampler->getHandle();
 
-        m_currentBindings[c.name] = rb;
+        m_currentBindings[c.nameHash] = rb;
 
         vkSampler->lifetime().markUsed(m_commandQueue, m_submitValue);
         m_idx++;
@@ -566,21 +565,23 @@ namespace urhi
     void VkCommandListEmitter::emit(const CmdPushConstants &c)
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - push constants require a pipeline to be bound first");
-        URHI_VALIDATE(!c.data.empty(), "No data uploaded");
+        URHI_VALIDATE(c.size != 0, "No data uploaded");
 
         const auto pcr = m_boundPipeline->pushConstantsRange();
 
         URHI_VALIDATE(pcr != nullptr, "This shader attached to the bound pipeline has no push constants");
-        URHI_VALIDATE(pcr->size == c.data.size(), "Size of uploaded data ({} bytes) doesnt match shader struct ({} bytes)", c.data.size(), pcr->size);
+        URHI_VALIDATE(pcr->size == c.size, "Size of uploaded data ({} bytes) doesnt match shader struct ({} bytes)", c.size, pcr->size);
 
-        m_cmd.pushConstants(m_boundPipeline->layout(), pcr->stageFlags, pcr->offset, c.data.size(), c.data.data());
+        const void* data = m_cmdStream->getData(c.offset);
+
+        m_cmd.pushConstants(m_boundPipeline->layout(), pcr->stageFlags, pcr->offset, c.size, data);
 
         m_idx++;
     }
 
     void VkCommandListEmitter::emit(const CmdSetVertexBuffer &c)
     {
-        const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(c.buffer.get());
+        const auto vkBuffer = static_cast<VkStagedBuffer*>(c.buffer.get());
         m_cmd.bindVertexBuffers(0, {vkBuffer->handle()}, {0});
 
         m_idx++;
@@ -590,7 +591,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdSetIndexBuffer &c)
     {
-        const auto vkBuffer = dynamic_cast<VkStagedBuffer*>(c.buffer.get());
+        const auto vkBuffer = static_cast<VkStagedBuffer*>(c.buffer.get());
         m_cmd.bindIndexBuffer(vkBuffer->handle(), 0, VkConvert::indexFormat(c.format));
 
         m_idx++;
@@ -619,7 +620,7 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdGenerateMips &c)
     {
-        const auto texture = dynamic_cast<VkTexture*>(c.texture.get());
+        const auto texture = static_cast<VkTexture*>(c.texture.get());
         const auto oldLayout = texture->getLayout();
         const auto oldStage  = texture->getStage();
         const auto oldAccess = texture->getAccess();
@@ -633,9 +634,6 @@ namespace urhi
             "Cannot generate mipmaps for a texture with only {} mip level",
             mipLevels);
 
-        URHI_VALIDATE(texture->arrayLayerCount() > 0,
-            "Cannot generate mipmaps for a texture with zero array layers");
-
         const vk::FormatProperties formatProperties = m_device->getPhysicalDevice().getFormatProperties(VkConvert::pixelFormat(texture->format(), m_device));
         URHI_VALIDATE(static_cast<bool>(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear), "Texture format is not blitable - generate mipmaps requires the texture format to be blitable");
 
@@ -646,6 +644,8 @@ namespace urhi
             vk::ImageLayout::eTransferDstOptimal,
             vk::PipelineStageFlagBits2::eTransfer,
             vk::AccessFlagBits2::eTransferWrite);
+
+        uint32_t layerCount = texture->type() == TextureType::Texture2DArray || texture->type() == TextureType::TextureCubeArray ? texture->depth(0) : 1;
 
         for (uint32_t i = 1; i < mipLevels; i++)
         {
@@ -659,7 +659,7 @@ namespace urhi
                 VK_QUEUE_FAMILY_IGNORED,
                 VK_QUEUE_FAMILY_IGNORED,
                 texture->getHandle(),
-                { vk::ImageAspectFlagBits::eColor, i - 1, 1, 0, texture->arrayLayerCount() }
+                { vk::ImageAspectFlagBits::eColor, i - 1, 1, 0, layerCount }
             };
 
             m_cmd.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(srcBarrier));
@@ -671,7 +671,7 @@ namespace urhi
                 vk::ImageAspectFlagBits::eColor,
                 i - 1,
                 0,
-                texture->arrayLayerCount()
+                layerCount
             };
 
             blit.dstOffsets = std::array{ vk::Offset3D{ 0, 0, 0 }, vk::Offset3D{ mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 } };
@@ -680,7 +680,7 @@ namespace urhi
                 vk::ImageAspectFlagBits::eColor,
                 i,
                 0,
-                texture->arrayLayerCount()
+                layerCount
             };
 
             vk::BlitImageInfo2 blitInfo
@@ -710,7 +710,7 @@ namespace urhi
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
             texture->getHandle(),
-            { vk::ImageAspectFlagBits::eColor, mipLevels - 1, 1, 0, texture->arrayLayerCount() }
+            { vk::ImageAspectFlagBits::eColor, mipLevels - 1, 1, 0, layerCount }
         };
 
         m_cmd.pipelineBarrier2(vk::DependencyInfo{}.setImageMemoryBarriers(lastMipBarrier));
@@ -729,9 +729,9 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdBlitTexture &c) const
     {
-        const auto& desc = *c.desc;
-        const auto vkSrc = dynamic_cast<VkTexture*>(desc.src.get());
-        const auto vkDst = dynamic_cast<VkTexture*>(desc.dst.get());
+        const auto& desc = c.desc;
+        const auto vkSrc = static_cast<VkTexture*>(desc.src.get());
+        const auto vkDst = static_cast<VkTexture*>(desc.dst.get());
 
         const auto srcOldLayout = vkSrc->getLayout();
         const auto srcOldStage  = vkSrc->getStage();
@@ -750,14 +750,6 @@ namespace urhi
         URHI_VALIDATE(desc.dstMipLevel < vkDst->mipLevelCount(),
             "Destination mip level {} out of range for texture with {} mip levels",
             desc.dstMipLevel, vkDst->mipLevelCount());
-
-        URHI_VALIDATE(desc.srcArrayLayer < vkSrc->arrayLayerCount(),
-            "Source array layer {} out of range for texture with {} layers",
-            desc.srcArrayLayer, vkSrc->arrayLayerCount());
-
-        URHI_VALIDATE(desc.dstArrayLayer < vkDst->arrayLayerCount(),
-            "Destination array layer {} out of range for texture with {} layers",
-            desc.dstArrayLayer, vkDst->arrayLayerCount());
 
         URHI_VALIDATE(
         static_cast<int32_t>(desc.srcOffset.x) >= 0 &&
@@ -902,81 +894,83 @@ namespace urhi
     }
 
 
-    void VkCommandListEmitter::emit(const CmdSetPipeline &c)
+    void VkCommandListEmitter::emit(const CmdSetGraphicsPipeline &c)
     {
         URHI_VALIDATE(c.pipeline != nullptr, "Pipeline must not be null");
-        m_boundPipeline = std::dynamic_pointer_cast<VkPipeline>(c.pipeline);
+        m_boundPipeline = std::static_pointer_cast<VkPipeline>(c.pipeline);
 
-        m_boundPipelineBindPoint = c.bindPoint;
+        m_boundPipelineBindPoint = vk::PipelineBindPoint::eGraphics;
 
         #if defined(URHI_ENABLE_VALIDATION)
-            if(m_renderPassActive && c.bindPoint == vk::PipelineBindPoint::eGraphics)
+            const auto& pipelineDesc = static_cast<VkGraphicsPipeline*>(m_boundPipeline.get())->m_desc;
+            const auto& renderPassDesc = m_currentRenderPassDesc;
+
+            URHI_VALIDATE(
+                pipelineDesc.colorAttachments.size() == renderPassDesc.colorAttachments.size(),
+                "Color attachment count mismatch between graphics pipeline and active render pass\n"
+                "Pipeline color attachment count: {}\n"
+                "Render pass color attachment count: {}",
+                pipelineDesc.colorAttachments.size(),
+                renderPassDesc.colorAttachments.size()
+            );
+
+            URHI_VALIDATE(
+                pipelineDesc.depthAttachmentFormat.has_value() == renderPassDesc.depthAttachment.has_value(),
+                "Depth attachment presence mismatch between graphics pipeline and active render pass\n"
+                "Pipeline has depth attachment: {}\n"
+                "Render pass has depth attachment: {}",
+                pipelineDesc.depthAttachmentFormat.has_value(),
+                renderPassDesc.depthAttachment.has_value()
+            );
+
+            for(uint32_t i = 0; i < renderPassDesc.colorAttachments.size(); ++i)
             {
-                const auto& pipelineDesc = dynamic_cast<VkGraphicsPipeline*>(m_boundPipeline.get())->m_desc;
-                const auto& renderPassDesc = m_currentRenderPassDesc;
+                const auto vkTex = static_cast<VkTextureView*>(renderPassDesc.colorAttachments[i].target.get());
 
                 URHI_VALIDATE(
-                    pipelineDesc.colorAttachments.size() == renderPassDesc.colorAttachments.size(),
-                    "Color attachment count mismatch between graphics pipeline and active render pass\n"
-                    "Pipeline color attachment count: {}\n"
-                    "Render pass color attachment count: {}",
-                    pipelineDesc.colorAttachments.size(),
-                    renderPassDesc.colorAttachments.size()
+                    vkTex != nullptr,
+                    "Render pass color attachment at slot {} is not a VkTextureView",
+                    i
                 );
 
                 URHI_VALIDATE(
-                    pipelineDesc.depthAttachmentFormat.has_value() == renderPassDesc.depthAttachment.has_value(),
-                    "Depth attachment presence mismatch between graphics pipeline and active render pass\n"
-                    "Pipeline has depth attachment: {}\n"
-                    "Render pass has depth attachment: {}",
-                    pipelineDesc.depthAttachmentFormat.has_value(),
-                    renderPassDesc.depthAttachment.has_value()
+                    pipelineDesc.colorAttachments[i].format == vkTex->format(),
+                    "Color attachment format mismatch between graphics pipeline and active render pass at slot {}\n"
+                    "Pipeline format: {}\n"
+                    "Render pass format: {}",
+                    i,
+                    urhi::toString(pipelineDesc.colorAttachments[i].format),
+                    urhi::toString(vkTex->format())
+                );
+            }
+
+            if(renderPassDesc.depthAttachment.has_value())
+            {
+                const auto vkTex = static_cast<VkTextureView*>(renderPassDesc.depthAttachment->target.get());
+
+                URHI_VALIDATE(
+                    vkTex != nullptr,
+                    "Render pass depth attachment is not a VkTextureView"
                 );
 
-                for(uint32_t i = 0; i < renderPassDesc.colorAttachments.size(); ++i)
-                {
-                    const auto vkTex = dynamic_cast<VkTextureView*>(renderPassDesc.colorAttachments[i].target.get());
-
-                    URHI_VALIDATE(
-                        vkTex != nullptr,
-                        "Render pass color attachment at slot {} is not a VkTextureView",
-                        i
-                    );
-
-                    URHI_VALIDATE(
-                        pipelineDesc.colorAttachments[i].format == vkTex->format(),
-                        "Color attachment format mismatch between graphics pipeline and active render pass at slot {}\n"
-                        "Pipeline format: {}\n"
-                        "Render pass format: {}",
-                        i,
-                        urhi::toString(pipelineDesc.colorAttachments[i].format),
-                        urhi::toString(vkTex->format())
-                    );
-                }
-
-                if(renderPassDesc.depthAttachment.has_value())
-                {
-                    const auto vkTex = dynamic_cast<VkTextureView*>(renderPassDesc.depthAttachment->target.get());
-
-                    URHI_VALIDATE(
-                        vkTex != nullptr,
-                        "Render pass depth attachment is not a VkTextureView"
-                    );
-
-                    URHI_VALIDATE(
-                        pipelineDesc.depthAttachmentFormat.value() == vkTex->format(),
-                        "Depth attachment format mismatch between graphics pipeline and active render pass\n"
-                        "Pipeline depth format: {}\n"
-                        "Render pass depth format: {}",
-                        urhi::toString(pipelineDesc.depthAttachmentFormat.value()),
-                        urhi::toString(vkTex->format())
-                    );
-                }
+                URHI_VALIDATE(
+                    pipelineDesc.depthAttachmentFormat.value() == vkTex->format(),
+                    "Depth attachment format mismatch between graphics pipeline and active render pass\n"
+                    "Pipeline depth format: {}\n"
+                    "Render pass depth format: {}",
+                    urhi::toString(pipelineDesc.depthAttachmentFormat.value()),
+                    urhi::toString(vkTex->format())
+                );
             }
         #endif
 
-        m_cmd.bindPipeline(c.bindPoint, m_boundPipeline->handle());
+        m_cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_boundPipeline->handle());
         m_idx++;
+    }
+
+    void VkCommandListEmitter::emit(const CmdSetComputePipeline &c)
+    {
+
     }
 
     void VkCommandListEmitter::pushDescriptors()
@@ -1006,7 +1000,7 @@ namespace urhi
         std::vector<vk::WriteDescriptorSet> writes;
         writes.reserve(m_currentBindings.size());
 
-        for (auto& [name, rb] : m_currentBindings)
+        for (auto &rb: m_currentBindings | std::views::values)
         {
             vk::WriteDescriptorSet write{};
             write.dstSet = allocatedSets[rb.set];

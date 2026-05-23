@@ -7,8 +7,8 @@
 namespace urhi
 {
     VkTextureView::VkTextureView(VkDevice *device, const TextureViewDesc &desc)
-        : m_device(device), m_baseMipLevel(desc.baseMipLevel), m_baseArrayLayer(desc.baseArrayLayer),
-        m_mipLevels(desc.mipLevels), m_arrayLayers(desc.arrayLayers), m_format(desc.format)
+        : m_device(device), m_baseMipLevel(desc.firstMip), m_baseArrayLayer(desc.firstLayer),
+        m_mipLevels(desc.mipCount), m_arrayLayers(desc.layerCount), m_format(desc.format)
     {
         m_texture = std::dynamic_pointer_cast<VkTexture>(desc.texture);
         const vk::ImageViewCreateInfo viewInfo
@@ -20,10 +20,10 @@ namespace urhi
             {},
             {
                 VkConvert::aspectMask(desc.format),
-                desc.baseMipLevel,
-                desc.mipLevels > 0 ? desc.mipLevels : VK_REMAINING_MIP_LEVELS,
-                desc.baseArrayLayer,
-                desc.arrayLayers > 0 ? desc.arrayLayers : VK_REMAINING_ARRAY_LAYERS
+                desc.firstMip,
+                desc.mipCount > 0 ? desc.mipCount : VK_REMAINING_MIP_LEVELS,
+                desc.firstLayer,
+                desc.layerCount > 0 ? desc.layerCount : VK_REMAINING_ARRAY_LAYERS
             }
         };
 

@@ -24,7 +24,6 @@ public:
     [[nodiscard]] virtual uint32_t depth(uint32_t mip) const = 0;
 
     [[nodiscard]] virtual uint32_t mipLevelCount() const = 0;
-    [[nodiscard]] virtual uint32_t arrayLayerCount() const = 0;
     [[nodiscard]] virtual PixelFormat format() const = 0;
     [[nodiscard]] virtual TextureType type() const = 0;
 };

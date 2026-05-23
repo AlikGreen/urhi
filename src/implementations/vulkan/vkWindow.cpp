@@ -15,11 +15,11 @@ namespace urhi
         URHI_VALIDATE(suc != 0, "Failed to initialize GLFW");
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
         glfwWindowHint(GLFW_RESIZABLE, options.resizable ? GLFW_TRUE : GLFW_FALSE);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-        int width = options.width;
-        int height = options.height;
+        m_width = options.width;
+        m_height = options.height;
 
         GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
         URHI_VALIDATE(primaryMonitor != nullptr, "Failed to get primary monitor - returned null");
@@ -27,17 +27,15 @@ namespace urhi
         const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
         URHI_VALIDATE(mode != nullptr, "Failed get video mode - glfwGetVideoMode returned null");
 
-        if(width <= 0)
-            width = static_cast<int>(mode->width * 0.75);
+        if(m_width <= 0)
+            m_width = static_cast<int>(mode->width * 0.75);
 
-        if(height <= 0)
-            height = static_cast<int>(mode->height * 0.75);
+        if(m_height <= 0)
+            m_height = static_cast<int>(mode->height * 0.75);
 
-        m_width = width;
-        m_height = height;
 
         GLFWmonitor* monitor = options.fullscreen ? primaryMonitor : nullptr;
-        m_handle = glfwCreateWindow(width, height, options.title, monitor, nullptr);
+        m_handle = glfwCreateWindow(m_width, m_height, options.title, monitor, nullptr);
         URHI_VALIDATE(m_handle != nullptr, "Failed to create GLFW window - glfwCreateWindow returned null");
 
         glfwSetWindowUserPointer(m_handle, this);
@@ -55,6 +53,16 @@ namespace urhi
         auto res = glfwCreateWindowSurface(context->getVkInstance(), m_handle, nullptr, &rawSurface);
         URHI_VALIDATE(res == VK_SUCCESS, "Failed to create vulkan window surface - glfwCreateWindowSurface returned {}", vk::to_string(static_cast<vk::Result>(res)));
         m_surface = rawSurface;
+    }
+
+    void VkWindow::show()
+    {
+        glfwShowWindow(m_handle);
+    }
+
+    void VkWindow::hide()
+    {
+        glfwHideWindow(m_handle);
     }
 
     void VkWindow::close()
@@ -86,11 +94,13 @@ namespace urhi
     void VkWindow::width(const int32_t width)
     {
         glfwSetWindowSize(m_handle, width, m_height);
+        m_width = width;
     }
 
     void VkWindow::height(const int32_t height)
     {
         glfwSetWindowSize(m_handle, m_width, height);
+        m_height = height;
     }
 
     std::string VkWindow::title()

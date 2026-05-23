@@ -45,8 +45,9 @@ public:
     static Module compileModule(const CompileDesc& desc, Diagnostics* outDiag = nullptr);
     static std::vector<ShaderReflection::Resource> getResources(const std::vector<Module>& modules, Diagnostics* outDiag = nullptr);
     static ShaderSet linkToShaderSet(const LinkDesc& desc, Diagnostics* outDiag = nullptr);
-private:
+
     static ::slang::IGlobalSession* getGlobalSession();
+private:
     static Slang::ComPtr<::slang::ISession> getSession();
 
     static std::tuple<std::vector<Slang::ComPtr<::slang::IEntryPoint>>, Slang::ComPtr<::slang::IComponentType>, Slang::ComPtr<::slang::ISession>> compileAndLink(const LinkDesc &desc, Diagnostics *outDiags);

@@ -113,12 +113,12 @@ namespace urhi
 
         renderPassDesc.colorAttachments.push_back(attachment);
 
-        const auto renderPass = cmdList->beginRenderPass(renderPassDesc);
+        auto& renderPass = cmdList->beginRenderPass(renderPassDesc);
 
-        renderPass->setPipeline(m_pipeline);
+        renderPass.setPipeline(m_pipeline);
 
-        renderPass->setVertexBuffer(0, m_vertexBuffer);
-        renderPass->setIndexBuffer(m_indexBuffer, IndexFormat::UInt32);
+        renderPass.setVertexBuffer(0, m_vertexBuffer);
+        renderPass.setIndexBuffer(m_indexBuffer, IndexFormat::UInt32);
 
         updateProjection(m_drawData, renderPass);
 
@@ -132,7 +132,7 @@ namespace urhi
             {
                 const ImDrawCmd& pcmd = cmdListImGui->CmdBuffer[cmd_i];
 
-                renderPass->setScissor(calculateScissorRect(pcmd));
+                renderPass.setScissor(calculateScissorRect(pcmd));
 
                 ImGuiImage* image = pcmd.GetTexID();
 
@@ -146,10 +146,10 @@ namespace urhi
                 }
 
 
-                renderPass->setTexture("ImGuiTexture", image->view);
-                renderPass->setSampler("ImGuiSampler", image->sampler);
+                renderPass.setTexture("ImGuiTexture", image->view);
+                renderPass.setSampler("ImGuiSampler", image->sampler);
 
-                renderPass->drawIndexed(
+                renderPass.drawIndexed(
                     pcmd.ElemCount,
                     1,
                     baseIndex + pcmd.IdxOffset,
@@ -158,7 +158,7 @@ namespace urhi
             }
         }
 
-        renderPass->end();
+        renderPass.end();
         m_device->submit(cmdList);
     }
 
@@ -390,7 +390,7 @@ namespace urhi
         }
     }
 
-    void ImGuiController::updateProjection(const ImDrawData *drawData, const grl::Rc<RenderPass> &renderPass) const
+    void ImGuiController::updateProjection(const ImDrawData *drawData, RenderPass& renderPass) const
     {
         const ImVec2 displayPos    = drawData->DisplayPos;
         const ImVec2 displaySize   = drawData->DisplaySize;
@@ -403,7 +403,7 @@ namespace urhi
 
         glm::mat4 projMatrix = glm::ortho(L, R, B, T, -1.0f, 1.0f);
 
-        renderPass->pushConstants(projMatrix);
+        renderPass.pushConstants(projMatrix);
     }
 
     Rect2D ImGuiController::calculateScissorRect(const ImDrawCmd &drawCmd) const

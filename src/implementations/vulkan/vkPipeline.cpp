@@ -51,12 +51,14 @@ namespace urhi
             {
                 const auto descriptorType = VkConvert::descriptorType(resource.type);
                 auto& setBindings = setsMap[resource.set]; // Access the map for this specific set
-                
-                m_bindingInfo[resource.name] = {
+
+                auto nameHash = grl::Hash::fnv1a32(resource.name);
+
+                m_bindingInfo[nameHash] = {
                     resource.set,
                     resource.binding,
                     descriptorType,
-                    resource.name,
+                    nameHash,
                 };
 
                 if (setBindings.contains(resource.binding))
@@ -106,7 +108,7 @@ namespace urhi
             m_descriptorSetLayouts.push_back(m_device->handle().createDescriptorSetLayout(layoutInfo));
         }
 
-        // 3. Create Pipeline Layout with all sets
+        // Create Pipeline Layout with all sets
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_descriptorSetLayouts.size());
         pipelineLayoutInfo.pSetLayouts = m_descriptorSetLayouts.data();
@@ -116,16 +118,16 @@ namespace urhi
         m_layout = m_device->handle().createPipelineLayout(pipelineLayoutInfo);
     }
 
-    std::optional<VkPipeline::BindingInfo> VkPipeline::bindingInfo(const std::string &name)
+    std::optional<VkPipeline::BindingInfo> VkPipeline::bindingInfo(const uint32_t nameHash)
     {
-        const auto it = m_bindingInfo.find(name);
+        const auto it = m_bindingInfo.find(nameHash);
         if(it != m_bindingInfo.end())
             return it->second;
 
         return std::nullopt;
     }
 
-    const std::unordered_map<std::string, VkPipeline::BindingInfo> & VkPipeline::bindingInfo()
+    const std::unordered_map<uint32_t, VkPipeline::BindingInfo> & VkPipeline::bindingInfo()
     {
         return m_bindingInfo;
     }

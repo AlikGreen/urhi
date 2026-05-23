@@ -2,6 +2,8 @@
 
 #include "clogr.h"
 
+#define URHI_ENABLE_VALIDATION // turn this off later
+
 #if defined(URHI_ENABLE_VALIDATION)
 #   define URHI_VALIDATE(condition, ...)                    \
 do {                                                        \

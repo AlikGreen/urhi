@@ -13,7 +13,7 @@ class VkSwapchain;
 class VkContext final : public Context
 {
 public:
-    VkContext();
+    VkContext(const ContextDesc& desc);
     grl::Rc<Device> createDevice(const DeviceDesc& desc) override;
     grl::Rc<Window> createWindow(const WindowDesc& desc) override;
     grl::Rc<Swapchain> createSwapchain(const SwapchainDesc& desc) override;

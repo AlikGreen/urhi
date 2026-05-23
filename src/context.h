@@ -10,6 +10,13 @@
 
 namespace urhi
 {
+struct ContextDesc
+{
+    BackendAPI api = BackendAPI::Vulkan;
+    std::string cachePath = "";
+    bool debug = false;
+};
+
 class Context
 {
 public:
@@ -25,6 +32,6 @@ public:
 
     virtual clogr::Logger& logger() = 0;
 
-    static grl::Rc<Context> create(BackendAPI api);
+    static grl::Rc<Context> create(const ContextDesc& desc);
 };
 }

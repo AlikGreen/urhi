@@ -25,12 +25,12 @@ public:
     ShaderReflection reflection(const ShaderStage stage) { return m_shaderMap[stage]->entryPoint().reflection; }
     [[nodiscard]] vk::PushConstantRange* pushConstantsRange() const { return m_pushConstantRange; }
 
-    std::optional<BindingInfo> bindingInfo(const std::string &name);
-    const std::unordered_map<std::string, BindingInfo>& bindingInfo();
+    std::optional<BindingInfo> bindingInfo(uint32_t nameHash);
+    const std::unordered_map<uint32_t, BindingInfo>& bindingInfo();
 protected:
     VkDevice* m_device;
     std::unordered_map<ShaderStage, grl::Rc<VkShader>> m_shaderMap{};
-    std::unordered_map<std::string, BindingInfo> m_bindingInfo;
+    std::unordered_map<uint32_t, BindingInfo> m_bindingInfo;
 
     vk::PipelineLayout m_layout;
     vk::Pipeline m_pipeline;
@@ -43,7 +43,7 @@ public:
         uint32_t set;
         uint32_t binding;
         vk::DescriptorType type;
-        std::string name;
+        uint32_t nameHash;
     };
 };
 }

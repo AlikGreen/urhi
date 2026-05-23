@@ -33,7 +33,7 @@ private:
 
     void resizeRenderTexture(uint32_t width, uint32_t height);
     void updateBuffers();
-    void updateProjection(const ImDrawData *drawData, const grl::Rc<RenderPass> &renderPass) const;
+    void updateProjection(const ImDrawData *drawData, RenderPass& renderPass) const;
     [[nodiscard]] Rect2D calculateScissorRect(const ImDrawCmd &drawCmd) const;
 
     static int toImGuiMouseButton(MouseButton button);

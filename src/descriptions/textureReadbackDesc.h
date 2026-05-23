@@ -15,10 +15,9 @@ struct TextureReadbackDesc
     uint32_t z = 0;
     uint32_t width  = 1;
     uint32_t height = 1;
-    uint32_t depth  = 1;
+    uint32_t depth  = 1; // or layer count
 
     uint32_t mipLevel = 0;
     uint32_t baseArrayLayer = 0;
-    uint32_t arrayLayerCount = 1;
 };
 }

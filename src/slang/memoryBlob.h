@@ -19,6 +19,12 @@ public:
         : m_data(data)
     {}
 
+    explicit MemoryBlob(const void* data, size_t size)
+        : m_data(static_cast<const uint8_t*>(data),
+                 static_cast<const uint8_t*>(data) + size)
+    {
+    }
+
     SlangResult queryInterface(SlangUUID const& uuid, void** outObject) override
     {
         if (!outObject) return SLANG_E_INVALID_ARG;

@@ -37,18 +37,16 @@ namespace urhi
             bindingDesc.stride = binding.stride;
             bindingDesc.inputRate = vk::VertexInputRate::eVertex;
             vertexBindingDescs.push_back(bindingDesc);
+        }
 
-            for(const auto& attrib : vertexShader->entryPoint().reflection.vertexInput.attributes)
-            {
-                if(attrib.binding != binding.binding) continue;
-
-                vk::VertexInputAttributeDescription attribDesc{};
-                attribDesc.location = attrib.location;
-                attribDesc.binding = binding.binding;
-                attribDesc.format = VkConvert::format(attrib.type);
-                attribDesc.offset = attrib.offset;
-                vertexAttributeDescs.push_back(attribDesc);
-            }
+        for(const auto& attrib : vertexShader->entryPoint().reflection.vertexInput.attributes)
+        {
+            vk::VertexInputAttributeDescription attribDesc{};
+            attribDesc.location = attrib.location;
+            attribDesc.binding = attrib.binding;
+            attribDesc.format = VkConvert::format(attrib.type);
+            attribDesc.offset = attrib.offset;
+            vertexAttributeDescs.push_back(attribDesc);
         }
 
         vk::PipelineVertexInputStateCreateInfo vertexInputState{};

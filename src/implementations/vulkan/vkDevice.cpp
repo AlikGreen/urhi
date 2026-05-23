@@ -136,7 +136,22 @@ namespace urhi
     grl::Rc<CommandList> VkDevice::acquireCommandList(QueueType queueType)
     {
         auto queue = m_commandQueues[static_cast<size_t>(queueType)].get();
-        return grl::makeRc<VkCommandList>(this, queue, &queue->submissionContext());
+
+        for(auto& cmd : m_commandLists)
+        {
+            if(!cmd->inUse())
+            {
+                cmd->reset(&queue->submissionContext(), queue);
+                return cmd;
+            }
+        }
+
+        URHI_WARNING(m_commandLists.size() > 128, "Lots of command lists allocated ({})", m_commandLists.size());
+
+        const auto cmd = grl::makeRc<VkCommandList>(this, queue, &queue->submissionContext());
+        m_commandLists.push_back(cmd);
+
+        return m_commandLists.back();
     }
 
     grl::Rc<Texture> VkDevice::createTexture(const TextureDesc &desc)
@@ -179,18 +194,20 @@ namespace urhi
     void VkDevice::submit(const grl::Rc<CommandList> &cmdList)
     {
         const auto vkCmd = dynamic_cast<VkCommandList*>(cmdList.get());
+        vkCmd->submit();
 
         const auto commandQueue = vkCmd->queue();
         const vk::CommandBuffer cmdBuffer = commandQueue->acquireCommandBuffer();
 
+        auto commandStream = vkCmd->commands();
         VkCommandListTracker tracker;
-        for (auto& cmd : vkCmd->commands())
+        for (auto& cmd : commandStream->commands())
             std::visit([&](auto& c) { tracker.record(c); }, cmd);
 
         const uint64_t submitValue = commandQueue->timelineValue() + 1;
 
-        VkCommandListEmitter emitter{ this, tracker, cmdBuffer, commandQueue, submitValue };
-        for (auto& cmd : vkCmd->commands())
+        VkCommandListEmitter emitter{ this, tracker, cmdBuffer, commandQueue, submitValue, commandStream };
+        for (auto& cmd : commandStream->commands())
             std::visit([&](auto& c) { emitter.emit(c); }, cmd);
 
         emitter.endRecording();

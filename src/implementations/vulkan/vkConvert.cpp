@@ -575,8 +575,6 @@ namespace urhi
                 return vk::PolygonMode::eFill;
             case FillMode::Line:
                 return vk::PolygonMode::eLine;
-            case FillMode::Point:
-                return vk::PolygonMode::ePoint;
             default:
                 return vk::PolygonMode::eFill;
         }

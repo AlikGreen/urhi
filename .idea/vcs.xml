@@ -2,12 +2,12 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/libdwarf-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/clogr" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/clogr/dependencies/catch2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/clogr/dependencies/cpptrace" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/clogr/dependencies/fmtlib" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/clogr/dependencies/grl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/d3d12ma" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/glfw" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dependencies/imgui" vcs="Git" />

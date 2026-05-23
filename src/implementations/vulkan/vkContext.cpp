@@ -48,13 +48,13 @@ namespace urhi
         return VK_FALSE;
     }
 
-    VkContext::VkContext()
+    VkContext::VkContext(const ContextDesc& desc)
     {
         // =============================================
         // Change this to switch validation profiles
         // =============================================
-        constexpr ValidationMode validationMode = ValidationMode::Full;
-        constexpr bool enableValidation = (validationMode != ValidationMode::None);
+        constexpr auto validationMode = ValidationMode::Full;
+        bool enableValidation = (validationMode != ValidationMode::None) && desc.debug;
 
         vkb::InstanceBuilder builder;
         builder

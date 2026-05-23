@@ -8,7 +8,7 @@ class VkPipeline;
 class VkCommandListEmitter
 {
 public:
-    VkCommandListEmitter(VkDevice* device, VkCommandListTracker tracker, vk::CommandBuffer cmd, VkCommandQueue* commandQueue, uint64_t submitValue);
+    VkCommandListEmitter(VkDevice* device, VkCommandListTracker tracker, vk::CommandBuffer cmd, VkCommandQueue* commandQueue, uint64_t submitValue, const grl::Rc<CommandStream> &cmdStream);
     void endRecording();
 
     void emit(const CmdBeginRenderPass& c);
@@ -19,7 +19,8 @@ public:
 
     void emit(const CmdBeginCommandBuffer& c);
 
-    void emit(const CmdSetPipeline& c);
+    void emit(const CmdSetGraphicsPipeline& c);
+    void emit(const CmdSetComputePipeline& c);
 
     void emit(const CmdDrawIndexed& c);
     void emit(const CmdDraw& c);
@@ -58,12 +59,14 @@ private:
     uint64_t m_submitValue;
     VkCommandQueue* m_commandQueue;
 
+    grl::Rc<CommandStream> m_cmdStream;
+
     bool m_renderPassActive = false;
     bool m_computePassActive = false;
     RenderPassDesc m_currentRenderPassDesc;
     grl::Rc<VkPipeline> m_boundPipeline;
     vk::PipelineBindPoint m_boundPipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-    std::unordered_map<std::string, ResourceBinding> m_currentBindings;
+    std::unordered_map<uint32_t, ResourceBinding> m_currentBindings;
 
     uint32_t m_idx = 0;
 

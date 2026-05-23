@@ -15,6 +15,9 @@ class VkWindow final : public Window
 public:
     explicit VkWindow(const WindowDesc& options, const VkContext* context);
 
+    void show() override;
+    void hide() override;
+
     void close() override;
 
     std::vector<Event> pollEvents() override;
@@ -34,6 +37,7 @@ public:
     [[nodiscard]] vk::SurfaceKHR getSurface() const;
 private:
     void updateCursorState() const;
+
     GLFWwindow* m_handle = nullptr;
     std::vector<Event> m_events{};
 

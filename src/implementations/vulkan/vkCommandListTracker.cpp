@@ -52,7 +52,7 @@ namespace urhi
 
     void VkCommandListTracker::record(const CmdBeginRenderPass &c)
     {
-        auto& desc = *c.desc;
+        auto& desc = c.desc;
         for (const auto& attachment : desc.colorAttachments)
         {
             const auto vkView = dynamic_cast<VkTextureView*>(attachment.target.get());
@@ -84,7 +84,7 @@ namespace urhi
 
     void VkCommandListTracker::record(const CmdBlitTexture &c)
     {
-        const auto& desc = *c.desc;
+        const auto& desc = c.desc;
         const auto vkSrc = dynamic_cast<VkTexture*>(desc.src.get());
 
         m_textureUses[vkSrc].push_back({

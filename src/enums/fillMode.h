@@ -6,6 +6,5 @@ enum class FillMode
 {
     Fill,
     Line,
-    Point,
 };
 }
