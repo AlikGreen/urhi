@@ -100,7 +100,6 @@ namespace urhi
             indexOffset  += cmdListImGui->IdxBuffer.Size;
         }
 
-        m_device->waitIdle();
         cmdList->updateBuffer(m_vertexBuffer, vertices);
         cmdList->updateBuffer(m_indexBuffer, indices);
 

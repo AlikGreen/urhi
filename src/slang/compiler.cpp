@@ -398,8 +398,7 @@ namespace urhi::slang
     {
         Slang::ComPtr<IBlob> slangDiags;
 
-        Slang::ComPtr<IBlob> irBlob;
-        irBlob = new MemoryBlob(module.ir);
+        Slang::ComPtr<IBlob> irBlob = Slang::ComPtr<IBlob>(new MemoryBlob(module.ir));
 
         Slang::ComPtr<IModule> slangModule;
         slangModule = session->loadModuleFromIRBlob(

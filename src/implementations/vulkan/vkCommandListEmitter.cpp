@@ -439,13 +439,13 @@ namespace urhi
     void VkCommandListEmitter::emit(const CmdUpdateBuffer &c)
     {
         const void* data = m_cmdStream->getData(c.offset);
-        if(const auto vkStaged = static_cast<VkStagedBuffer*>(c.buffer.get()))
+        if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(c.buffer.get()))
         {
             m_commandQueue->submissionContext().stagingAllocator().upload(data, c.size, vkStaged->handle(), 0, m_cmd);
             vkStaged->barrierAfterUpload(m_cmd);
             vkStaged->lifetime().markUsed(m_commandQueue, m_submitValue);
         }
-        else if(const auto vkMapped = static_cast<VkMappedBuffer*>(c.buffer.get()))
+        else if(const auto vkMapped = dynamic_cast<VkMappedBuffer*>(c.buffer.get()))
         {
             vkMapped->upload(data, c.size);
             vkMapped->lifetime().markUsed(m_commandQueue, m_submitValue);
