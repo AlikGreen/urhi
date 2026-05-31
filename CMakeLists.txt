@@ -14,7 +14,6 @@ add_subdirectory(${DEPS_DIR}/spirv-cross)
 add_subdirectory(${DEPS_DIR}/clogr)
 add_subdirectory(${DEPS_DIR}/vk-bootstrap)
 add_subdirectory(${DEPS_DIR}/vma)
-add_subdirectory(${DEPS_DIR}/d3d12ma)
 
 find_package(Vulkan REQUIRED)
 
@@ -28,6 +27,11 @@ if(WIN32)
 #else()
 #    set(SLANG_LIB_DIR "${DEPS_DIR}/slang/bin/linux-x64")
 endif()
+
+## build glad
+add_library(glad STATIC "${DEPS_DIR}/glad/src/gl.c")
+target_include_directories(glad PUBLIC "${DEPS_DIR}/glad/include")
+
 
 ### URHI
 file(GLOB_RECURSE
@@ -58,17 +62,8 @@ target_link_libraries(urhi PUBLIC
         spirv-cross-c
         vk-bootstrap::vk-bootstrap
         Vulkan::Vulkan
-        VulkanMemoryAllocator)
-
-if (WIN32)
-    target_link_libraries(urhi PUBLIC
-            d3d12
-            dxgi
-            dxguid
-            dxcompiler
-            D3D12MemoryAllocator
-    )
-endif()
+        VulkanMemoryAllocator
+        glad)
 
 file(COPY ${SLANG_DLLS}
         DESTINATION "${CMAKE_BINARY_DIR}")

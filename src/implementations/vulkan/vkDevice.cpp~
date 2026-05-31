@@ -180,7 +180,7 @@ namespace urhi
         URHI_VALIDATE(desc.usage != BufferUsage::None, "Invalid buffer usage - buffer usage must not be BufferUsage::None");
         URHI_VALIDATE(!(hasFlag(desc.usage, BufferUsage::Static) && hasFlag(desc.usage, BufferUsage::Dynamic)), "Invalid buffer usage - buffer usage cannot have BufferUsage::Dynamic and BufferUsage::Static");
 
-        if ((hasFlag(desc.usage, BufferUsage::Uniform) && !hasFlag(desc.usage, BufferUsage::Static)) || hasFlag(desc.usage, BufferUsage::Dynamic))
+        if ((hasFlag(desc.usage, BufferUsage::Uniform) && !hasFlag(desc.usage, BufferUsage::Static)) || hasFlag(desc.usage, BufferUsage::Dynaimic))
            return grl::makeRc<VkMappedBuffer>(this, desc);
 
         return grl::makeRc<VkStagedBuffer>(this, desc);

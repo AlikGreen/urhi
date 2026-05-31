@@ -12,7 +12,7 @@ enum class BufferUsage
     Storage  = 1 << 3,
     Indirect = 1 << 4,
     Static = 1 << 5,
-    Dynaimic  = 1 << 6,
+    Dynamic  = 1 << 6,
 };
 
 URHI_DEFINE_ENUM_FLAGS(BufferUsage);

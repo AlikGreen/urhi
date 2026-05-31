@@ -1,0 +1,41 @@
+#include "glTextureView.h"
+
+#include <glad/gl.h>
+
+#include "glConvert.h"
+#include "glDevice.h"
+#include "glTexture.h"
+
+namespace urhi
+{
+    GlTextureView::GlTextureView(GlDevice *device, const TextureViewDesc &desc)
+        : m_device(device), m_baseMipLevel(desc.firstMip), m_baseArrayLayer(desc.firstLayer),
+        m_mipLevels(desc.mipCount), m_arrayLayers(desc.layerCount), m_format(desc.format)
+    {
+        m_texture = std::static_pointer_cast<GlTexture>(desc.texture);
+
+        glGenTextures(1, &m_handle);
+
+        glTextureView(
+            m_handle,
+            GL_TEXTURE_2D,
+            m_texture->handle(),
+            GL_RGBA8,
+            m_baseMipLevel, m_mipLevels,
+            m_baseArrayLayer, m_arrayLayers
+        );
+
+    }
+
+    GlTextureView::GlTextureView()
+    {
+        m_texture = grl::makeRc<GlTexture>();
+    }
+
+    GlTextureView::~GlTextureView()
+    {
+        if(m_handle == 0) return;
+
+        glDeleteTextures(1, &m_handle);
+    }
+}

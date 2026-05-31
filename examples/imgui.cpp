@@ -10,7 +10,7 @@ int main()
     using namespace grl;
 
     const auto context = Context::create({
-        .api = BackendAPI::Vulkan,
+        .api = BackendAPI::OpenGL,
         .cachePath = "./cache/shaders",
         .debug = true,
     });

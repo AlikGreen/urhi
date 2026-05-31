@@ -34,6 +34,3 @@
 [submodule "dependencies/vma"]
 	path = dependencies/vma
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
-[submodule "dependencies/d3d12ma"]
-	path = dependencies/d3d12ma
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git

@@ -1,6 +1,6 @@
 #include "context.h"
 
-#include "implementations/d3d12/d3D12Context.h"
+#include "implementations/opengl/glContext.h"
 #include "implementations/vulkan/vkContext.h"
 
 namespace urhi
@@ -11,8 +11,8 @@ namespace urhi
         {
             case BackendAPI::Vulkan:
                 return grl::makeRc<VkContext>(desc);
-            case BackendAPI::D3D12:
-                return grl::makeRc<D3D12Context>(desc);
+            case BackendAPI::OpenGL:
+                return grl::makeRc<GlContext>(desc);
             default:
                 return nullptr;
         }

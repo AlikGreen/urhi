@@ -1,0 +1,30 @@
+#include "glComputePipeline.h"
+
+#include "clogr.h"
+
+namespace urhi {
+    GlComputePipeline::GlComputePipeline(GlDevice *device, const ComputePipelineDesc &desc)
+        : GlPipeline(device, { desc.shader })
+    {
+        clogr::ensure(desc.shader != nullptr, "Description does not contain a shader");
+
+        const auto glShader = dynamic_cast<GlShader*>(desc.shader.get());
+        clogr::ensure(glShader->entryPoint().stage == ShaderStage::Compute, "Provided shader is not of type compute");
+
+        const auto stage = gl::PipelineShaderStageCreateInfo
+        {
+            {},
+            gl::ShaderStageFlagBits::eCompute,
+            glShader->getModule(),
+            "main"
+        };
+
+        gl::ComputePipelineCreateInfo pipelineInfo{};
+        pipelineInfo.layout = m_layout;
+        pipelineInfo.stage = stage;
+
+        const auto result = m_device->handle().createComputePipeline(nullptr, pipelineInfo);
+        clogr::ensure(result.result == gl::Result::eSuccess, "Could not create pipeline");
+        m_pipeline = result.value;
+    }
+}
