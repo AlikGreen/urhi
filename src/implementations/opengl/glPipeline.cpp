@@ -9,8 +9,18 @@
 namespace urhi
 {
     GlPipeline::GlPipeline(GlDevice* device, const GraphicsPipelineDesc &desc)
-        : m_device(device), m_primitiveType(desc.primitiveType)
+        : m_device(device), m_primitiveType(desc.primitiveType), m_colorAttachments(desc.colorAttachments)
     {
+        m_depthFunc = GlConvert::compareOp(desc.depthState.compareOp);
+        m_cullFaceMode = GlConvert::cullMode(desc.rasterizerState.cullMode);
+        m_polygonMode = GlConvert::fillMode(desc.rasterizerState.fillMode);
+
+        m_enableDepthTest = desc.depthState.enableDepthTest;
+        m_enableDepthWrite = desc.depthState.enableDepthWrite;
+
+        m_enableScissorTest = desc.rasterizerState.enableScissorTest;
+        // m_enableStencilTest = desc.rasterizerState.enableStencilTest;
+
         createProgram(desc.shaders);
 
         glUseProgram(m_shaderProgram);
@@ -157,11 +167,90 @@ namespace urhi
 
     void GlPipeline::bind() const
     {
-        if(m_vao != 0)
-            glBindVertexArray(m_vao);
-
         glUseProgram(m_shaderProgram);
 
-        // TODO set all defaults eg scissor and viewport
+        if(m_vao == 0) return;
+
+        glBindVertexArray(m_vao);
+
+        for(size_t i = 0; i < m_colorAttachments.size(); i++)
+        {
+            const auto& attachment = m_colorAttachments[i];
+
+            if(!attachment.blend.enableBlend)
+            {
+                glDisablei(GL_BLEND, i);
+                continue;
+            }
+
+            glEnablei(GL_BLEND, i);
+
+            glBlendEquationSeparatei(
+                i,
+                GlConvert::blendOp(attachment.blend.colorOp),
+                GlConvert::blendOp(attachment.blend.alphaOp)
+            );
+
+            glBlendFuncSeparatei(
+                i,
+                GlConvert::blendFactor(attachment.blend.srcColorFactor),
+                GlConvert::blendFactor(attachment.blend.dstColorFactor),
+                GlConvert::blendFactor(attachment.blend.srcAlphaFactor),
+                GlConvert::blendFactor(attachment.blend.dstAlphaFactor)
+            );
+
+            glColorMaski(
+                i,
+                hasFlag(attachment.blend.writeMask, ColorWriteMask::R),
+                hasFlag(attachment.blend.writeMask, ColorWriteMask::G),
+                hasFlag(attachment.blend.writeMask, ColorWriteMask::B),
+                hasFlag(attachment.blend.writeMask, ColorWriteMask::A)
+            );
+
+        }
+
+        if(m_enableDepthTest)
+        {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(m_depthFunc);
+            glDepthMask(m_enableDepthWrite);
+        }
+        else
+        {
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
+        }
+
+        if(m_cullFaceMode != GL_NONE)
+        {
+            glEnable(GL_CULL_FACE);
+            glCullFace(m_cullFaceMode);
+            glFrontFace(GL_CCW);
+        }
+        else
+        {
+            glDisable(GL_CULL_FACE);
+        }
+
+        if(m_enableScissorTest)
+            glEnable(GL_SCISSOR_TEST);
+        else
+            glDisable(GL_SCISSOR_TEST);
+
+
+        glPolygonMode(GL_FRONT_AND_BACK, m_polygonMode);
+
+        if(m_enableStencilTest)
+        {
+            glEnable(GL_STENCIL_TEST);
+            // glStencilFuncSeparate(GL_FRONT, m_stencilFuncFront, m_stencilRefFront, m_stencilMaskFront);
+            // glStencilFuncSeparate(GL_BACK,  m_stencilFuncBack,  m_stencilRefBack,  m_stencilMaskBack);
+            // glStencilOpSeparate(GL_FRONT, m_stencilOpFailFront, m_stencilOpZFailFront, m_stencilOpZPassFront);
+            // glStencilOpSeparate(GL_BACK,  m_stencilOpFailBack,  m_stencilOpZFailBack,  m_stencilOpZPassBack);
+        }
+        else
+        {
+            glDisable(GL_STENCIL_TEST);
+        }
     }
 }

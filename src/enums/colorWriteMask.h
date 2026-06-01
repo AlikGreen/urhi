@@ -13,13 +13,5 @@ enum class ColorWriteMask : uint8_t
     All  = R | G | B | A,
 };
 
-inline ColorWriteMask operator|(ColorWriteMask a, ColorWriteMask b)
-{
-    return static_cast<ColorWriteMask>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
-}
-
-inline ColorWriteMask operator&(ColorWriteMask a, ColorWriteMask b)
-{
-    return static_cast<ColorWriteMask>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
-}
+URHI_DEFINE_ENUM_FLAGS(ColorWriteMask);
 }

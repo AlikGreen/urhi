@@ -35,6 +35,7 @@ namespace urhi
 
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // callback on same thread as the GL call — easier to get a stack trace
+        glFrontFace(GL_CW);
 
         glDebugMessageCallback([](
             GLenum source,

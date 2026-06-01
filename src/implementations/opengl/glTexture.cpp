@@ -15,29 +15,23 @@ namespace urhi
     {
         m_mipLevels = std::min(desc.maxMipLevels, static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1);
 
-        glGenTextures(1, &m_handle);
+        glCreateTextures(GlConvert::textureType(m_type), 1, &m_handle);
 
         const auto format = GlConvert::internalFormat(m_format);
 
         switch (m_type)
         {
             case TextureType::Texture1D:
-                glBindTexture(GL_TEXTURE_1D, m_handle);
-                glTexStorage1D(GL_TEXTURE_1D, m_mipLevels, format, m_width);
-                glBindTexture(GL_TEXTURE_1D, 0);
+                glTextureStorage1D(m_handle, m_mipLevels, format, m_width);
                 break;
             case TextureType::Texture2D:
             case TextureType::TextureCube:
-                glBindTexture(GL_TEXTURE_2D, m_handle);
-                glTexStorage2D(GL_TEXTURE_2D, m_mipLevels, format, m_width, m_height);
-                glBindTexture(GL_TEXTURE_1D, 0);
+                glTextureStorage2D(m_handle, m_mipLevels, format, m_width, m_height);
                 break;
             case TextureType::Texture3D:
             case TextureType::Texture2DArray:
             case TextureType::TextureCubeArray:
-                glBindTexture(GL_TEXTURE_3D, m_handle);
-                glTexStorage3D(GL_TEXTURE_3D, m_mipLevels, format, m_width, m_height, m_depth);
-                glBindTexture(GL_TEXTURE_1D, 0);
+                glTextureStorage3D(m_handle, m_mipLevels, format, m_width, m_height, m_depth);
                 break;
             default:
                 break;

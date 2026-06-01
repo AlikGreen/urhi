@@ -19,12 +19,15 @@ namespace urhi
         opts.version = 460;
         opts.es = false;
         opts.emit_push_constant_as_uniform_buffer = true;
+
+        // to match vulkan
+        opts.vertex.flip_vert_y = true;
+        opts.vertex.fixup_clipspace = true;
+
         compiler.set_common_options(opts);
 
-        // Always reflect — cheap, doesn't require compilation
         reflect(compiler, entryPoint.stage);
 
-        // Only the compile() call is expensive — cache that
         const std::string glsl = getOrCompileGlsl(compiler, entryPoint.spirv);
 
         const GLenum glStage = GlConvert::shaderStage(entryPoint.stage);
@@ -53,9 +56,6 @@ namespace urhi
         compiler.build_combined_image_samplers();
         reflectCombinedSamplers(compiler);
         reflectUbos(compiler);
-
-        // if (stage == ShaderStage::Vertex)
-        //     reflectVertexInput(compiler);
     }
 
    void GlShader::reflectCombinedSamplers(const spirv_cross::CompilerGLSL& compiler)
@@ -107,7 +107,7 @@ namespace urhi
     std::string GlShader::getOrCompileGlsl(spirv_cross::CompilerGLSL& compiler, const std::vector<uint32_t>& spirv) const
     {
         uint32_t hash = grl::Hash::fnv1a32(std::as_bytes(std::span(spirv)));
-        grl::Hash::hashCombine(hash, 1);
+        grl::Hash::hashCombine(hash, 2);
 
         if (const auto it = m_glslCache.find(hash); it != m_glslCache.end())
             return it->second;

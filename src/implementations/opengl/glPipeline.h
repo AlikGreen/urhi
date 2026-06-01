@@ -45,15 +45,33 @@ public:
 protected:
     GlDevice* m_device;
 
+    // General
     GLuint m_shaderProgram{};
-    GLuint m_vao{};
 
     PrimitiveType m_primitiveType{};
 
     int m_pushConstantBinding = -1;
-    std::vector<uint32_t> m_vertexStrides;
     std::unordered_map<uint32_t, std::vector<CombinedSamplerUnit>> m_bindings;
     std::unordered_map<uint32_t, int> m_bufferBindings;
+
+    // Graphics pipeline
+    std::vector<uint32_t> m_vertexStrides;
+    GLuint m_vao{};
+
+    std::vector<ColorAttachmentDesc> m_colorAttachments{};
+
+    bool m_enableDepthTest;
+    bool m_enableDepthWrite;
+    GLenum m_depthFunc;
+
+    GLenum m_cullFaceMode;
+
+    bool m_enableScissorTest;
+
+    GLenum m_polygonMode;
+
+    bool m_enableStencilTest = false;
+
 
     struct CombinedSamplerUnit
     {

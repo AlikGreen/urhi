@@ -28,7 +28,7 @@ int main()
     auto swapchain = context->createSwapchain({
         .window      = window,
         .device      = device,
-        .presentMode = PresentMode::NoVSync,
+        .presentMode = PresentMode::VSync,
     });
 
     ImGui::CreateContext();

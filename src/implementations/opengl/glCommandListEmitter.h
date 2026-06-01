@@ -39,12 +39,12 @@ public:
     void emit(const CmdSetIndexBuffer& c);
 
     void emit(const CmdSetScissor& c);
-    void emit(const CmdSetViewport& c);
+    void emit(const CmdSetViewport& c) const;
 
     void emit(const CmdGenerateMips& c);
     void emit(const CmdBlitTexture& c) const;
 
-    void emit(const CmdDispatchCompute& c);
+    void emit(const CmdDispatchCompute& c) const;
 private:
     struct ResourceBinding;
 
@@ -56,5 +56,8 @@ private:
 
     RenderPassDesc m_currentRenderPassDesc;
     grl::Rc<GlPipeline> m_boundPipeline;
+    IndexFormat m_currentIndexFormat{};
+
+    uint32_t m_renderPassHeight = 0;
 };
 }

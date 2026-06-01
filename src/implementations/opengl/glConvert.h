@@ -2,8 +2,13 @@
 #include <glad/gl.h>
 
 #include "descriptions/shaderReflection.h"
+#include "enums/blendFactor.h"
+#include "enums/blendOp.h"
 #include "enums/bufferUsage.h"
 #include "enums/compareOp.h"
+#include "enums/cullMode.h"
+#include "enums/fillMode.h"
+#include "enums/indexFormat.h"
 #include "enums/mipmapFilter.h"
 #include "enums/pixelFormat.h"
 #include "enums/primitiveType.h"
@@ -48,5 +53,15 @@ public:
     static GLenum shaderStage(ShaderStage stage);
 
     static GLenum textureType(TextureType type);
+
+    static GLenum indexFormat(IndexFormat format);
+    static GLenum sizeOf(IndexFormat format);
+
+    static GLenum blendOp(BlendOp op);
+    static GLenum blendFactor(BlendFactor factor);
+    static GLenum compareOp(CompareOp op);
+
+    static GLenum fillMode(FillMode mode);
+    static GLenum cullMode(CullMode mode);
 };
 }

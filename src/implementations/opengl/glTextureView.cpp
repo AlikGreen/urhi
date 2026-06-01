@@ -27,7 +27,8 @@ namespace urhi
 
     }
 
-    GlTextureView::GlTextureView()
+    GlTextureView::GlTextureView(): m_device(nullptr), m_baseMipLevel(0), m_baseArrayLayer(0), m_mipLevels(1),
+                                    m_arrayLayers(1), m_format(PixelFormat::Unknown)
     {
         m_texture = grl::makeRc<GlTexture>();
     }

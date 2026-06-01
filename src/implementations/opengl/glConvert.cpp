@@ -629,4 +629,94 @@ namespace urhi
             return GL_NONE;
         }
     }
+
+    GLenum GlConvert::indexFormat(const IndexFormat format)
+    {
+        switch (format)
+        {
+            case IndexFormat::UInt16:
+                return GL_UNSIGNED_SHORT;
+            case IndexFormat::UInt32:
+                return GL_UNSIGNED_INT;
+            default:
+                URHI_VALIDATE(false, "Unknown index format");
+                return 0;
+        }
+    }
+
+    GLenum GlConvert::sizeOf(const IndexFormat format)
+    {
+        switch (format)
+        {
+            case IndexFormat::UInt16:
+                return 2;
+            case IndexFormat::UInt32:
+                return 4;
+            default:
+                URHI_VALIDATE(false, "Unknown index format");
+            return 0;
+        }
+    }
+
+    GLenum GlConvert::blendOp(const BlendOp op)
+    {
+        switch(op)
+        {
+            case BlendOp::Add:         return GL_FUNC_ADD;
+            case BlendOp::Subtract:    return GL_FUNC_SUBTRACT;
+            case BlendOp::RevSubtract: return GL_FUNC_REVERSE_SUBTRACT;
+            case BlendOp::Min:         return GL_MIN;
+            case BlendOp::Max:         return GL_MAX;
+            default:                   return GL_FUNC_ADD;
+        }
+    }
+
+    GLenum GlConvert::blendFactor(const BlendFactor factor)
+    {
+        switch(factor)
+        {
+            case BlendFactor::One:         return GL_ONE;
+            case BlendFactor::Zero:        return GL_ZERO;
+            case BlendFactor::SrcAlpha:    return GL_SRC_ALPHA;
+            case BlendFactor::InvSrcAlpha: return GL_ONE_MINUS_SRC_ALPHA;
+            default:                       return GL_ONE;
+        }
+    }
+
+    GLenum GlConvert::compareOp(const CompareOp op)
+    {
+        switch(op)
+        {
+            case CompareOp::Never:        return GL_NEVER;
+            case CompareOp::Less:         return GL_LESS;
+            case CompareOp::Equal:        return GL_EQUAL;
+            case CompareOp::LessOrEqual:  return GL_LEQUAL;
+            case CompareOp::Greater:      return GL_GREATER;
+            case CompareOp::NotEqual:     return GL_NOTEQUAL;
+            case CompareOp::GreaterOrEqual:return GL_GEQUAL;
+            case CompareOp::Always:       return GL_ALWAYS;
+            default:                      return GL_ALWAYS;
+        }
+    }
+
+    GLenum GlConvert::fillMode(const FillMode mode)
+    {
+        switch(mode)
+        {
+            case FillMode::Fill: return GL_FILL;
+            case FillMode::Line: return GL_LINE;
+            default:             return GL_FILL;
+        }
+    }
+
+    GLenum GlConvert::cullMode(const CullMode mode)
+    {
+        switch(mode)
+        {
+            case CullMode::Back:  return GL_BACK;
+            case CullMode::Front: return GL_FRONT;
+            case CullMode::None:  return GL_NONE;
+            default:              return GL_BACK;
+        }
+    }
 }

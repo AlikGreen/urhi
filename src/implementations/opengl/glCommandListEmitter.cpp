@@ -27,8 +27,8 @@ namespace urhi
         glDrawElementsInstancedBaseVertexBaseInstance(
             GlConvert::primitiveType(m_boundPipeline->primitiveType()),
             c.indexCount,
-            GL_UNSIGNED_INT,
-            (void*)c.firstIndex,
+            GlConvert::indexFormat(m_currentIndexFormat),
+            reinterpret_cast<void*>(c.firstIndex * GlConvert::sizeOf(m_currentIndexFormat)),
             c.instanceCount,
             c.vertexOffset,
             c.firstInstance);
@@ -39,27 +39,30 @@ namespace urhi
         glDrawArraysInstancedBaseInstance(
             GlConvert::primitiveType(m_boundPipeline->primitiveType()),
             c.firstVertex,
-            c.firstVertex,
+            c.vertexCount,
             c.instanceCount,
             c.firstInstance);
     }
 
     void GlCommandListEmitter::emit(const CmdBeginRenderPass &c)
     {
+        glDisable(GL_SCISSOR_TEST);
+
         uint32_t fbo = m_device->getOrCreateFramebuffer(c.desc);
 
         for(size_t i = 0; i < c.desc.colorAttachments.size(); i++)
         {
             auto& attachment = c.desc.colorAttachments[i];
 
-
             std::visit([i, fbo]<typename T>(T&& val)
             {
-                if constexpr (std::is_same_v<T, ClearColorFloat>)
+                using ValueType = std::remove_cvref_t<T>;
+
+                if constexpr (std::is_same_v<ValueType, ClearColorFloat>)
                     glClearNamedFramebufferfv(fbo, GL_COLOR, i, &val.r);
-                if constexpr (std::is_same_v<T, ClearColorInt>)
+                if constexpr (std::is_same_v<ValueType, ClearColorInt>)
                     glClearNamedFramebufferiv(fbo, GL_COLOR, i, &val.r);
-                if constexpr (std::is_same_v<T, ClearColorUint>)
+                if constexpr (std::is_same_v<ValueType, ClearColorUint>)
                     glClearNamedFramebufferuiv(fbo, GL_COLOR, i, &val.r);
             },
             attachment.clearValue);
@@ -72,28 +75,31 @@ namespace urhi
         m_currentRenderPassDesc = c.desc;
         m_boundPipeline = nullptr;
 
-        int vpWidth = c.desc.renderArea.width;
-        int vpHeight = c.desc.renderArea.height;
-        int vpX = c.desc.renderArea.x;
-        int vpY = c.desc.renderArea.y;
 
-        if(vpWidth == 0 && vpHeight == 0)
-        {
-            GlTextureView* glTex{};
-            if(c.desc.colorAttachments.size() > 0)
-                glTex = static_cast<GlTextureView*>(c.desc.colorAttachments[0].target.get());
-            else if(c.desc.depthAttachment.has_value())
-                glTex = static_cast<GlTextureView*>(c.desc.depthAttachment->target.get());
-            else
-                return;
-
-            vpWidth = glTex->texture()->width() - vpX;
-            vpHeight = glTex->texture()->height() - vpY;
-        }
+        GlTextureView* mainTex{};
+        if(c.desc.colorAttachments.size() > 0)
+            mainTex = static_cast<GlTextureView*>(c.desc.colorAttachments[0].target.get());
+        else if(c.desc.depthAttachment.has_value())
+            mainTex = static_cast<GlTextureView*>(c.desc.depthAttachment->target.get());
 
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        glViewport(vpX, vpY, vpWidth, vpHeight);
 
+        const uint32_t width = mainTex->texture()->width();
+        m_renderPassHeight = mainTex->texture()->height();
+
+        glViewport(
+            c.desc.renderArea.x,
+            c.desc.renderArea.y,
+            c.desc.renderArea.width != 0 ? c.desc.renderArea.width : width,
+            c.desc.renderArea.height != 0 ? c.desc.renderArea.height : m_renderPassHeight
+        );
+
+        glScissor(
+            c.desc.renderArea.x,
+            c.desc.renderArea.y,
+            c.desc.renderArea.width != 0 ? c.desc.renderArea.width : width,
+            c.desc.renderArea.height != 0 ? c.desc.renderArea.height : m_renderPassHeight
+        );
     }
 
     void GlCommandListEmitter::emit(const CmdReadbackTexture &c)
@@ -287,6 +293,7 @@ namespace urhi
     void GlCommandListEmitter::emit(const CmdSetIndexBuffer &c)
     {
         const auto glBuffer = static_cast<GlBuffer*>(c.buffer.get());
+        m_currentIndexFormat = c.format;
 
         glVertexArrayElementBuffer(m_boundPipeline->vao(), glBuffer->handle());
     }
@@ -296,10 +303,10 @@ namespace urhi
         URHI_VALIDATE(c.rect.x >= 0, "Scissor offset x ({}) is invalid - x offset must be >= 0", c.rect.x);
         URHI_VALIDATE(c.rect.y >= 0, "Scissor offset y ({}) is invalid - y offset must be >= 0", c.rect.y);
 
-        glScissor(c.rect.x, c.rect.y, c.rect.width, c.rect.height);
+        glScissor(c.rect.x, m_renderPassHeight - (c.rect.y + c.rect.height), c.rect.width, c.rect.height);
     }
 
-    void GlCommandListEmitter::emit(const CmdSetViewport &c)
+    void GlCommandListEmitter::emit(const CmdSetViewport &c) const
     {
         glViewport(c.viewport.x, c.viewport.y, c.viewport.width, c.viewport.height);
     }
@@ -349,7 +356,7 @@ namespace urhi
         );
     }
 
-    void GlCommandListEmitter::emit(const CmdDispatchCompute &c)
+    void GlCommandListEmitter::emit(const CmdDispatchCompute &c) const
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - compute dispatch requires a compute pipeline to be set first.");
         URHI_VALIDATE(m_computePassActive, "No compute pass active - You must start a compute pass before dispatching compute work.");
@@ -359,6 +366,7 @@ namespace urhi
 
     void GlCommandListEmitter::emit(const CmdEndRenderPass &c)
     {
+        glDisable(GL_SCISSOR_TEST);
         m_renderPassActive = false;
         m_boundPipeline = nullptr;
     }

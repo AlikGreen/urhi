@@ -31,7 +31,7 @@ namespace urhi
     void GlSwapchain::resize(const uint32_t width, const uint32_t height)
     {
         m_backBufferView->m_texture->m_width = width;
-        m_backBufferView->m_texture->m_height = width;
+        m_backBufferView->m_texture->m_height = height;
     }
 
     grl::Rc<TextureView> GlSwapchain::acquireNextImage()

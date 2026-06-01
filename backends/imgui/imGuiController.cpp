@@ -247,7 +247,7 @@ namespace urhi
 
                 case ImTextureStatus_WantUpdates:
                 {
-                    // TODO implement partial updates if you care.
+                    // TODO implement partial updates if i care.
                     destroyTexture(texData);
                     ImGuiImage* img = createTexture(texData);
                     texData->SetTexID(img);
