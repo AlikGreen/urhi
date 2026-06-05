@@ -27,7 +27,8 @@ namespace urhi
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &m_maxAnisotropy);
 
         glCreateBuffers(1, &m_pushConstantsUbo);
-        glNamedBufferData(m_pushConstantsUbo, 256, nullptr, GL_DYNAMIC_DRAW);
+        glNamedBufferStorage(m_pushConstantsUbo, 256, nullptr, GL_DYNAMIC_STORAGE_BIT);
+        // glNamedBufferData(m_pushConstantsUbo, 256, nullptr, GL_DYNAMIC_DRAW);
 
         glCreateFramebuffers(1, &m_blitReadFbo);
         glCreateFramebuffers(1, &m_blitWriteFbo);
@@ -35,7 +36,6 @@ namespace urhi
 
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // callback on same thread as the GL call — easier to get a stack trace
-        glFrontFace(GL_CW);
 
         glDebugMessageCallback([](
             GLenum source,

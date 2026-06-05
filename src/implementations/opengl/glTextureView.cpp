@@ -18,9 +18,9 @@ namespace urhi
 
         glTextureView(
             m_handle,
-            GL_TEXTURE_2D,
+            GlConvert::textureType(m_texture->type()),
             m_texture->handle(),
-            GL_RGBA8,
+            GlConvert::internalFormat(m_texture->format()),
             m_baseMipLevel, m_mipLevels,
             m_baseArrayLayer, m_arrayLayers
         );

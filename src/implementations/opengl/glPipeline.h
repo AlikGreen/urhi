@@ -13,6 +13,9 @@ class GlPipeline final : public Pipeline
 public:
     struct CombinedSamplerUnit;
 
+    static constexpr int OPTIMIZED_OUT = -1;
+    static constexpr int INVALID_TYPO = -2;
+
     GlPipeline(GlDevice* device, const GraphicsPipelineDesc &desc);
     GlPipeline(GlDevice* device, const ComputePipelineDesc &desc);
 
@@ -24,7 +27,9 @@ public:
     ~GlPipeline() override;
 
     [[nodiscard]] GLuint shaderProgram() const { return m_shaderProgram; }
-    const std::vector<CombinedSamplerUnit>& samplerUnits(const uint32_t nameHash) { return m_bindings[nameHash]; }
+
+    [[nodiscard]] const std::vector<CombinedSamplerUnit>* textureBinding(uint32_t nameHash) const;
+    [[nodiscard]] const std::vector<CombinedSamplerUnit>* samplerBinding(uint32_t nameHash) const;
 
     PrimitiveType primitiveType() const { return m_primitiveType; }
 
@@ -32,14 +37,9 @@ public:
 
     uint32_t pushConstantBinding() const { return m_pushConstantBinding; }
 
-    int bufferBinding(const uint32_t nameHash)
-    {
-        const auto it = m_bufferBindings.find(nameHash);
-        if(it != m_bufferBindings.end())
-            return it->second;
+    int bufferBinding(uint32_t nameHash);
 
-        return -1;
-    }
+    const std::unordered_map<uint32_t, int>& bufferBindings() const { return m_bufferBindings; }
 
     void bind() const;
 protected:
@@ -51,7 +51,9 @@ protected:
     PrimitiveType m_primitiveType{};
 
     int m_pushConstantBinding = -1;
-    std::unordered_map<uint32_t, std::vector<CombinedSamplerUnit>> m_bindings;
+    std::string m_pushConstantInstanceName{};
+    std::unordered_map<uint32_t, std::vector<CombinedSamplerUnit>> m_textureBindings;
+    std::unordered_map<uint32_t, std::vector<CombinedSamplerUnit>> m_samplerBindings;
     std::unordered_map<uint32_t, int> m_bufferBindings;
 
     // Graphics pipeline

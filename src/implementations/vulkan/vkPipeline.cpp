@@ -52,7 +52,7 @@ namespace urhi
                 const auto descriptorType = VkConvert::descriptorType(resource.type);
                 auto& setBindings = setsMap[resource.set]; // Access the map for this specific set
 
-                auto nameHash = grl::Hash::fnv1a32(resource.name);
+                auto nameHash = NameRegistry::getHash(resource.name);
 
                 m_bindingInfo[nameHash] = {
                     resource.set,

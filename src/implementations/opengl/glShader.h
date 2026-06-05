@@ -43,6 +43,7 @@ public:
 
     ShaderEntryPoint entryPoint() override { return m_entryPoint; }
 private:
+    static constexpr uint32_t compilerVersion = 6;
     static std::unordered_map<uint32_t, std::string> m_glslCache;
 
     GlDevice* m_device;

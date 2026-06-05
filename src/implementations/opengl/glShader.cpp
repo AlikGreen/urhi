@@ -21,8 +21,8 @@ namespace urhi
         opts.emit_push_constant_as_uniform_buffer = true;
 
         // to match vulkan
-        opts.vertex.flip_vert_y = true;
-        opts.vertex.fixup_clipspace = true;
+        // opts.vertex.flip_vert_y = true;
+        // opts.vertex.fixup_clipspace = true;
 
         compiler.set_common_options(opts);
 
@@ -65,8 +65,8 @@ namespace urhi
             CombinedSamplerInfo info;
             info.textureUnit     = compiler.get_decoration(combined.combined_id, spv::DecorationBinding);
             info.combinedName    = compiler.get_name(combined.combined_id);
-            info.texNameHash     = grl::Hash::fnv1a32(compiler.get_name(combined.image_id));
-            info.samplerNameHash = grl::Hash::fnv1a32(compiler.get_name(combined.sampler_id));
+            info.texNameHash     = NameRegistry::getHash(compiler.get_name(combined.image_id));
+            info.samplerNameHash = NameRegistry::getHash(compiler.get_name(combined.sampler_id));
             m_combinedSamplers.push_back(info);
         }
     }
@@ -107,7 +107,7 @@ namespace urhi
     std::string GlShader::getOrCompileGlsl(spirv_cross::CompilerGLSL& compiler, const std::vector<uint32_t>& spirv) const
     {
         uint32_t hash = grl::Hash::fnv1a32(std::as_bytes(std::span(spirv)));
-        grl::Hash::hashCombine(hash, 2);
+        grl::Hash::hashCombine(hash, compilerVersion);
 
         if (const auto it = m_glslCache.find(hash); it != m_glslCache.end())
             return it->second;

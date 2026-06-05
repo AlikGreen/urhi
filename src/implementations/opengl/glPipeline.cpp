@@ -118,18 +118,22 @@ namespace urhi
 
             CombinedSamplerUnit entry { info.textureUnit, loc };
 
-            m_bindings[info.texNameHash].push_back(entry);
-            m_bindings[info.samplerNameHash].push_back(entry);
+            m_textureBindings[info.texNameHash].push_back(entry);
+            m_samplerBindings[info.samplerNameHash].push_back(entry);
         }
+
+        int maxUboBinding = -1;
 
         for (auto& info : shader->uniformBlocks())
         {
             const GLuint blockIndex = glGetUniformBlockIndex(m_shaderProgram, info.blockName.c_str());
             if (blockIndex == GL_INVALID_INDEX) continue;
 
-            uint32_t hash = grl::Hash::fnv1a32(info.instanceName);
-            glUniformBlockBinding(m_shaderProgram, blockIndex, info.binding); // set binding point
+            uint32_t hash = NameRegistry::getHash(info.instanceName);
+            glUniformBlockBinding(m_shaderProgram, blockIndex, info.binding);
             m_bufferBindings[hash] = info.binding;
+
+            maxUboBinding = std::max(maxUboBinding, (int)info.binding);
         }
 
         if (shader->pushConstant().has_value())
@@ -138,19 +142,49 @@ namespace urhi
                 shader->pushConstant()->blockName.c_str());
 
             URHI_VALIDATE(blockIndex != GL_INVALID_INDEX,
-                "Push constant block '{}' not found in shader — check the name matches what SPIR-V Cross emitted",
+                "Push constant block '{}' not found in shader",
                 shader->pushConstant()->blockName);
 
-            // Fixed binding point for push constants — always 0
-            constexpr GLuint PUSH_CONSTANT_BINDING = 0;
+            if (m_pushConstantBinding >= 0)
+            {
+                // Already assigned by a previous stage - validate it's the same block
+                URHI_VALIDATE(shader->pushConstant()->instanceName == m_pushConstantInstanceName,
+                    "Mismatched push constant blocks across shader stages: '{}' vs '{}'",
+                    shader->pushConstant()->instanceName, m_pushConstantInstanceName);
 
-            // blockIndex is just a stepping stone, only needed for this call
-            glUniformBlockBinding(m_shaderProgram, blockIndex, PUSH_CONSTANT_BINDING);
+                // Reuse the existing slot so all stages agree on the binding
+                glUniformBlockBinding(m_shaderProgram, blockIndex, m_pushConstantBinding);
+            }
+            else
+            {
+                const int pushConstantSlot = maxUboBinding + 1;
+                glUniformBlockBinding(m_shaderProgram, blockIndex, pushConstantSlot);
+                m_pushConstantBinding = pushConstantSlot;
+                m_pushConstantInstanceName = shader->pushConstant()->instanceName;
+            }
+        }
 
-            URHI_VALIDATE(m_pushConstantBinding < 0 || m_pushConstantBinding == PUSH_CONSTANT_BINDING,
-                "Invalid push constants - you have multiple different push constants in different shader stages.");
+        const auto& slangReflection = shader->entryPoint().reflection;
 
-            m_pushConstantBinding = PUSH_CONSTANT_BINDING;
+        for (const auto& res : slangReflection.resources)
+        {
+            uint32_t nameHash = NameRegistry::getHash(res.name);
+
+            if (res.isBuffer())
+            {
+                if (!m_bufferBindings.contains(nameHash))
+                {
+                    m_bufferBindings[nameHash] = OPTIMIZED_OUT;
+                }
+            }
+            else if (res.isTexture() || res.type == ShaderReflection::ResourceType::Sampler)
+            {
+                if (!m_textureBindings.contains(nameHash))
+                    m_textureBindings[nameHash] = {};
+
+                if (!m_samplerBindings.contains(nameHash))
+                    m_samplerBindings[nameHash] = {};
+            }
         }
     }
 
@@ -163,6 +197,29 @@ namespace urhi
     GlPipeline::~GlPipeline()
     {
         glDeleteProgram(m_shaderProgram);
+    }
+
+    const std::vector<GlPipeline::CombinedSamplerUnit>* GlPipeline::textureBinding(uint32_t nameHash) const
+    {
+        if (const auto it = m_textureBindings.find(nameHash); it != m_textureBindings.end())
+            return &it->second;
+        return nullptr;
+    }
+
+    const std::vector<GlPipeline::CombinedSamplerUnit>* GlPipeline::samplerBinding(uint32_t nameHash) const
+    {
+        if (const auto it = m_samplerBindings.find(nameHash); it != m_samplerBindings.end())
+            return &it->second;
+        return nullptr;
+    }
+
+    int GlPipeline::bufferBinding(const uint32_t nameHash)
+    {
+        const auto it = m_bufferBindings.find(nameHash);
+        if(it != m_bufferBindings.end())
+            return it->second;
+
+        return INVALID_TYPO;
     }
 
     void GlPipeline::bind() const
@@ -221,16 +278,16 @@ namespace urhi
             glDepthMask(GL_FALSE);
         }
 
-        if(m_cullFaceMode != GL_NONE)
-        {
-            glEnable(GL_CULL_FACE);
-            glCullFace(m_cullFaceMode);
-            glFrontFace(GL_CCW);
-        }
-        else
-        {
-            glDisable(GL_CULL_FACE);
-        }
+        // if(m_cullFaceMode != GL_NONE)
+        // {
+        //     glEnable(GL_CULL_FACE);
+        //     glCullFace(m_cullFaceMode);
+        //     glFrontFace(GL_CCW);
+        // }
+        // else
+        // {
+        //     glDisable(GL_CULL_FACE);
+        // }
 
         if(m_enableScissorTest)
             glEnable(GL_SCISSOR_TEST);

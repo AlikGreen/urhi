@@ -46,13 +46,12 @@ namespace urhi
 
     void GlCommandListEmitter::emit(const CmdBeginRenderPass &c)
     {
-        glDisable(GL_SCISSOR_TEST);
-
         uint32_t fbo = m_device->getOrCreateFramebuffer(c.desc);
 
         for(size_t i = 0; i < c.desc.colorAttachments.size(); i++)
         {
             auto& attachment = c.desc.colorAttachments[i];
+            if(attachment.loadOp != LoadOp::Clear) continue;
 
             std::visit([i, fbo]<typename T>(T&& val)
             {
@@ -68,7 +67,7 @@ namespace urhi
             attachment.clearValue);
         }
 
-        if(c.desc.depthAttachment.has_value())
+        if(c.desc.depthAttachment.has_value() && c.desc.depthAttachment->loadOp == LoadOp::Clear)
             glClearNamedFramebufferfv(fbo, GL_DEPTH, 0, &c.desc.depthAttachment->clearDepth);
 
         m_renderPassActive = true;
@@ -86,6 +85,7 @@ namespace urhi
 
         const uint32_t width = mainTex->texture()->width();
         m_renderPassHeight = mainTex->texture()->height();
+
 
         glViewport(
             c.desc.renderArea.x,
@@ -127,7 +127,16 @@ namespace urhi
         glNamedBufferStorage(glRequest->m_buffer, bufferSize, nullptr, GL_MAP_READ_BIT);
 
         glBindBuffer(GL_PIXEL_PACK_BUFFER, glRequest->m_buffer);
-        glGetTextureImage(glTex->handle(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bufferSize, nullptr);
+        glGetTextureSubImage(
+            glTex->handle(),
+            desc.mipLevel,
+            desc.x, desc.y, desc.z,
+            desc.width, desc.height, desc.depth,
+            GlConvert::pixelFormat(glTex->format()),
+            GlConvert::pixelType(glTex->format()),
+            bufferSize,
+            nullptr
+        );
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
         glRequest->m_fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -215,12 +224,22 @@ namespace urhi
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
 
+        // This lookup now handles EVERYTHING.
         const int index = m_boundPipeline->bufferBinding(c.nameHash);
-        URHI_VALIDATE(index >= 0, "Binding a resource that the shader doesnt use - you should not bind resources that are not used in the shader");
+
+        if (index == GlPipeline::OPTIMIZED_OUT)
+            return;
+
+        URHI_VALIDATE(index != m_boundPipeline->pushConstantBinding(),
+        "Buffer '{}' is binding to the push constant slot - binding index collision",
+        NameRegistry::getName(c.nameHash));
+
+        URHI_VALIDATE(index != GlPipeline::INVALID_TYPO, "Binding a resource ('{}') that the shader does not use or declare.", NameRegistry::getName(c.nameHash));
 
         const auto glBuffer = static_cast<GlBuffer*>(c.buffer.get());
-
         glBindBufferBase(GlConvert::bufferTarget(glBuffer->usage()), index, glBuffer->handle());
+
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
     }
 
     void GlCommandListEmitter::emit(const CmdSetTexture &c)
@@ -229,14 +248,11 @@ namespace urhi
 
         const auto glView = static_cast<GlTextureView*>(c.texture.get());
 
-        const auto units = m_boundPipeline->samplerUnits(c.nameHash);
-        if (units.empty())
-        {
-            URHI_WARNING(false, "Sampler not found in shader");
-            return;
-        }
+        const auto units = m_boundPipeline->textureBinding(c.nameHash);
 
-        for (const auto& unit : units)
+        URHI_VALIDATE(units, "Texture ({}) not found in shader", NameRegistry::getName(c.nameHash));
+
+        for (const auto& unit : *units)
         {
             glBindTextureUnit(unit.unit, glView->handle());
         }
@@ -248,14 +264,11 @@ namespace urhi
 
         const auto glSampler = static_cast<GlSampler*>(c.sampler.get());
 
-        const auto units = m_boundPipeline->samplerUnits(c.nameHash);
-        if (units.empty())
-        {
-            URHI_WARNING(false, "Sampler not found in shader");
-            return;
-        }
+        const auto units = m_boundPipeline->samplerBinding(c.nameHash);
 
-        for (const auto& unit : units)
+        URHI_VALIDATE(units, "Sampler ({}) not found in shader", NameRegistry::getName(c.nameHash));
+
+        for (const auto& unit : *units)
         {
             glBindSampler(unit.unit, glSampler->handle());
         }
@@ -303,7 +316,8 @@ namespace urhi
         URHI_VALIDATE(c.rect.x >= 0, "Scissor offset x ({}) is invalid - x offset must be >= 0", c.rect.x);
         URHI_VALIDATE(c.rect.y >= 0, "Scissor offset y ({}) is invalid - y offset must be >= 0", c.rect.y);
 
-        glScissor(c.rect.x, m_renderPassHeight - (c.rect.y + c.rect.height), c.rect.width, c.rect.height);
+        // glScissor(c.rect.x, m_renderPassHeight - (c.rect.y + c.rect.height), c.rect.width, c.rect.height);
+        glScissor(c.rect.x, c.rect.y, c.rect.width, c.rect.height);
     }
 
     void GlCommandListEmitter::emit(const CmdSetViewport &c) const
@@ -331,29 +345,45 @@ namespace urhi
         if(dstTex->handle() != 0)
             glNamedFramebufferTexture(dstFb, GL_COLOR_ATTACHMENT0, dstTex->handle(), c.desc.dstMipLevel);
 
+        int srcX0 = c.desc.srcOffset.x;
+        int srcY0 = c.desc.srcOffset.y;
+
+        int dstX0 = c.desc.dstOffset.x;
+        int dstY0 = c.desc.dstOffset.y;
+
         int srcX1 = c.desc.srcOffset.x + c.desc.srcExtent.x;
         if(srcX1 == 0) srcX1 = srcTex->width(0);
         int srcY1 = c.desc.srcOffset.y + c.desc.srcExtent.y;
         if(srcY1 == 0) srcY1 = srcTex->height(0);
 
-        int dstX1 = c.desc.srcOffset.x + c.desc.srcExtent.x;
+        int dstX1 = c.desc.dstOffset.x + c.desc.dstExtent.x;
         if(dstX1 == 0) dstX1 = dstTex->width(0);
-        int dstY1 = c.desc.srcOffset.y + c.desc.srcExtent.y;
+        int dstY1 = c.desc.dstOffset.y + c.desc.dstExtent.y;
         if(dstY1 == 0) dstY1 = dstTex->height(0);
 
-        glBlitNamedFramebuffer(
-            srcFb, dstFb,
-            c.desc.srcOffset.x,
-            c.desc.srcOffset.y,
-            srcX1,
-            srcY1,
-            c.desc.dstOffset.x,
-            c.desc.dstOffset.y,
-            dstX1,
-            dstY1,
-            GL_COLOR_BUFFER_BIT,
-            GlConvert::filter(c.desc.filter)
-        );
+        if(dstFb != 0)
+        {
+            glBlitNamedFramebuffer(
+                srcFb, dstFb,
+                srcX0, srcY0,
+                srcX1, srcY1,
+                dstX0, dstY0,
+                dstX1, dstY1,
+                GL_COLOR_BUFFER_BIT,
+                GlConvert::filter(c.desc.filter)
+            );
+        }else
+        {
+            glBlitNamedFramebuffer(
+                srcFb, dstFb,
+                srcX0, srcY1,  // <-- swapped
+                srcX1, srcY0,  // <-- swapped
+                dstX0, dstY0,
+                dstX1, dstY1,
+                GL_COLOR_BUFFER_BIT,
+                GlConvert::filter(c.desc.filter)
+            );
+        }
     }
 
     void GlCommandListEmitter::emit(const CmdDispatchCompute &c) const
@@ -366,7 +396,23 @@ namespace urhi
 
     void GlCommandListEmitter::emit(const CmdEndRenderPass &c)
     {
+        glBindVertexArray(0);
+
         glDisable(GL_SCISSOR_TEST);
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_DEPTH_TEST);
+
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+        glDisable(GL_BLEND);
+
+        glStencilMask(0xFFFFFFFF);
+        glDisable(GL_STENCIL_TEST);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glDisable(GL_CULL_FACE);
+
         m_renderPassActive = false;
         m_boundPipeline = nullptr;
     }

@@ -2,6 +2,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "nameRegistry.h"
 #include "pipeline.h"
 #include "readbackRequest.h"
 #include "sampler.h"
@@ -71,7 +72,7 @@ struct HashedName
 
     template <std::size_t N>
     consteval HashedName(const char (&str)[N])
-        : hash(grl::Hash::fnv1a32(str)), text(str, N - 1)
+        : hash(NameRegistry::getHash(str)), text(str, N - 1)
         {  }
 };
 

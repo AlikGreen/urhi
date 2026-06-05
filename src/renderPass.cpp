@@ -11,20 +11,17 @@ namespace urhi
 
     void RenderPass::setBuffer(const std::string_view name, const grl::Rc<Buffer> &buffer)
     {
-        const uint32_t nameHash = grl::Hash::fnv1a32(name);
-        m_commands->emplace(CmdSetBuffer{nameHash, buffer});
+        m_commands->emplace(CmdSetBuffer{NameRegistry::getHash(name), buffer});
     }
 
     void RenderPass::setTexture(const std::string_view name, const grl::Rc<TextureView> &texture)
     {
-        const uint32_t nameHash = grl::Hash::fnv1a32(name);
-        m_commands->emplace(CmdSetTexture{nameHash, texture});
+        m_commands->emplace(CmdSetTexture{NameRegistry::getHash(name), texture});
     }
 
     void RenderPass::setSampler(const std::string_view name, const grl::Rc<Sampler> &sampler)
     {
-        const uint32_t nameHash = grl::Hash::fnv1a32(name);
-        m_commands->emplace(CmdSetSampler{nameHash, sampler});
+        m_commands->emplace(CmdSetSampler{NameRegistry::getHash(name), sampler});
     }
 
     void RenderPass::pushConstants(const void *data, const uint32_t size)

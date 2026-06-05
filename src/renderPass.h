@@ -3,6 +3,7 @@
 
 #include "buffer.h"
 #include "commandStream.h"
+#include "nameRegistry.h"
 #include "pipeline.h"
 #include "sampler.h"
 #include "textureView.h"
