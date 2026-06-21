@@ -96,7 +96,7 @@ namespace urhi
     {
         m_shaderProgram = glCreateProgram();
 
-        for(const auto shader : shaders)
+        for(const auto& shader : shaders)
         {
             const auto glShader = static_cast<GlShader*>(shader.get());
             glAttachShader(m_shaderProgram, glShader->handle());
@@ -111,8 +111,7 @@ namespace urhi
         {
             const GLint loc = glGetUniformLocation(m_shaderProgram, info.combinedName.c_str());
 
-            // Set the sampler uniform to point at the right texture unit now
-            // so won't have to set again
+            // Set uniform now so don't have to do per frame
             if (loc >= 0)
                 glUniform1i(loc, info.textureUnit);
 
@@ -122,68 +121,70 @@ namespace urhi
             m_samplerBindings[info.samplerNameHash].push_back(entry);
         }
 
-        int maxUboBinding = -1;
-
-        for (auto& info : shader->uniformBlocks())
+        for (auto& info : shader->storageImages())
         {
-            const GLuint blockIndex = glGetUniformBlockIndex(m_shaderProgram, info.blockName.c_str());
-            if (blockIndex == GL_INVALID_INDEX) continue;
+            const GLint loc = glGetUniformLocation(m_shaderProgram, info.name.c_str());
 
+            if (loc >= 0)
+                glUniform1i(loc, info.unit);
+
+            uint32_t hash = NameRegistry::getHash(info.name);
+            m_imageBindings[hash] = ComputeResourceInfo{ static_cast<int>(info.unit), info.access, 0 };
+        }
+
+        resolveBlockBindings();
+
+        int maxBufferBinding = -1;
+
+        for (auto& info : shader->uboInfos())
+        {
             uint32_t hash = NameRegistry::getHash(info.instanceName);
-            glUniformBlockBinding(m_shaderProgram, blockIndex, info.binding);
-            m_bufferBindings[hash] = info.binding;
+            m_bufferBindings[hash] = { static_cast<int>(info.binding), info.access, GL_UNIFORM_BUFFER };
+            maxBufferBinding = std::max(maxBufferBinding, static_cast<int>(info.binding));
+        }
 
-            maxUboBinding = std::max(maxUboBinding, (int)info.binding);
+        for (auto& info : shader->ssboInfos())
+        {
+            uint32_t hash = NameRegistry::getHash(info.instanceName);
+            m_bufferBindings[hash] = { static_cast<int>(info.binding), info.access, GL_SHADER_STORAGE_BUFFER };
+            maxBufferBinding = std::max(maxBufferBinding, static_cast<int>(info.binding));
         }
 
         if (shader->pushConstant().has_value())
         {
-            GLuint blockIndex = glGetUniformBlockIndex(m_shaderProgram,
-                shader->pushConstant()->blockName.c_str());
-
+            const GLuint blockIndex = glGetUniformBlockIndex(m_shaderProgram, GlShader::kPushConstantBlockName);
             URHI_VALIDATE(blockIndex != GL_INVALID_INDEX,
-                "Push constant block '{}' not found in shader",
-                shader->pushConstant()->blockName);
+                "Push constant block not found in shader");
 
             if (m_pushConstantBinding >= 0)
             {
-                // Already assigned by a previous stage - validate it's the same block
                 URHI_VALIDATE(shader->pushConstant()->instanceName == m_pushConstantInstanceName,
                     "Mismatched push constant blocks across shader stages: '{}' vs '{}'",
                     shader->pushConstant()->instanceName, m_pushConstantInstanceName);
 
-                // Reuse the existing slot so all stages agree on the binding
                 glUniformBlockBinding(m_shaderProgram, blockIndex, m_pushConstantBinding);
             }
             else
             {
-                const int pushConstantSlot = maxUboBinding + 1;
-                glUniformBlockBinding(m_shaderProgram, blockIndex, pushConstantSlot);
-                m_pushConstantBinding = pushConstantSlot;
+                const int slot = maxBufferBinding + 1;
+                glUniformBlockBinding(m_shaderProgram, blockIndex, slot);
+                m_pushConstantBinding = slot;
                 m_pushConstantInstanceName = shader->pushConstant()->instanceName;
             }
         }
 
-        const auto& slangReflection = shader->entryPoint().reflection;
-
-        for (const auto& res : slangReflection.resources)
+        for (const auto& res : shader->entryPoint().reflection.resources)
         {
             uint32_t nameHash = NameRegistry::getHash(res.name);
-
             if (res.isBuffer())
             {
                 if (!m_bufferBindings.contains(nameHash))
-                {
-                    m_bufferBindings[nameHash] = OPTIMIZED_OUT;
-                }
+                    m_bufferBindings[nameHash] = { OPTIMIZED_OUT, ResourceAccess::ReadOnly };
             }
             else if (res.isTexture() || res.type == ShaderReflection::ResourceType::Sampler)
             {
-                if (!m_textureBindings.contains(nameHash))
-                    m_textureBindings[nameHash] = {};
-
-                if (!m_samplerBindings.contains(nameHash))
-                    m_samplerBindings[nameHash] = {};
+                if (!m_textureBindings.contains(nameHash)) m_textureBindings[nameHash] = {};
+                if (!m_samplerBindings.contains(nameHash)) m_samplerBindings[nameHash] = {};
             }
         }
     }
@@ -213,13 +214,22 @@ namespace urhi
         return nullptr;
     }
 
-    int GlPipeline::bufferBinding(const uint32_t nameHash)
+    GlPipeline::ComputeResourceInfo GlPipeline::bufferBinding(const uint32_t nameHash)
     {
         const auto it = m_bufferBindings.find(nameHash);
         if(it != m_bufferBindings.end())
             return it->second;
 
-        return INVALID_TYPO;
+        return { INVALID_TYPO, ResourceAccess::ReadOnly };
+    }
+
+    GlPipeline::ComputeResourceInfo GlPipeline::imageBinding(const uint32_t nameHash)
+    {
+        const auto it = m_imageBindings.find(nameHash);
+        if(it != m_imageBindings.end())
+            return it->second;
+
+        return { INVALID_TYPO, ResourceAccess::ReadOnly };
     }
 
     void GlPipeline::bind() const
@@ -308,6 +318,34 @@ namespace urhi
         else
         {
             glDisable(GL_STENCIL_TEST);
+        }
+    }
+
+    void GlPipeline::resolveBlockBindings()
+    {
+        GLint count = 0;
+
+        glGetProgramInterfaceiv(m_shaderProgram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count);
+
+        for (GLint i = 0; i < count; i++)
+        {
+            GLenum prop = GL_BUFFER_BINDING;
+            GLint binding = 0;
+            glGetProgramResourceiv(m_shaderProgram, GL_SHADER_STORAGE_BLOCK,
+                                   i, 1, &prop, 1, nullptr, &binding);
+
+            glShaderStorageBlockBinding(m_shaderProgram, i, binding);
+        }
+
+        glGetProgramInterfaceiv(m_shaderProgram, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &count);
+
+        for (GLint i = 0; i < count; i++)
+        {
+            GLenum prop = GL_BUFFER_BINDING;
+            GLint binding = 0;
+            glGetProgramResourceiv(m_shaderProgram, GL_UNIFORM_BLOCK,
+                                   i, 1, &prop, 1, nullptr, &binding);
+            glUniformBlockBinding(m_shaderProgram, i, binding);
         }
     }
 }

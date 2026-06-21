@@ -3,32 +3,56 @@
 #include <grl/mem.h>
 
 #include "buffer.h"
+#include "commandStream.h"
 #include "pipeline.h"
 #include "sampler.h"
 #include "textureView.h"
+#include "enums/resourceAccess.h"
 
 namespace urhi
 {
-class ComputePass
+class ComputePass final
 {
 public:
-    ComputePass() = default;
-    virtual ~ComputePass() = default;
+    ComputePass(const ComputePass&)            = delete;
+    ComputePass& operator=(const ComputePass&) = delete;
+    ComputePass(ComputePass&&)                 = delete;
+    ComputePass& operator=(ComputePass&&)      = delete;
 
-    ComputePass(const ComputePass&) = delete;
-    ComputePass& operator= (const ComputePass&) = delete;
+    void setPipeline(const grl::Rc<Pipeline>& pipeline);
 
-    virtual void setPipeline(const grl::Rc<Pipeline>& pipeline) = 0;
+    void setBuffer(const HashedName &name, const grl::Rc<Buffer>& buffer) const
+    {
+        m_commands->emplace(CmdSetBuffer{name.hash, buffer});
+    }
 
-    virtual void setBuffer(const std::string& name, const grl::Rc<Buffer>& buffer) = 0;
-    virtual void setTexture(const std::string& name, const grl::Rc<TextureView>& texture) = 0;
-    virtual void setSampler(const std::string& name, const grl::Rc<Sampler>& sampler) = 0;
+    void setTexture(const HashedName &name, const grl::Rc<TextureView>& texture) const
+    {
+        m_commands->emplace(CmdSetTexture{name.hash, texture});
+    }
+
+    void setSampler(const HashedName &name, const grl::Rc<Sampler>& sampler) const
+    {
+        m_commands->emplace(CmdSetSampler{name.hash, sampler});
+    }
+
+    void setBuffer(std::string_view name, const grl::Rc<Buffer>& buffer);
+    void setImage(std::string_view name, const grl::Rc<TextureView>& texture);
+    void setTexture(std::string_view name, const grl::Rc<TextureView>& texture);
+    void setSampler(std::string_view name, const grl::Rc<Sampler>& sampler);
 
     template<typename T>
     void pushConstants(T& data) { pushConstants(&data, sizeof(T)); }
-    virtual void pushConstants(void* data, size_t size) = 0;
+    void pushConstants(const void* data, uint32_t size);
 
-    virtual void dispatch(uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ) = 0;
-    virtual void end() = 0;
+    void dispatch(uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ);
+    void dispatchIndirect(const grl::Rc<Buffer>& buffer, uint32_t offset = 0);
+
+    void end();
+private:
+    friend class CommandList;
+    explicit ComputePass(const grl::Rc<CommandStream>& commands);
+
+    grl::Rc<CommandStream> m_commands;
 };
 }

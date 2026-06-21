@@ -12,6 +12,7 @@ class GlPipeline final : public Pipeline
 {
 public:
     struct CombinedSamplerUnit;
+    struct ComputeResourceInfo;
 
     static constexpr int OPTIMIZED_OUT = -1;
     static constexpr int INVALID_TYPO = -2;
@@ -22,7 +23,7 @@ public:
     void createProgram(const std::vector<grl::Rc<Shader>> &shaders);
     void extractReflection(GlShader* shader);
 
-    uint32_t vertexStride(uint32_t bindingIndex) const;
+    [[nodiscard]] uint32_t vertexStride(uint32_t bindingIndex) const;
 
     ~GlPipeline() override;
 
@@ -31,18 +32,21 @@ public:
     [[nodiscard]] const std::vector<CombinedSamplerUnit>* textureBinding(uint32_t nameHash) const;
     [[nodiscard]] const std::vector<CombinedSamplerUnit>* samplerBinding(uint32_t nameHash) const;
 
-    PrimitiveType primitiveType() const { return m_primitiveType; }
+    [[nodiscard]] PrimitiveType primitiveType() const { return m_primitiveType; }
 
-    GLuint vao() const { return m_vao; }
+    [[nodiscard]] GLuint vao() const { return m_vao; }
 
-    uint32_t pushConstantBinding() const { return m_pushConstantBinding; }
+    [[nodiscard]] uint32_t pushConstantBinding() const { return m_pushConstantBinding; }
 
-    int bufferBinding(uint32_t nameHash);
+    ComputeResourceInfo bufferBinding(uint32_t nameHash);
+    ComputeResourceInfo imageBinding(uint32_t nameHash);
 
-    const std::unordered_map<uint32_t, int>& bufferBindings() const { return m_bufferBindings; }
+    [[nodiscard]] const std::unordered_map<uint32_t, ComputeResourceInfo>& bufferBindings() const { return m_bufferBindings; }
 
     void bind() const;
 protected:
+    void resolveBlockBindings();
+
     GlDevice* m_device;
 
     // General
@@ -54,7 +58,8 @@ protected:
     std::string m_pushConstantInstanceName{};
     std::unordered_map<uint32_t, std::vector<CombinedSamplerUnit>> m_textureBindings;
     std::unordered_map<uint32_t, std::vector<CombinedSamplerUnit>> m_samplerBindings;
-    std::unordered_map<uint32_t, int> m_bufferBindings;
+    std::unordered_map<uint32_t, ComputeResourceInfo> m_imageBindings;
+    std::unordered_map<uint32_t, ComputeResourceInfo> m_bufferBindings;
 
     // Graphics pipeline
     std::vector<uint32_t> m_vertexStrides;
@@ -79,6 +84,13 @@ protected:
     {
         uint32_t unit;
         int location;
+    };
+
+    struct ComputeResourceInfo
+    {
+        int binding;
+        ResourceAccess access;
+        GLenum target;
     };
 };
 }

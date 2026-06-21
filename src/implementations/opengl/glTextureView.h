@@ -27,6 +27,8 @@ public:
     [[nodiscard]] grl::Rc<Texture> texture() const override { return m_texture; }
 
     [[nodiscard]]  uint32_t handle() const { return m_handle; };
+
+    bool pendingComputeWrite = false;
 private:
     friend class GlSwapchain;
     GlDevice* m_device;

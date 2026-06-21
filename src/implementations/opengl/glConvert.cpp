@@ -719,4 +719,32 @@ namespace urhi
             default:              return GL_BACK;
         }
     }
+
+    GLenum GlConvert::bufferBarrierBit(const BufferUsage usage)
+    {
+        switch(usage)
+        {
+            case BufferUsage::Vertex:  return GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT;
+            case BufferUsage::Index:  return GL_ELEMENT_ARRAY_BARRIER_BIT;
+            case BufferUsage::Indirect: return GL_COMMAND_BARRIER_BIT;
+            case BufferUsage::Uniform: return GL_UNIFORM_BARRIER_BIT;
+            case BufferUsage::Storage: return GL_SHADER_STORAGE_BARRIER_BIT;
+            case BufferUsage::None:  return GL_NONE;
+            default:              return GL_BACK;
+        }
+    }
+
+    GLenum GlConvert::resourceAccess(const ResourceAccess access)
+    {
+        switch (access)
+        {
+            case ResourceAccess::ReadOnly:
+                return GL_READ_ONLY;
+            case ResourceAccess::WriteOnly:
+                return GL_WRITE_ONLY;
+            case ResourceAccess::ReadWrite:
+            default:
+                return GL_READ_WRITE;
+        }
+    }
 }

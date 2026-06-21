@@ -63,5 +63,8 @@ public:
 
     static GLenum fillMode(FillMode mode);
     static GLenum cullMode(CullMode mode);
+
+    static GLenum bufferBarrierBit(BufferUsage usage);
+    static GLenum resourceAccess(ResourceAccess access);
 };
 }

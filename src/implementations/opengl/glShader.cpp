@@ -13,16 +13,13 @@ namespace urhi
     GlShader::GlShader(GlDevice* device, const ShaderEntryPoint& entryPoint)
     : m_device(device), m_entryPoint(entryPoint)
     {
+        // TODO fix this whole thing. the name setting and reflection is not robust
         spirv_cross::CompilerGLSL compiler(entryPoint.spirv);
 
         spirv_cross::CompilerGLSL::Options opts;
         opts.version = 460;
         opts.es = false;
         opts.emit_push_constant_as_uniform_buffer = true;
-
-        // to match vulkan
-        // opts.vertex.flip_vert_y = true;
-        // opts.vertex.fixup_clipspace = true;
 
         compiler.set_common_options(opts);
 
@@ -69,39 +66,68 @@ namespace urhi
             info.samplerNameHash = NameRegistry::getHash(compiler.get_name(combined.sampler_id));
             m_combinedSamplers.push_back(info);
         }
+
+        auto resources = compiler.get_shader_resources();
+
+        for (auto& image : resources.storage_images)
+        {
+            StorageImageInfo info{};
+            info.unit = compiler.get_decoration(image.id, spv::DecorationBinding);
+            info.name = compiler.get_name(image.id);
+
+            spirv_cross::Bitset flags = compiler.get_buffer_block_flags(image.id);
+
+            if(flags.get(spv::DecorationNonWritable))
+                info.access = ResourceAccess::ReadOnly;
+            if(flags.get(spv::DecorationNonReadable))
+                info.access = ResourceAccess::WriteOnly;
+            else
+                info.access = ResourceAccess::ReadWrite;
+
+            m_storageImage.push_back(info);
+        }
     }
 
     void GlShader::reflectUbos(spirv_cross::CompilerGLSL& compiler)
     {
         auto resources = compiler.get_shader_resources();
 
-        for (auto& ubo : resources.uniform_buffers)
+        for (const auto& ubo : resources.uniform_buffers)
         {
-            UboReflection refl;
-            refl.instanceName   = compiler.get_name(ubo.id);
-            refl.blockName      = refl.instanceName + "_block";
-            refl.binding        = compiler.get_decoration(ubo.id, spv::DecorationBinding);
-            refl.isPushConstant = false;
+            BufferReflection refl;
+            refl.instanceName = compiler.get_name(ubo.id);
+            refl.binding      = compiler.get_decoration(ubo.id, spv::DecorationBinding);
+            refl.access       = ResourceAccess::ReadOnly;
 
-            // Must set before compile() so the cached GLSL has the right name
-            compiler.set_name(ubo.base_type_id, refl.blockName);
             m_ubos.push_back(refl);
+        }
+
+        for (auto& ssbo : resources.storage_buffers)
+        {
+            BufferReflection refl;
+            refl.instanceName = compiler.get_name(ssbo.id);
+            refl.binding      = compiler.get_decoration(ssbo.id, spv::DecorationBinding);
+
+            spirv_cross::Bitset flags = compiler.get_buffer_block_flags(ssbo.id);
+            if      (flags.get(spv::DecorationNonWritable)) refl.access = ResourceAccess::ReadOnly;
+            else if (flags.get(spv::DecorationNonReadable)) refl.access = ResourceAccess::WriteOnly;
+            else                                               refl.access = ResourceAccess::ReadWrite;
+
+            m_ssbos.push_back(refl);
         }
 
         for (auto& pc : resources.push_constant_buffers)
         {
-            static constexpr auto kPushConstantsUboName = "PushConstantBlock";
+            BufferReflection refl;
+            refl.instanceName = compiler.get_name(pc.id);
+            refl.binding      = 0;
+            refl.access       = ResourceAccess::ReadOnly;
 
-            UboReflection refl;
-            refl.instanceName   = compiler.get_name(pc.id);
-            refl.blockName      = kPushConstantsUboName;
-            refl.binding        = 0;
-            refl.isPushConstant = true;
+            compiler.set_name(pc.base_type_id, kPushConstantBlockName);
 
-            compiler.set_name(pc.base_type_id, kPushConstantsUboName);
-            compiler.set_decoration(pc.id, spv::DecorationBinding, refl.binding);
             m_pushConstant = refl;
         }
+
     }
 
     std::string GlShader::getOrCompileGlsl(spirv_cross::CompilerGLSL& compiler, const std::vector<uint32_t>& spirv) const

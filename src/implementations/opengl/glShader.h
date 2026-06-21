@@ -13,12 +13,12 @@ class GlShader final : public Shader
 {
 public:
     struct CombinedSamplerInfo;
-    struct UboReflection
+    struct StorageImageInfo;
+    struct BufferReflection
     {
         std::string  instanceName;
-        std::string  blockName;
         uint32_t     binding;
-        bool         isPushConstant;
+        ResourceAccess access;
     };
 
     GlShader(GlDevice* device, const ShaderEntryPoint& entryPoint);
@@ -31,17 +31,21 @@ public:
 
     std::string getOrCompileGlsl(spirv_cross::CompilerGLSL &compiler, const std::vector<uint32_t> &spirv) const;
 
-    std::optional<std::string> tryLoadDisk(uint32_t hash) const;
+    [[nodiscard]] std::optional<std::string> tryLoadDisk(uint32_t hash) const;
     void saveDisk(uint32_t hash, std::string glsl) const;
 
-    GLuint handle() const { return m_handle; }
+    [[nodiscard]] GLuint handle() const { return m_handle; }
 
     const std::vector<CombinedSamplerInfo>& combinedSamplers() { return m_combinedSamplers; }
-    const std::vector<UboReflection>& uniformBlocks() { return m_ubos; }
-    std::optional<UboReflection> pushConstant() { return m_pushConstant; }
+    const std::vector<StorageImageInfo>& storageImages() { return m_storageImage; }
+    const std::vector<BufferReflection>& uboInfos() { return m_ubos; }
+    const std::vector<BufferReflection>& ssboInfos() { return m_ssbos; }
+    std::optional<BufferReflection> pushConstant() { return m_pushConstant; }
 
 
     ShaderEntryPoint entryPoint() override { return m_entryPoint; }
+
+    static constexpr auto kPushConstantBlockName = "PushConstantBlock";
 private:
     static constexpr uint32_t compilerVersion = 6;
     static std::unordered_map<uint32_t, std::string> m_glslCache;
@@ -51,9 +55,11 @@ private:
 
     GLuint m_handle;
 
-    std::optional<UboReflection> m_pushConstant = std::nullopt;
+    std::optional<BufferReflection> m_pushConstant = std::nullopt;
     std::vector<CombinedSamplerInfo> m_combinedSamplers;
-    std::vector<UboReflection> m_ubos{};
+    std::vector<StorageImageInfo> m_storageImage;
+    std::vector<BufferReflection> m_ubos{};
+    std::vector<BufferReflection> m_ssbos{};
 public:
     struct CombinedSamplerInfo
     {
@@ -61,6 +67,14 @@ public:
         std::string combinedName;
         uint32_t    texNameHash;
         uint32_t    samplerNameHash;
+    };
+
+    struct StorageImageInfo
+    {
+        uint32_t unit;
+        ResourceAccess access;
+
+        std::string name;
     };
 };
 }

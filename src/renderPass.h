@@ -3,7 +3,6 @@
 
 #include "buffer.h"
 #include "commandStream.h"
-#include "nameRegistry.h"
 #include "pipeline.h"
 #include "sampler.h"
 #include "textureView.h"
@@ -13,9 +12,7 @@
 
 namespace urhi
 {
-    class CommandStream;
-
-class RenderPass
+class RenderPass final
 {
 public:
     RenderPass(const RenderPass&)            = delete;
@@ -57,11 +54,16 @@ public:
     void draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
     void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int vertexOffset = 0, uint32_t firstInstance = 0);
 
+    void multiDrawIndirect(const grl::Rc<Buffer>& commandsBuffer, uint32_t count, uint32_t startCommandIndex = 0);
+    void multiDrawIndirectCount(const grl::Rc<Buffer>& commandsBuffer, const grl::Rc<Buffer>& countsBuffer, uint32_t startCommandIndex = 0, uint32_t countIndex = 0, uint32_t maxDrawCount = ~0u);
+    void multiDrawIndexedIndirect(const grl::Rc<Buffer>& commandsBuffer, uint32_t count, uint32_t startCommandIndex = 0);
+    void multiDrawIndexedIndirectCount(const grl::Rc<Buffer>& commandsBuffer, const grl::Rc<Buffer>& countsBuffer, uint32_t startCommandIndex = 0, uint32_t countIndex = 0, uint32_t maxDrawCount = ~0u);
+
     void end();
 private:
     friend class CommandList;
-    explicit RenderPass(grl::Rc<CommandStream>& commands);
+    explicit RenderPass(const grl::Rc<CommandStream> &commands);
 
-    grl::Rc<CommandStream>& m_commands;
+    grl::Rc<CommandStream> m_commands;
 };
 }

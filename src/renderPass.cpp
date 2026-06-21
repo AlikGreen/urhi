@@ -1,6 +1,7 @@
 #include "renderPass.h"
 
 #include "commandStream.h"
+#include "DrawIndexedIndirectCommand.h"
 
 namespace urhi
 {
@@ -60,11 +61,37 @@ namespace urhi
         m_commands->emplace(CmdDrawIndexed{indexCount, instanceCount, firstIndex, vertexOffset, firstInstance});
     }
 
+    void RenderPass::multiDrawIndirect(const grl::Rc<Buffer> &commandsBuffer, uint32_t count, uint32_t startCommandIndex)
+    {
+        m_commands->emplace(CmdMultiDrawIndirect{commandsBuffer, startCommandIndex, count});
+    }
+
+    void RenderPass::multiDrawIndirectCount(const grl::Rc<Buffer> &commandsBuffer, const grl::Rc<Buffer> &countsBuffer, uint32_t startCommandIndex, uint32_t countIndex, uint32_t maxDrawCount)
+    {
+        if(maxDrawCount == ~0u)
+            maxDrawCount = (commandsBuffer->size() / sizeof(DrawIndirectCommand)) - startCommandIndex;
+
+        m_commands->emplace(CmdMultiDrawIndirectCount{commandsBuffer, startCommandIndex, countsBuffer, countIndex, maxDrawCount});
+    }
+
+    void RenderPass::multiDrawIndexedIndirect(const grl::Rc<Buffer> &commandsBuffer, const uint32_t count, const uint32_t startCommandIndex)
+    {
+        m_commands->emplace(CmdMultiDrawIndexedIndirect{commandsBuffer, startCommandIndex, count});
+    }
+
+    void RenderPass::multiDrawIndexedIndirectCount(const grl::Rc<Buffer> &commandsBuffer, const grl::Rc<Buffer> &countsBuffer, const uint32_t startCommandIndex, const uint32_t countIndex, uint32_t maxDrawCount)
+    {
+        if(maxDrawCount == ~0u)
+            maxDrawCount = (commandsBuffer->size() / sizeof(DrawIndexedIndirectCommand)) - startCommandIndex;
+
+        m_commands->emplace(CmdMultiDrawIndexedIndirectCount{commandsBuffer, startCommandIndex, countsBuffer, countIndex, maxDrawCount});
+    }
+
     void RenderPass::end()
     {
         m_commands->emplace(CmdEndRenderPass{});
     }
 
-    RenderPass::RenderPass(grl::Rc<CommandStream> &commands)
+    RenderPass::RenderPass(const grl::Rc<CommandStream> &commands)
         : m_commands(commands) {  }
 }

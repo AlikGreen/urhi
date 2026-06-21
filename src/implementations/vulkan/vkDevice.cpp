@@ -146,7 +146,7 @@ namespace urhi
             }
         }
 
-        URHI_WARNING(m_commandLists.size() > 128, "Lots of command lists allocated ({})", m_commandLists.size());
+        URHI_WARNING(m_commandLists.size() < 128, "Lots of command lists allocated ({})", m_commandLists.size());
 
         const auto cmd = grl::makeRc<VkCommandList>(this, queue, &queue->submissionContext());
         m_commandLists.push_back(cmd);

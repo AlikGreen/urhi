@@ -135,7 +135,7 @@ namespace urhi
             }
         }
 
-        URHI_WARNING(m_commandLists.size() > 128, "Lots of command lists allocated ({})", m_commandLists.size());
+        URHI_WARNING(m_commandLists.size() < 128, "Lots of command lists allocated ({})", m_commandLists.size());
 
         const auto cmd = grl::makeRc<GlCommandList>(this);
         m_commandLists.push_back(cmd);
@@ -197,17 +197,18 @@ namespace urhi
 
     GLuint GlDevice::getOrCreateFramebuffer(const RenderPassDesc &renderPass)
     {
-        // if back buffer textures return default framebuffer
-        for (auto& attachment : renderPass.colorAttachments)
+        URHI_VALIDATE(!renderPass.colorAttachments.empty() || renderPass.depthAttachment.has_value(), "RenderPassDesc has no attachments — must have at least one color or depth attachment");
+
+        for (const auto& att : renderPass.colorAttachments)
         {
-            const auto glTex = static_cast<GlTextureView*>(attachment.target.get());
+            const auto* glTex = static_cast<const GlTextureView*>(att.target.get());
             if (glTex->handle() == 0)
                 return 0;
         }
 
         if (renderPass.depthAttachment.has_value())
         {
-            const auto glTex = static_cast<GlTextureView*>(renderPass.depthAttachment->target.get());
+            const auto* glTex = static_cast<const GlTextureView*>(renderPass.depthAttachment->target.get());
             if (glTex->handle() == 0)
                 return 0;
         }
@@ -215,23 +216,52 @@ namespace urhi
         const uint32_t rpHash = hashRenderPass(renderPass);
 
         const auto it = m_framebufferCache.find(rpHash);
-        if(it != m_framebufferCache.end())
-            return it->second;
+        if (it != m_framebufferCache.end())
+        {
+            const GLenum status = glCheckNamedFramebufferStatus(it->second, GL_FRAMEBUFFER);
+            if (status == GL_FRAMEBUFFER_COMPLETE)
+                return it->second;
 
+            glDeleteFramebuffers(1, &it->second);
+            m_framebufferCache.erase(it);
+        }
 
-        GLuint fb;
+        GLuint fb = 0;
         glCreateFramebuffers(1, &fb);
 
-        for(size_t i = 0; i < renderPass.colorAttachments.size(); i++)
+        URHI_VALIDATE(fb != 0,
+            "glCreateFramebuffers returned handle 0 — driver may be out of resources");
+
+        for (size_t i = 0; i < renderPass.colorAttachments.size(); i++)
         {
-            const auto glTex = static_cast<GlTextureView*>(renderPass.colorAttachments[i].target.get());
+            const auto* glTex = static_cast<const GlTextureView*>(renderPass.colorAttachments[i].target.get());
             glNamedFramebufferTexture(fb, GL_COLOR_ATTACHMENT0 + i, glTex->handle(), 0);
         }
 
-        if(renderPass.depthAttachment.has_value())
+        if (renderPass.depthAttachment.has_value())
         {
-            const auto glTex = static_cast<GlTextureView*>(renderPass.depthAttachment->target.get());
+            const auto* glTex = static_cast<const GlTextureView*>(renderPass.depthAttachment->target.get());
             glNamedFramebufferTexture(fb, GL_DEPTH_ATTACHMENT, glTex->handle(), 0);
+        }
+
+        // Required for MRT — default state only enables COLOR_ATTACHMENT0
+        if (!renderPass.colorAttachments.empty())
+        {
+            GLenum drawBuffers[8]; // GL guarantees at least 8
+            for (size_t i = 0; i < renderPass.colorAttachments.size(); i++)
+                drawBuffers[i] = GL_COLOR_ATTACHMENT0 + i;
+            glNamedFramebufferDrawBuffers(fb, static_cast<GLsizei>(renderPass.colorAttachments.size()), drawBuffers);
+        }
+
+        const GLenum status = glCheckNamedFramebufferStatus(fb, GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE)
+        {
+            URHI_VALIDATE(false,
+                "Newly created framebuffer {} (hash {:#010x}) is incomplete (status: {:#06x})",
+                fb, rpHash, static_cast<uint32_t>(status));
+
+            glDeleteFramebuffers(1, &fb);
+            return 0;
         }
 
         m_framebufferCache[rpHash] = fb;
@@ -243,7 +273,6 @@ namespace urhi
         switch (requested)
         {
             case PixelFormat::Depth24PlusStencil8:
-                // D32F_S8 is preferred if available, fall back to D24_S8
                     if (m_supportsD32FStencil) return GL_DEPTH32F_STENCIL8;
             return GL_DEPTH24_STENCIL8;
 
@@ -269,7 +298,20 @@ namespace urhi
         grl::Hash::hashCombine(seed, renderPass.depthAttachment.has_value());
 
         for (uint8_t i = 0; i < renderPass.colorAttachments.size(); i++)
-            grl::Hash::hashCombine(seed, renderPass.colorAttachments[i].target.get());
+        {
+            const auto glTex = static_cast<GlTextureView*>(
+                renderPass.colorAttachments[i].target.get()
+            );
+            grl::Hash::hashCombine(seed, glTex->handle());
+        }
+
+        if (renderPass.depthAttachment.has_value())
+        {
+            const auto glTex = static_cast<GlTextureView*>(
+                renderPass.depthAttachment->target.get()
+            );
+            grl::Hash::hashCombine(seed, glTex->handle());
+        }
 
         return seed;
     }

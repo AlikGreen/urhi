@@ -14,6 +14,8 @@ public:
     GLuint handle() const { return m_handle; }
 
     BufferUsage usage() { return m_usage; }
+
+    bool pendingComputeWrite = false;
 private:
     GLuint m_handle{};
 

@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "clogr.h"
+#include "DrawIndexedIndirectCommand.h"
 #include "urhiToString.h"
 #include "validation.h"
 #include "vkCommandListTracker.h"
@@ -102,6 +103,96 @@ namespace urhi
 
         pushDescriptors();
         m_cmd.draw(c.vertexCount, c.instanceCount, c.firstVertex, c.firstInstance);
+
+        m_idx++;
+    }
+
+    void VkCommandListEmitter::emit(const CmdMultiDrawIndexedIndirect &c)
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - draw requires a graphics pipeline to be bound first");
+
+        URHI_VALIDATE(m_boundPipelineBindPoint == vk::PipelineBindPoint::eGraphics,
+            "Draw requires a graphics pipeline, but the currently bound pipeline uses bind point {}",
+            vk::to_string(m_boundPipelineBindPoint));
+
+        pushDescriptors();
+
+        const auto cmdsBuffer = static_cast<VkBuffer*>(c.commandsBuffer.get());
+
+        m_cmd.drawIndexedIndirect(
+            cmdsBuffer->handle(),
+            c.startCommandIndex * sizeof(DrawIndexedIndirectCommand),
+            c.count,
+            sizeof(DrawIndexedIndirectCommand));
+
+        m_idx++;
+    }
+
+    void VkCommandListEmitter::emit(const CmdMultiDrawIndexedIndirectCount &c)
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - draw requires a graphics pipeline to be bound first");
+
+        URHI_VALIDATE(m_boundPipelineBindPoint == vk::PipelineBindPoint::eGraphics,
+            "Draw requires a graphics pipeline, but the currently bound pipeline uses bind point {}",
+            vk::to_string(m_boundPipelineBindPoint));
+
+        pushDescriptors();
+
+        const auto cmdsBuffer = static_cast<VkBuffer*>(c.commandsBuffer.get());
+        const auto countsBuffer = static_cast<VkBuffer*>(c.countsBuffer.get());
+
+        m_cmd.drawIndexedIndirectCount(
+            cmdsBuffer->handle(),
+            c.startCommandIndex * sizeof(DrawIndexedIndirectCommand),
+            countsBuffer->handle(),
+            c.countIndex * sizeof(uint32_t),
+            c.maxDrawCount,
+            sizeof(DrawIndexedIndirectCommand));
+
+        m_idx++;
+    }
+
+    void VkCommandListEmitter::emit(const CmdMultiDrawIndirect &c)
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - draw requires a graphics pipeline to be bound first");
+
+        URHI_VALIDATE(m_boundPipelineBindPoint == vk::PipelineBindPoint::eGraphics,
+            "Draw requires a graphics pipeline, but the currently bound pipeline uses bind point {}",
+            vk::to_string(m_boundPipelineBindPoint));
+
+        pushDescriptors();
+
+        const auto cmdsBuffer = static_cast<VkBuffer*>(c.commandsBuffer.get());
+
+        m_cmd.drawIndirect(
+            cmdsBuffer->handle(),
+            c.startCommandIndex * sizeof(DrawIndexedIndirectCommand),
+            c.count,
+            sizeof(DrawIndexedIndirectCommand));
+
+        m_idx++;
+    }
+
+    void VkCommandListEmitter::emit(const CmdMultiDrawIndirectCount &c)
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - draw requires a graphics pipeline to be bound first");
+
+        URHI_VALIDATE(m_boundPipelineBindPoint == vk::PipelineBindPoint::eGraphics,
+            "Draw requires a graphics pipeline, but the currently bound pipeline uses bind point {}",
+            vk::to_string(m_boundPipelineBindPoint));
+
+        pushDescriptors();
+
+        const auto cmdsBuffer = static_cast<VkBuffer*>(c.commandsBuffer.get());
+        const auto countsBuffer = static_cast<VkBuffer*>(c.countsBuffer.get());
+
+        m_cmd.drawIndirectCount(
+            cmdsBuffer->handle(),
+            c.startCommandIndex * sizeof(DrawIndexedIndirectCommand),
+            countsBuffer->handle(),
+            c.countIndex * sizeof(uint32_t),
+            c.maxDrawCount,
+            sizeof(DrawIndexedIndirectCommand));
 
         m_idx++;
     }
@@ -438,14 +529,14 @@ namespace urhi
 
     void VkCommandListEmitter::emit(const CmdUpdateBuffer &c)
     {
-        const void* data = m_cmdStream->getData(c.offset);
-        if(const auto vkStaged = dynamic_cast<VkStagedBuffer*>(c.buffer.get()))
+        const void* data = m_cmdStream->getData(c.dataOffset);
+        if(const auto vkStaged = static_cast<VkStagedBuffer*>(c.buffer.get()))
         {
             m_commandQueue->submissionContext().stagingAllocator().upload(data, c.size, vkStaged->handle(), 0, m_cmd);
             vkStaged->barrierAfterUpload(m_cmd);
             vkStaged->lifetime().markUsed(m_commandQueue, m_submitValue);
         }
-        else if(const auto vkMapped = dynamic_cast<VkMappedBuffer*>(c.buffer.get()))
+        else if(const auto vkMapped = static_cast<VkMappedBuffer*>(c.buffer.get()))
         {
             vkMapped->upload(data, c.size);
             vkMapped->lifetime().markUsed(m_commandQueue, m_submitValue);
@@ -457,10 +548,42 @@ namespace urhi
         m_idx++;
     }
 
+    void VkCommandListEmitter::emit(const CmdFillBuffer &c)
+    {
+        const auto buffer = static_cast<VkBuffer*>(c.buffer.get());
+
+        // TODO barriers?
+
+        m_cmd.fillBuffer(buffer->handle(), c.offset, c.size, c.value);
+        buffer->lifetime().markUsed(m_commandQueue, m_submitValue);
+
+        m_idx++;
+    }
+
+    void VkCommandListEmitter::emit(const CmdCopyBuffer &c)
+    {
+        vk::BufferCopy copyRegion{};
+        copyRegion.srcOffset = c.srcOffset;
+        copyRegion.dstOffset = c.dstOffset;
+        copyRegion.size      = c.size;
+
+        const auto srcBuf = static_cast<VkBuffer*>(c.src.get());
+        const auto dstBuf = static_cast<VkBuffer*>(c.dst.get());
+
+        m_cmd.copyBuffer(
+            srcBuf->handle(),
+            dstBuf->handle(),
+            1,
+            &copyRegion);
+
+        srcBuf->lifetime().markUsed(m_commandQueue, m_submitValue);
+        dstBuf->lifetime().markUsed(m_commandQueue, m_submitValue);
+    }
+
     void VkCommandListEmitter::emit(const CmdUpdateTexture &c)
     {
         auto& desc = c.desc;
-        const void* data = m_cmdStream->getData(c.offset);
+        const void* data = m_cmdStream->getData(c.dataOffset);
 
         m_commandQueue->submissionContext().stagingAllocator().uploadToImage(desc, m_cmd, data, c.size);
 
@@ -498,6 +621,44 @@ namespace urhi
         m_idx++;
     }
 
+    void VkCommandListEmitter::emit(const CmdSetImage &c)
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
+
+        const auto layoutBinding = m_boundPipeline->bindingInfo(c.nameHash);
+        if (!layoutBinding.has_value())
+        {
+            URHI_WARNING(false, "Binding a resource that the shader doesnt use - you should not bind resources that are not used in the shader");
+            return;
+        }
+
+        const auto vkView = static_cast<VkTextureView*>(c.texture.get());
+        const auto vkTex = static_cast<VkTexture*>(vkView->texture().get());
+
+        const vk::PipelineStageFlags2 stage = m_computePassActive
+                                                  ? vk::PipelineStageFlagBits2::eComputeShader
+                                                  : vk::PipelineStageFlagBits2::eFragmentShader;
+
+        vkTex->transitionLayout(m_cmd,
+                vk::ImageLayout::eGeneral,
+                stage,
+                vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite);
+
+        ResourceBinding rb{};
+        rb.set = layoutBinding->set;
+        rb.binding = layoutBinding->binding;
+        rb.type = layoutBinding->type;
+        rb.isImage = true;
+
+        rb.imageInfo.imageView = vkView->getHandle();
+        rb.imageInfo.imageLayout = vk::ImageLayout::eGeneral;
+
+        m_currentBindings[c.nameHash] = rb;
+
+        vkView->markUsed(m_commandQueue, m_submitValue);
+        m_idx++;
+    }
+
     void VkCommandListEmitter::emit(const CmdSetTexture &c)
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
@@ -512,13 +673,14 @@ namespace urhi
         const auto vkView = static_cast<VkTextureView*>(c.texture.get());
         const auto vkTex = static_cast<VkTexture*>(vkView->texture().get());
 
-        if (!m_renderPassActive)
-        {
-            vkTex->transitionLayout(m_cmd,
-                vk::ImageLayout::eShaderReadOnlyOptimal,
-                vk::PipelineStageFlagBits2::eFragmentShader,
-                vk::AccessFlagBits2::eShaderSampledRead);
-        }
+        vk::PipelineStageFlags2 stage = m_computePassActive
+            ? vk::PipelineStageFlagBits2::eComputeShader
+            : vk::PipelineStageFlagBits2::eFragmentShader;
+
+        vkTex->transitionLayout(m_cmd,
+            vk::ImageLayout::eShaderReadOnlyOptimal,
+            stage,
+            vk::AccessFlagBits2::eShaderSampledRead);
 
         ResourceBinding rb{};
         rb.set = layoutBinding->set;
@@ -855,6 +1017,22 @@ namespace urhi
 
         pushDescriptors();
         m_cmd.dispatchBase(0, 0, 0, c.groupsX, c.groupsY, c.groupsZ);
+
+        m_idx++;
+    }
+
+    void VkCommandListEmitter::emit(const CmdDispatchComputeIndirect &c)
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set — compute dispatch requires a compute pipeline to be set first");
+
+        URHI_VALIDATE(m_boundPipelineBindPoint == vk::PipelineBindPoint::eCompute,
+            "Compute dispatch requires a compute pipeline, but the currently bound pipeline uses bind point {}",
+            vk::to_string(m_boundPipelineBindPoint));
+
+        const auto vkBuffer = static_cast<VkBuffer*>(c.buffer.get());
+
+        pushDescriptors();
+        m_cmd.dispatchIndirect(vkBuffer->handle(), c.offset);
 
         m_idx++;
     }

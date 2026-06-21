@@ -5,6 +5,7 @@
 #include <glad/gl.h>
 
 #include "clogr.h"
+#include "DrawIndexedIndirectCommand.h"
 #include "glBuffer.h"
 #include "glContext.h"
 #include "urhiToString.h"
@@ -21,31 +22,9 @@ namespace urhi
             : m_device(device), m_cmdStream(cmdStream)
     { }
 
-
-    void GlCommandListEmitter::emit(const CmdDrawIndexed &c)
-    {
-        glDrawElementsInstancedBaseVertexBaseInstance(
-            GlConvert::primitiveType(m_boundPipeline->primitiveType()),
-            c.indexCount,
-            GlConvert::indexFormat(m_currentIndexFormat),
-            reinterpret_cast<void*>(c.firstIndex * GlConvert::sizeOf(m_currentIndexFormat)),
-            c.instanceCount,
-            c.vertexOffset,
-            c.firstInstance);
-    }
-
-    void GlCommandListEmitter::emit(const CmdDraw &c)
-    {
-        glDrawArraysInstancedBaseInstance(
-            GlConvert::primitiveType(m_boundPipeline->primitiveType()),
-            c.firstVertex,
-            c.vertexCount,
-            c.instanceCount,
-            c.firstInstance);
-    }
-
     void GlCommandListEmitter::emit(const CmdBeginRenderPass &c)
     {
+        m_barrierBits = 0;
         uint32_t fbo = m_device->getOrCreateFramebuffer(c.desc);
 
         for(size_t i = 0; i < c.desc.colorAttachments.size(); i++)
@@ -165,15 +144,15 @@ namespace urhi
 
     void GlCommandListEmitter::emit(const CmdUpdateBuffer &c)
     {
-        const void* data = m_cmdStream->getData(c.offset);
+        const void* data = m_cmdStream->getData(c.dataOffset);
         const auto glBuffer = static_cast<GlBuffer*>(c.buffer.get());
-        glNamedBufferData(glBuffer->handle(), c.size, data, GlConvert::bufferUsage(glBuffer->usage())); // TODO dont make dynamic draw and eventually move to using glNamedBufferStorage
+        glNamedBufferSubData(glBuffer->handle(), c.dstOffset, c.size, data); // TODO dont make dynamic draw and eventually move to using glNamedBufferStorage
     }
 
     void GlCommandListEmitter::emit(const CmdUpdateTexture &c)
     {
         auto& desc = c.desc;
-        const void* data = m_cmdStream->getData(c.offset);
+        const void* data = m_cmdStream->getData(c.dataOffset);
 
         const auto glTex = static_cast<GlTexture*>(desc.texture.get());
 
@@ -220,26 +199,103 @@ namespace urhi
         }
     }
 
+    void GlCommandListEmitter::emit(const CmdFillBuffer &c)
+    {
+        auto glBuffer = static_cast<GlBuffer*>(c.buffer.get());
+        glClearNamedBufferSubData(
+            glBuffer->handle(),
+            GL_R32UI,
+            c.offset,
+            c.size,
+            GL_RED,
+            GL_UNSIGNED_INT,
+            &c.value
+        );
+    }
+
+    void GlCommandListEmitter::emit(const CmdCopyBuffer &c)
+    {
+        auto srcBuf = static_cast<GlBuffer*>(c.src.get());
+        auto dstBuf = static_cast<GlBuffer*>(c.dst.get());
+        glCopyNamedBufferSubData(
+            srcBuf->handle(),
+            dstBuf->handle(),
+            c.srcOffset,
+            c.dstOffset,
+            c.size);
+    }
+
     void GlCommandListEmitter::emit(const CmdSetBuffer &c)
     {
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
 
-        // This lookup now handles EVERYTHING.
-        const int index = m_boundPipeline->bufferBinding(c.nameHash);
+        const auto info = m_boundPipeline->bufferBinding(c.nameHash);
 
-        if (index == GlPipeline::OPTIMIZED_OUT)
+        if (info.binding == GlPipeline::OPTIMIZED_OUT)
             return;
 
-        URHI_VALIDATE(index != m_boundPipeline->pushConstantBinding(),
+        URHI_VALIDATE(info.binding != m_boundPipeline->pushConstantBinding(),
         "Buffer '{}' is binding to the push constant slot - binding index collision",
         NameRegistry::getName(c.nameHash));
 
-        URHI_VALIDATE(index != GlPipeline::INVALID_TYPO, "Binding a resource ('{}') that the shader does not use or declare.", NameRegistry::getName(c.nameHash));
+        URHI_VALIDATE(info.binding != GlPipeline::INVALID_TYPO, "Binding a resource ('{}') that the shader does not use or declare.", NameRegistry::getName(c.nameHash));
 
         const auto glBuffer = static_cast<GlBuffer*>(c.buffer.get());
-        glBindBufferBase(GlConvert::bufferTarget(glBuffer->usage()), index, glBuffer->handle());
+
+        if(info.access != ResourceAccess::WriteOnly)
+        {
+            if(!glBuffer->pendingComputeWrite)
+            {
+                m_barrierBits |= GlConvert::bufferBarrierBit(glBuffer->usage());
+                glBuffer->pendingComputeWrite = false;
+            }
+        }
+
+        if(info.access != ResourceAccess::ReadOnly)
+        {
+            glBuffer->pendingComputeWrite = true;
+        }
+
+        glBindBufferBase(info.target, info.binding, glBuffer->handle());
 
         URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - set sampler require a pipeline to be bound first");
+    }
+
+    void GlCommandListEmitter::emit(const CmdSetImage &c)
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr,
+        "No pipeline set - setImage requires a pipeline to be bound first");
+
+        const auto info = m_boundPipeline->imageBinding(c.nameHash);
+        if (info.binding == GlPipeline::OPTIMIZED_OUT) return;
+
+        URHI_VALIDATE(info.binding != GlPipeline::INVALID_TYPO, "Image '{}' not declared in shader", NameRegistry::getName(c.nameHash));
+
+        auto* glTex = static_cast<GlTextureView*>(c.texture.get());
+
+        // Same two-flag pattern as buffers
+        if(info.access != ResourceAccess::WriteOnly)
+        {
+            if(!glTex->pendingComputeWrite)
+            {
+                m_barrierBits |= GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+                glTex->pendingComputeWrite = false;
+            }
+        }
+        if (info.access != ResourceAccess::ReadOnly) glTex->pendingComputeWrite = true;
+
+        // glBindImageTexture needs format and access mode
+        GLenum access = GlConvert::resourceAccess(info.access);
+
+
+        glBindImageTexture(
+            info.binding,
+            glTex->handle(),
+            0,
+            GL_FALSE,
+            0,
+            access,
+            GlConvert::internalFormat(glTex->format()));
     }
 
     void GlCommandListEmitter::emit(const CmdSetTexture &c)
@@ -256,6 +312,9 @@ namespace urhi
         {
             glBindTextureUnit(unit.unit, glView->handle());
         }
+
+        if(glView->pendingComputeWrite)
+            m_barrierBits |= GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
     }
 
     void GlCommandListEmitter::emit(const CmdSetSampler &c)
@@ -386,14 +445,6 @@ namespace urhi
         }
     }
 
-    void GlCommandListEmitter::emit(const CmdDispatchCompute &c) const
-    {
-        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - compute dispatch requires a compute pipeline to be set first.");
-        URHI_VALIDATE(m_computePassActive, "No compute pass active - You must start a compute pass before dispatching compute work.");
-
-        glDispatchCompute(c.groupsX, c.groupsY, c.groupsZ);
-    }
-
     void GlCommandListEmitter::emit(const CmdEndRenderPass &c)
     {
         glBindVertexArray(0);
@@ -419,6 +470,7 @@ namespace urhi
 
     void GlCommandListEmitter::emit(const CmdBeginComputePass &c)
     {
+        m_barrierBits = 0;
         m_computePassActive = true;
         m_boundPipeline = nullptr;
     }
@@ -448,5 +500,140 @@ namespace urhi
         m_boundPipeline = std::static_pointer_cast<GlPipeline>(c.pipeline);
 
         m_boundPipeline->bind();
+    }
+
+    void GlCommandListEmitter::emit(const CmdDrawIndexed &c)
+    {
+        if(m_barrierBits != 0)
+            glMemoryBarrier(m_barrierBits);
+
+        glDrawElementsInstancedBaseVertexBaseInstance(
+            GlConvert::primitiveType(m_boundPipeline->primitiveType()),
+            c.indexCount,
+            GlConvert::indexFormat(m_currentIndexFormat),
+            reinterpret_cast<void*>(c.firstIndex * GlConvert::sizeOf(m_currentIndexFormat)),
+            c.instanceCount,
+            c.vertexOffset,
+            c.firstInstance);
+    }
+
+    void GlCommandListEmitter::emit(const CmdDraw &c)
+    {
+        if(m_barrierBits != 0)
+            glMemoryBarrier(m_barrierBits);
+
+        glDrawArraysInstancedBaseInstance(
+            GlConvert::primitiveType(m_boundPipeline->primitiveType()),
+            c.firstVertex,
+            c.vertexCount,
+            c.instanceCount,
+            c.firstInstance);
+    }
+
+    void GlCommandListEmitter::emit(const CmdMultiDrawIndexedIndirect &c)
+    {
+        if(m_barrierBits != 0)
+            glMemoryBarrier(m_barrierBits);
+
+        const auto commandBuffer = static_cast<GlBuffer*>(c.commandsBuffer.get());
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer->handle());
+
+        glMultiDrawElementsIndirect(
+            GlConvert::primitiveType(m_boundPipeline->primitiveType()),
+            GlConvert::indexFormat(m_currentIndexFormat),
+            reinterpret_cast<void*>(c.startCommandIndex * sizeof(DrawIndexedIndirectCommand)),
+            c.count,
+            sizeof(DrawIndexedIndirectCommand));
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+    }
+
+    void GlCommandListEmitter::emit(const CmdMultiDrawIndexedIndirectCount &c)
+    {
+        if(m_barrierBits != 0)
+            glMemoryBarrier(m_barrierBits);
+
+        const auto commandBuffer = static_cast<GlBuffer*>(c.commandsBuffer.get());
+        const auto countsBuffer = static_cast<GlBuffer*>(c.countsBuffer.get());
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer->handle());
+        glBindBuffer(GL_PARAMETER_BUFFER, countsBuffer->handle());
+
+        glMultiDrawElementsIndirectCount(
+            GlConvert::primitiveType(m_boundPipeline->primitiveType()),
+            GlConvert::indexFormat(m_currentIndexFormat),
+            reinterpret_cast<void*>(c.startCommandIndex * sizeof(DrawIndexedIndirectCommand)),
+            c.countIndex * sizeof(uint32_t),
+            c.maxDrawCount,
+            sizeof(DrawIndexedIndirectCommand));
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        glBindBuffer(GL_PARAMETER_BUFFER, 0);
+    }
+
+    void GlCommandListEmitter::emit(const CmdMultiDrawIndirect &c)
+    {
+        if(m_barrierBits != 0)
+            glMemoryBarrier(m_barrierBits);
+
+        const auto commandBuffer = static_cast<GlBuffer*>(c.commandsBuffer.get());
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer->handle());
+
+        glMultiDrawArraysIndirect(
+            GlConvert::primitiveType(m_boundPipeline->primitiveType()),
+            reinterpret_cast<void*>(c.startCommandIndex * sizeof(DrawIndexedIndirectCommand)),
+            c.count,
+            sizeof(DrawIndexedIndirectCommand));
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+    }
+
+    void GlCommandListEmitter::emit(const CmdMultiDrawIndirectCount &c)
+    {
+        if(m_barrierBits != 0)
+            glMemoryBarrier(m_barrierBits);
+
+        const auto commandBuffer = static_cast<GlBuffer*>(c.commandsBuffer.get());
+        const auto countsBuffer = static_cast<GlBuffer*>(c.countsBuffer.get());
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer->handle());
+        glBindBuffer(GL_PARAMETER_BUFFER, countsBuffer->handle());
+
+        glMultiDrawArraysIndirectCount(
+            GlConvert::primitiveType(m_boundPipeline->primitiveType()),
+            reinterpret_cast<void*>(c.startCommandIndex * sizeof(DrawIndexedIndirectCommand)),
+            c.countIndex * sizeof(uint32_t),
+            c.maxDrawCount,
+            sizeof(DrawIndexedIndirectCommand));
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        glBindBuffer(GL_PARAMETER_BUFFER, 0);
+    }
+
+    void GlCommandListEmitter::emit(const CmdDispatchCompute &c) const
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - compute dispatch requires a compute pipeline to be set first.");
+        URHI_VALIDATE(m_computePassActive, "No compute pass active - You must start a compute pass before dispatching compute work.");
+
+        if(m_barrierBits != 0)
+            glMemoryBarrier(m_barrierBits);
+
+        glDispatchCompute(c.groupsX, c.groupsY, c.groupsZ);
+    }
+
+    void GlCommandListEmitter::emit(const CmdDispatchComputeIndirect &c) const
+    {
+        URHI_VALIDATE(m_boundPipeline != nullptr, "No pipeline set - compute dispatch requires a compute pipeline to be set first.");
+        URHI_VALIDATE(m_computePassActive, "No compute pass active - You must start a compute pass before dispatching compute work.");
+
+        if(m_barrierBits != 0)
+            glMemoryBarrier(m_barrierBits);
+
+        auto glBuffer = static_cast<GlBuffer*>(c.buffer.get());
+        glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, glBuffer->handle());
+        glDispatchComputeIndirect(c.offset);
+        glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, 0);
     }
 }

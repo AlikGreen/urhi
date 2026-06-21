@@ -6,9 +6,10 @@
 namespace urhi
 {
     CommandList::CommandList()
-        : m_renderPass(m_commands)
     {
         m_commands = grl::makeRc<CommandStream>();
+        m_computePass = grl::Box<ComputePass>(new ComputePass(m_commands));
+        m_renderPass = grl::Box<RenderPass>(new RenderPass(m_commands));
     }
 
     void CommandList::begin()
@@ -22,7 +23,13 @@ namespace urhi
     RenderPass& CommandList::beginRenderPass(const RenderPassDesc &desc)
     {
         m_commands->emplace(CmdBeginRenderPass{desc});
-        return m_renderPass;
+        return *m_renderPass;
+    }
+
+    ComputePass& CommandList::beginComputePass()
+    {
+        m_commands->emplace(CmdBeginComputePass{});
+        return *m_computePass;
     }
 
     void CommandList::updateTexture(const TextureUploadDesc &desc)
@@ -42,10 +49,16 @@ namespace urhi
         m_commands->emplace(CmdBlitTexture{desc});
     }
 
-    void CommandList::updateBuffer(const grl::Rc<Buffer> &buffer, const void* data, const uint32_t size)
+    void CommandList::updateBuffer(const grl::Rc<Buffer> &buffer, const void* data, const uint32_t size, const uint32_t offset)
     {
-        const uint32_t offset = m_commands->copyData(data, size);
-        m_commands->emplace(CmdUpdateBuffer{ buffer, offset, size });
+        const uint32_t dataOffset = m_commands->copyData(data, size);
+        m_commands->emplace(CmdUpdateBuffer{ buffer, dataOffset, offset, size });
+    }
+
+    void CommandList::copyBuffer(const grl::Rc<Buffer> &src, const grl::Rc<Buffer> &dst, uint32_t size, uint32_t srcOffset, uint32_t dstOffset)
+    {
+        size = size != ~0u ? size : std::min(src->size(), dst->size());
+        m_commands->emplace(CmdCopyBuffer{ src, dst, size, srcOffset, dstOffset });
     }
 
     grl::Rc<ReadbackRequest> CommandList::readback(const TextureReadbackDesc &desc)
