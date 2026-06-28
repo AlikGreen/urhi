@@ -1,6 +1,6 @@
 #pragma once
-#include <type_traits>
 #include <vector>
+#include <cstring>
 
 #include "nameRegistry.h"
 #include "pipeline.h"

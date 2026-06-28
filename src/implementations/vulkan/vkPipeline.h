@@ -22,7 +22,7 @@ public:
     [[nodiscard]] vk::DescriptorSetLayout descriptorSetLayout(const uint32_t index) const { return m_descriptorSetLayouts.at(index); }
     [[nodiscard]] const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts() const { return m_descriptorSetLayouts; }
 
-    ShaderReflection reflection(const ShaderStage stage) { return m_shaderMap[stage]->entryPoint().reflection; }
+    refl::Data reflection(const ShaderStage stage) { return m_shaderMap[stage]->reflection(); }
     [[nodiscard]] vk::PushConstantRange* pushConstantsRange() const { return m_pushConstantRange; }
 
     std::optional<BindingInfo> bindingInfo(uint32_t nameHash);

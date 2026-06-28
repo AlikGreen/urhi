@@ -1,7 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
 #include <mutex>
-#include <atomic>
 #include <vma/vk_mem_alloc.h>
 
 #include "device.h"
@@ -9,7 +8,6 @@
 #include "vkCommandQueue.h"
 #include "vkLifetime.h"
 #include "descriptions/deviceDesc.h"
-#include "descriptions/shaderEntryPoint.h"
 #include "enums/queueType.h"
 
 namespace urhi
@@ -32,9 +30,8 @@ public:
     grl::Rc<Sampler> createSampler(const SamplerDesc &desc) override;
     grl::Rc<TextureView> createTextureView(const TextureViewDesc &desc) override;
 
-    grl::Rc<Shader> createShader(const ShaderEntryPoint& entryPoint) override;
-
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
+    grl::Rc<Shader> createShader(const ShaderEntryPoint &entryPoint) override;
 
     void waitIdle() override;
 

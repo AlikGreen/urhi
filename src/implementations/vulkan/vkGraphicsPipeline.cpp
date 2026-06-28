@@ -1,5 +1,7 @@
 #include "vkGraphicsPipeline.h"
 
+#include <unordered_set>
+
 #include "clogr.h"
 #include "validation.h"
 #include "vkConvert.h"
@@ -13,12 +15,12 @@ namespace urhi
         VkShader* fragmentShader = nullptr;
         for(const auto& shader : desc.shaders)
         {
-            if(shader->entryPoint().stage == ShaderStage::Vertex)
+            if(shader->stage() == ShaderStage::Vertex)
             {
                 URHI_VALIDATE(vertexShader == nullptr, "Shader contains multiple vertex shaders.");
                 vertexShader = dynamic_cast<VkShader*>(shader.get());
             }
-            if(shader->entryPoint().stage == ShaderStage::Fragment)
+            if(shader->stage() == ShaderStage::Fragment)
             {
                 URHI_VALIDATE(fragmentShader == nullptr, "Shader contains multiple fragment shaders.");
                 fragmentShader = dynamic_cast<VkShader*>(shader.get());
@@ -30,16 +32,21 @@ namespace urhi
         std::vector<vk::VertexInputBindingDescription> vertexBindingDescs{};
         std::vector<vk::VertexInputAttributeDescription> vertexAttributeDescs{};
 
-        for(const auto& binding : vertexShader->entryPoint().reflection.vertexInput.bindings)
+        std::unordered_set<uint32_t> seenBindings{};
+
+        for(const auto& attrib : vertexShader->reflection().vertexAttrs)
         {
+            if(seenBindings.contains(attrib.binding)) continue;
+            seenBindings.emplace(attrib.binding);
+
             vk::VertexInputBindingDescription bindingDesc{};
-            bindingDesc.binding = binding.binding;
-            bindingDesc.stride = binding.stride;
+            bindingDesc.binding = attrib.binding;
+            bindingDesc.stride = attrib.stride;
             bindingDesc.inputRate = vk::VertexInputRate::eVertex;
             vertexBindingDescs.push_back(bindingDesc);
         }
 
-        for(const auto& attrib : vertexShader->entryPoint().reflection.vertexInput.attributes)
+        for(const auto& attrib : vertexShader->reflection().vertexAttrs)
         {
             vk::VertexInputAttributeDescription attribDesc{};
             attribDesc.location = attrib.location;
@@ -138,7 +145,7 @@ namespace urhi
             auto pipelineShaderInfo = vk::PipelineShaderStageCreateInfo
             {
                 {},
-                VkConvert::shaderStageBits(shader->entryPoint().stage),
+                VkConvert::shaderStageBits(shader->stage()),
                 vkShader->getModule(),
                 "main"
             };

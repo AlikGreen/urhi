@@ -3,21 +3,16 @@
 
 namespace urhi
 {
-    VkShader::VkShader(VkDevice *device, const ShaderEntryPoint& entryPoint)
-        : m_device(device), m_entryPoint(entryPoint)
+    VkShader::VkShader(VkDevice *device, const ShaderEntryPoint& ep)
+        : m_device(device), m_reflection(ep.reflection), m_stage(ep.stage)
     {
         const vk::ShaderModuleCreateInfo shaderModuleInfo
         {
             vk::ShaderModuleCreateFlags{0},
-            entryPoint.spirv
+            ep.spirvCode
         };
 
         m_shaderModule = m_device->handle().createShaderModule(shaderModuleInfo);
-    }
-
-    ShaderEntryPoint VkShader::entryPoint()
-    {
-        return m_entryPoint;
     }
 
     vk::ShaderModule VkShader::getModule() const

@@ -3,8 +3,9 @@
 #include <atomic>
 #include <slang.h>
 #include <vector>
+#include <cstring>
 
-namespace urhi::slang
+namespace urhi
 {
 static bool uuidEquals(const SlangUUID& a, const SlangUUID& b)
 {
@@ -12,14 +13,14 @@ static bool uuidEquals(const SlangUUID& a, const SlangUUID& b)
 }
 
 
-class MemoryBlob final : public ::slang::IBlob
+class SlangMemoryBlob final : public slang::IBlob
 {
 public:
-    explicit MemoryBlob(const std::vector<uint8_t>& data)
+    explicit SlangMemoryBlob(const std::vector<uint8_t>& data)
         : m_data(data)
     {}
 
-    explicit MemoryBlob(const void* data, size_t size)
+    explicit SlangMemoryBlob(const void* data, size_t size)
         : m_data(static_cast<const uint8_t*>(data),
                  static_cast<const uint8_t*>(data) + size)
     {
@@ -30,12 +31,12 @@ public:
         if (!outObject) return SLANG_E_INVALID_ARG;
         *outObject = nullptr;
 
-        const SlangUUID& blobId = ::slang::IBlob::getTypeGuid();
+        const SlangUUID& blobId = slang::IBlob::getTypeGuid();
         const SlangUUID& unkId  = ISlangUnknown::getTypeGuid();
 
         if (uuidEquals(uuid, blobId) || uuidEquals(uuid, unkId))
         {
-            *outObject = static_cast<::slang::IBlob*>(this);
+            *outObject = static_cast<slang::IBlob*>(this);
             addRef();
             return SLANG_OK;
         }

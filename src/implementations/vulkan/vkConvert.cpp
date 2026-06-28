@@ -369,19 +369,19 @@ namespace urhi
         return flags;
     }
 
-    vk::DescriptorType VkConvert::descriptorType(const ShaderReflection::ResourceType type)
+    vk::DescriptorType VkConvert::descriptorType(const refl::ResType type)
     {
         switch (type)
         {
-            case ShaderReflection::ResourceType::StorageBuffer:
+            case refl::ResType::Buffer:
                 return vk::DescriptorType::eStorageBuffer;
-            case ShaderReflection::ResourceType::ConstantBuffer:
+            case refl::ResType::CBuffer:
                 return vk::DescriptorType::eUniformBuffer;
-            case ShaderReflection::ResourceType::Texture:
+            case refl::ResType::Texture:
                 return vk::DescriptorType::eSampledImage;
-            case ShaderReflection::ResourceType::Sampler:
+            case refl::ResType::Sampler:
                 return vk::DescriptorType::eSampler;
-            case ShaderReflection::ResourceType::StorageImage:
+            case refl::ResType::Image:
                 return vk::DescriptorType::eStorageImage;
             default:
                 return vk::DescriptorType::eUniformBuffer;
@@ -414,22 +414,22 @@ namespace urhi
         return vk::ShaderStageFlagBits::eAll;
     }
 
-    vk::Format VkConvert::format(const ShaderReflection::DataType type)
+    vk::Format VkConvert::format(const refl::DataType type)
     {
         switch (type)
         {
-            case ShaderReflection::DataType::Float:  return vk::Format::eR32Sfloat;
-            case ShaderReflection::DataType::Float2: return vk::Format::eR32G32Sfloat;
-            case ShaderReflection::DataType::Float3: return vk::Format::eR32G32B32Sfloat;;
-            case ShaderReflection::DataType::Float4: return vk::Format::eR32G32B32A32Sfloat;;
-            case ShaderReflection::DataType::Int:    return vk::Format::eR32Sint;
-            case ShaderReflection::DataType::Int2:   return vk::Format::eR32G32Sint;
-            case ShaderReflection::DataType::Int3:   return vk::Format::eR32G32B32Sint;
-            case ShaderReflection::DataType::Int4:   return vk::Format::eR32G32B32A32Sint;
-            case ShaderReflection::DataType::UInt:   return vk::Format::eR32Uint;
-            case ShaderReflection::DataType::UInt2:  return vk::Format::eR32G32Uint;
-            case ShaderReflection::DataType::UInt3:  return vk::Format::eR32G32B32Uint;
-            case ShaderReflection::DataType::UInt4:  return vk::Format::eR32G32B32A32Uint;
+            case refl::DataType::Float:  return vk::Format::eR32Sfloat;
+            case refl::DataType::Float2: return vk::Format::eR32G32Sfloat;
+            case refl::DataType::Float3: return vk::Format::eR32G32B32Sfloat;;
+            case refl::DataType::Float4: return vk::Format::eR32G32B32A32Sfloat;;
+            case refl::DataType::Int:    return vk::Format::eR32Sint;
+            case refl::DataType::Int2:   return vk::Format::eR32G32Sint;
+            case refl::DataType::Int3:   return vk::Format::eR32G32B32Sint;
+            case refl::DataType::Int4:   return vk::Format::eR32G32B32A32Sint;
+            case refl::DataType::UInt:   return vk::Format::eR32Uint;
+            case refl::DataType::UInt2:  return vk::Format::eR32G32Uint;
+            case refl::DataType::UInt3:  return vk::Format::eR32G32B32Uint;
+            case refl::DataType::UInt4:  return vk::Format::eR32G32B32A32Uint;
             default: return vk::Format::eUndefined;;
         }
     }

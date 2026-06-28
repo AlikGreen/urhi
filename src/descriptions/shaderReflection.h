@@ -1,122 +1,65 @@
 #pragma once
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "enums/resourceAccess.h"
-#include "enums/textureType.h"
 
-namespace urhi
+namespace urhi::refl
 {
-struct ShaderReflection
+enum class ResType  { CBuffer, Buffer, Texture, Sampler, Image };
+
+enum class DataType
 {
-    enum class ResourceType
-    {
-        StorageBuffer,
-        ConstantBuffer,
-        Texture,
-        Sampler,
-        StorageImage
-    };
-
-    enum class DataType
-    {
-        Float, Float2, Float3, Float4,
-        Int, Int2, Int3, Int4,
-        UInt, UInt2, UInt3, UInt4,
-        Mat3, Mat4,
-        Struct,
-        Unknown
-    };
-
-    struct Member
-    {
-        std::string name;
-        DataType type;
-        uint32_t offset;
-        uint32_t size;
-        uint32_t arrayCount;
-        std::vector<Member> members;
-    };
-
-    struct Resource
-    {
-        std::string name;
-        ResourceType type = ResourceType::ConstantBuffer;
-        uint32_t set = 0;
-        uint32_t binding = 0;
-        uint32_t count = 1;
-        ResourceAccess access = ResourceAccess::ReadOnly;
-
-        uint32_t totalSize = 0;
-        std::vector<Member> members;
-
-        TextureType dimension = TextureType::Texture2D;
-
-        [[nodiscard]] bool isBuffer() const
-        {
-            return type == ResourceType::ConstantBuffer ||
-                   type == ResourceType::StorageBuffer;
-        }
-
-        [[nodiscard]] bool isTexture() const
-        {
-            return type == ResourceType::Texture ||
-                   type == ResourceType::StorageImage;
-        }
-
-        [[nodiscard]] const Member* findMember(const std::string& memberName) const
-        {
-            for (const auto& m : members)
-            {
-                if (m.name == memberName) return &m;
-            }
-            return nullptr;
-        }
-    };
-
-    struct PushConstant
-    {
-        std::string name;
-        uint32_t size;
-        uint32_t offset;
-        std::vector<Member> members;
-    };
-
-    struct VertexAttribute
-    {
-        std::string name;
-        DataType type;
-        uint32_t location;
-        uint32_t binding;
-        uint32_t offset;
-    };
-
-
-    struct VertexBinding
-    {
-        uint32_t binding = 0;
-        uint32_t stride = 0;
-    };
-
-    struct VertexInput
-    {
-        std::vector<VertexAttribute> attributes;
-        std::vector<VertexBinding> bindings;
-    };
-
-    struct ComputeInfo
-    {
-        uint32_t workgroupSizeX = 1;
-        uint32_t workgroupSizeY = 1;
-        uint32_t workgroupSizeZ = 1;
-    };
-
-    std::vector<Resource> resources;
-    VertexInput vertexInput;
-    std::optional<PushConstant> pushConstant;
-    std::optional<ComputeInfo> computeInfo;
+    Float, Float2, Float3, Float4,
+    Int,   Int2, Int3, Int4,
+    UInt,  UInt2, UInt3, UInt4,
+    Float3x3, Float4x4, Struct, Unknown
 };
 
+struct Member
+{
+    std::string name;
+    DataType    type   = DataType::Unknown;
+    uint32_t    offset = 0;
+    uint32_t    size   = 0;
+};
+
+struct Resource
+{
+    std::string         name;
+    ResType             type    = ResType::CBuffer;
+    ResourceAccess      access  = ResourceAccess::ReadWrite;
+    uint32_t            set     = 0;
+    uint32_t            binding = 0;
+    uint32_t            count   = 1;    // >1 for arrays
+    uint32_t            size    = 0;    // total size for buffers
+    std::vector<Member> members;
+};
+
+struct PushConst
+{
+    uint32_t            size = 0;
+    std::vector<Member> members;
+};
+
+struct VertexAttr
+{
+    std::string name;
+    DataType    type;
+    uint32_t    location;
+    uint32_t    offset;
+    uint32_t    stride;
+    uint32_t    binding;
+};
+
+struct Data
+{
+    std::vector<Resource>    resources;
+    std::vector<VertexAttr>  vertexAttrs;
+    std::optional<PushConst> pushConst;
+    std::array<uint32_t, 3>  workgroupSize = { 1, 1, 1 };
+};
 }

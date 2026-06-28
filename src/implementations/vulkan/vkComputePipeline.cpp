@@ -2,14 +2,15 @@
 
 #include "clogr.h"
 
-namespace urhi {
+namespace urhi
+{
     VkComputePipeline::VkComputePipeline(VkDevice *device, const ComputePipelineDesc &desc)
         : VkPipeline(device, { desc.shader })
     {
         clogr::ensure(desc.shader != nullptr, "Description does not contain a shader");
 
         const auto vkShader = dynamic_cast<VkShader*>(desc.shader.get());
-        clogr::ensure(vkShader->entryPoint().stage == ShaderStage::Compute, "Provided shader is not of type compute");
+        clogr::ensure(vkShader->stage() == ShaderStage::Compute, "Provided shader is not of type compute");
 
         const auto stage = vk::PipelineShaderStageCreateInfo
         {

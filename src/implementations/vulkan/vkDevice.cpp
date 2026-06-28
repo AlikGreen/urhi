@@ -74,8 +74,10 @@ namespace urhi
             .physicalDevice = m_physicalDevice,
             .device = m_handle,
             .pVulkanFunctions = nullptr,
-            .instance = context->getVkInstance()
+            .instance = context->getVkInstance(),
+            .vulkanApiVersion = VK_API_VERSION_1_3,
         };
+
         vmaCreateAllocator(&allocatorCI, &m_allocator);
 
 
@@ -169,11 +171,6 @@ namespace urhi
         return grl::makeRc<VkTextureView>(this, desc);
     }
 
-    grl::Rc<Shader> VkDevice::createShader(const ShaderEntryPoint &entryPoint)
-    {
-        return grl::makeRc<VkShader>(this, entryPoint);
-    }
-
     grl::Rc<Buffer> VkDevice::createBuffer(const BufferDesc &desc)
     {
         URHI_VALIDATE(desc.size != 0, "Invalid buffer size ({}) - buffer size must be greater than 0 and less than vram available", desc.size);
@@ -184,6 +181,11 @@ namespace urhi
            return grl::makeRc<VkMappedBuffer>(this, desc);
 
         return grl::makeRc<VkStagedBuffer>(this, desc);
+    }
+
+    grl::Rc<Shader> VkDevice::createShader(const ShaderEntryPoint &entryPoint)
+    {
+        return grl::makeRc<VkShader>(this, entryPoint);
     }
 
     void VkDevice::waitIdle()
@@ -256,6 +258,7 @@ namespace urhi
 
         URHI_WARNING(m_destroyQueue.size() <= 512, "Too many resource destroys queued - {} destroys queued, you may have a memory leak", m_destroyQueue.size());
     }
+
 
     clogr::Logger & VkDevice::logger() const
     {

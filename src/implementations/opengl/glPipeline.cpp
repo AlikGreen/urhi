@@ -38,7 +38,7 @@ namespace urhi
         GlShader* vertexShader = nullptr;
         for(const auto& shader : desc.shaders)
         {
-            if(shader->entryPoint().stage == ShaderStage::Vertex)
+            if(shader->stage() == ShaderStage::Vertex)
             {
                 vertexShader = static_cast<GlShader*>(shader.get());
                 break;
@@ -47,14 +47,12 @@ namespace urhi
 
         URHI_VALIDATE(vertexShader != nullptr, "Missing vertex shader - Graphics pipeline must contain a vertex shader.");
 
-        const auto input = vertexShader->entryPoint().reflection.vertexInput;
-
-        for (const auto& attr : input.attributes)
+        for (const auto& attr : vertexShader->reflection().vertexAttrs)
         {
-            URHI_VALIDATE(attr.type != ShaderReflection::DataType::Mat3 &&
-                          attr.type != ShaderReflection::DataType::Mat4 &&
-                          attr.type != ShaderReflection::DataType::Struct &&
-                          attr.type != ShaderReflection::DataType::Unknown,
+            URHI_VALIDATE(attr.type != refl::DataType::Float3x3 &&
+                          attr.type != refl::DataType::Float4x4 &&
+                          attr.type != refl::DataType::Struct &&
+                          attr.type != refl::DataType::Unknown,
                           "Mat3, Mat4, Struct and Unknown are not valid vertex attribute types");
 
             glEnableVertexArrayAttrib(m_vao, attr.location);
@@ -75,11 +73,11 @@ namespace urhi
                     GL_FALSE,
                     attr.offset);
             }
-        }
 
-        m_vertexStrides.resize(input.bindings.size());
-        for (auto& binding : input.bindings)
-            m_vertexStrides[binding.binding] = binding.stride;
+            if(m_vertexStrides.size() <= attr.binding)
+                m_vertexStrides.resize(attr.binding + 1);
+            m_vertexStrides[attr.binding] = attr.stride;
+        }
     }
 
     GlPipeline::GlPipeline(GlDevice *device, const ComputePipelineDesc &desc)
@@ -107,61 +105,63 @@ namespace urhi
 
     void GlPipeline::extractReflection(GlShader* shader)
     {
-        for (auto& info : shader->combinedSamplers())
+        const auto& refl = shader->reflection();
+        int maxBufferBinding = -1;
+
+        for (const auto& res : refl.resources)
         {
-            const GLint loc = glGetUniformLocation(m_shaderProgram, info.combinedName.c_str());
+            const uint32_t nameHash = NameRegistry::getHash(res.name);
 
-            // Set uniform now so don't have to do per frame
-            if (loc >= 0)
-                glUniform1i(loc, info.textureUnit);
+            switch (res.type)
+            {
+                case refl::ResType::Texture:
+                case refl::ResType::Sampler:
+                {
+                    const GLint loc = glGetUniformLocation(m_shaderProgram, res.name.c_str());
+                    if (loc >= 0)
+                        glUniform1i(loc, res.binding);
 
-            CombinedSamplerUnit entry { info.textureUnit, loc };
+                    CombinedSamplerUnit entry{ res.binding, loc };
+                    m_textureBindings[nameHash].push_back(entry);
+                    m_samplerBindings[nameHash].push_back(entry);
+                    break;
+                }
 
-            m_textureBindings[info.texNameHash].push_back(entry);
-            m_samplerBindings[info.samplerNameHash].push_back(entry);
-        }
+                case refl::ResType::CBuffer:
+                {
+                    m_bufferBindings[nameHash] = { static_cast<int>(res.binding), ResourceAccess::ReadOnly, GL_UNIFORM_BUFFER };
+                    maxBufferBinding = std::max(maxBufferBinding, static_cast<int>(res.binding));
+                    break;
+                }
 
-        for (auto& info : shader->storageImages())
-        {
-            const GLint loc = glGetUniformLocation(m_shaderProgram, info.name.c_str());
+                case refl::ResType::Buffer:
+                {
+                    m_bufferBindings[nameHash] = { static_cast<int>(res.binding), res.access, GL_SHADER_STORAGE_BUFFER };
+                    maxBufferBinding = std::max(maxBufferBinding, static_cast<int>(res.binding));
+                    break;
+                }
 
-            if (loc >= 0)
-                glUniform1i(loc, info.unit);
+                case refl::ResType::Image:
+                {
+                    const GLint loc = glGetUniformLocation(m_shaderProgram, res.name.c_str());
+                    if (loc >= 0)
+                        glUniform1i(loc, res.binding);
 
-            uint32_t hash = NameRegistry::getHash(info.name);
-            m_imageBindings[hash] = ComputeResourceInfo{ static_cast<int>(info.unit), info.access, 0 };
+                    m_imageBindings[nameHash] = ComputeResourceInfo{ static_cast<int>(res.binding), res.access, 0 };
+                    break;
+                }
+            }
         }
 
         resolveBlockBindings();
 
-        int maxBufferBinding = -1;
-
-        for (auto& info : shader->uboInfos())
-        {
-            uint32_t hash = NameRegistry::getHash(info.instanceName);
-            m_bufferBindings[hash] = { static_cast<int>(info.binding), info.access, GL_UNIFORM_BUFFER };
-            maxBufferBinding = std::max(maxBufferBinding, static_cast<int>(info.binding));
-        }
-
-        for (auto& info : shader->ssboInfos())
-        {
-            uint32_t hash = NameRegistry::getHash(info.instanceName);
-            m_bufferBindings[hash] = { static_cast<int>(info.binding), info.access, GL_SHADER_STORAGE_BUFFER };
-            maxBufferBinding = std::max(maxBufferBinding, static_cast<int>(info.binding));
-        }
-
-        if (shader->pushConstant().has_value())
+        if (refl.pushConst.has_value())
         {
             const GLuint blockIndex = glGetUniformBlockIndex(m_shaderProgram, GlShader::kPushConstantBlockName);
-            URHI_VALIDATE(blockIndex != GL_INVALID_INDEX,
-                "Push constant block not found in shader");
+            URHI_VALIDATE(blockIndex != GL_INVALID_INDEX, "Push constant block not found in shader");
 
             if (m_pushConstantBinding >= 0)
             {
-                URHI_VALIDATE(shader->pushConstant()->instanceName == m_pushConstantInstanceName,
-                    "Mismatched push constant blocks across shader stages: '{}' vs '{}'",
-                    shader->pushConstant()->instanceName, m_pushConstantInstanceName);
-
                 glUniformBlockBinding(m_shaderProgram, blockIndex, m_pushConstantBinding);
             }
             else
@@ -169,22 +169,6 @@ namespace urhi
                 const int slot = maxBufferBinding + 1;
                 glUniformBlockBinding(m_shaderProgram, blockIndex, slot);
                 m_pushConstantBinding = slot;
-                m_pushConstantInstanceName = shader->pushConstant()->instanceName;
-            }
-        }
-
-        for (const auto& res : shader->entryPoint().reflection.resources)
-        {
-            uint32_t nameHash = NameRegistry::getHash(res.name);
-            if (res.isBuffer())
-            {
-                if (!m_bufferBindings.contains(nameHash))
-                    m_bufferBindings[nameHash] = { OPTIMIZED_OUT, ResourceAccess::ReadOnly };
-            }
-            else if (res.isTexture() || res.type == ShaderReflection::ResourceType::Sampler)
-            {
-                if (!m_textureBindings.contains(nameHash)) m_textureBindings[nameHash] = {};
-                if (!m_samplerBindings.contains(nameHash)) m_samplerBindings[nameHash] = {};
             }
         }
     }

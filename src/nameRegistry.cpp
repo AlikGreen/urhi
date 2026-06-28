@@ -1,5 +1,7 @@
 #include "nameRegistry.h"
 
+#include <string>
+
 namespace urhi
 {
     std::unordered_map<uint32_t, std::string> NameRegistry::m_nameMap{};

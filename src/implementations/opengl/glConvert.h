@@ -14,6 +14,7 @@
 #include "enums/primitiveType.h"
 #include "enums/shaderStage.h"
 #include "enums/textureFilter.h"
+#include "enums/textureType.h"
 #include "input/keyCodes.h"
 
 namespace urhi
@@ -40,9 +41,9 @@ public:
 
     static GLenum primitiveType(PrimitiveType type);
 
-    static GLint componentCount(ShaderReflection::DataType type);
-    static GLenum vertexBaseType(ShaderReflection::DataType type);
-    static bool isIntegerType(ShaderReflection::DataType type);
+    static GLint componentCount(refl::DataType type);
+    static GLenum vertexBaseType(refl::DataType type);
+    static bool isIntegerType(refl::DataType type);
 
     static GLenum filter(TextureFilter texFilter, MipmapFilter mipFilter);
     static GLenum filter(TextureFilter texFilter);

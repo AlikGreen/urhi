@@ -5,7 +5,6 @@
 #include "device.h"
 #include "logger.h"
 #include "descriptions/deviceDesc.h"
-#include "descriptions/shaderEntryPoint.h"
 #include "enums/queueType.h"
 
 
@@ -32,9 +31,8 @@ public:
     grl::Rc<Sampler> createSampler(const SamplerDesc &desc) override;
     grl::Rc<TextureView> createTextureView(const TextureViewDesc &desc) override;
 
-    grl::Rc<Shader> createShader(const ShaderEntryPoint& entryPoint) override;
-
     grl::Rc<Buffer> createBuffer(const BufferDesc& desc) override;
+    grl::Rc<Shader> createShader(const ShaderEntryPoint &entryPoint) override;
 
     void waitIdle() override;
 
@@ -55,6 +53,7 @@ public:
 private:
     static uint32_t hashRenderPass(const RenderPassDesc& renderPass);
 
+private:
     friend class GlSwapchain;
     static constexpr uint32_t kQueueTypes = 3;
 

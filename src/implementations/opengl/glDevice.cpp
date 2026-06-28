@@ -158,11 +158,6 @@ namespace urhi
         return grl::makeRc<GlTextureView>(this, desc);
     }
 
-    grl::Rc<Shader> GlDevice::createShader(const ShaderEntryPoint &entryPoint)
-    {
-        return grl::makeRc<GlShader>(this, entryPoint);
-    }
-
     grl::Rc<Buffer> GlDevice::createBuffer(const BufferDesc &desc)
     {
         URHI_VALIDATE(desc.size != 0, "Invalid buffer size ({}) - buffer size must be greater than 0 and less than vram available", desc.size);
@@ -172,6 +167,11 @@ namespace urhi
         // if ((hasFlag(desc.usage, BufferUsage::Uniform) && !hasFlag(desc.usage, BufferUsage::Static)) || hasFlag(desc.usage, BufferUsage::Dynaimic))
 
         return grl::makeRc<GlBuffer>(this, desc);
+    }
+
+    grl::Rc<Shader> GlDevice::createShader(const ShaderEntryPoint &entryPoint)
+    {
+        return grl::makeRc<GlShader>(this, entryPoint);
     }
 
     void GlDevice::waitIdle()

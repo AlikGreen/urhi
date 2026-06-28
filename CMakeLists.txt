@@ -10,10 +10,10 @@ set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
 set(ENABLE_OPT OFF CACHE BOOL "" FORCE)
 add_subdirectory(${DEPS_DIR}/glm)
 add_subdirectory(${DEPS_DIR}/glfw)
-add_subdirectory(${DEPS_DIR}/spirv-cross)
 add_subdirectory(${DEPS_DIR}/clogr)
 add_subdirectory(${DEPS_DIR}/vk-bootstrap)
 add_subdirectory(${DEPS_DIR}/vma)
+add_subdirectory(${DEPS_DIR}/spirv-cross)
 
 find_package(Vulkan REQUIRED)
 
@@ -57,9 +57,9 @@ target_include_directories(urhi PUBLIC include/ "${DEPS_DIR}/slang/include")
 target_link_libraries(urhi PUBLIC
         glfw
         glm::glm
+        spirv-cross-c
         clogr
         ${SLANG_LIBRARY}
-        spirv-cross-c
         vk-bootstrap::vk-bootstrap
         Vulkan::Vulkan
         VulkanMemoryAllocator

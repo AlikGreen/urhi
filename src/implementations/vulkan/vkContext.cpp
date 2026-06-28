@@ -50,9 +50,6 @@ namespace urhi
 
     VkContext::VkContext(const ContextDesc& desc)
     {
-        // =============================================
-        // Change this to switch validation profiles
-        // =============================================
         constexpr auto validationMode = ValidationMode::Full;
         bool enableValidation = (validationMode != ValidationMode::None) && desc.debug;
 

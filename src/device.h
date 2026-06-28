@@ -12,7 +12,7 @@
 #include "descriptions/graphicsPipelineDesc.h"
 #include "descriptions/computePipelineDesc.h"
 #include "descriptions/samplerDesc.h"
-#include "descriptions/shaderEntryPoint.h"
+#include "descriptions/shaderDesc.h"
 #include "descriptions/swapchainDesc.h"
 #include "descriptions/textureDesc.h"
 #include "descriptions/textureViewDesc.h"

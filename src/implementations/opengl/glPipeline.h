@@ -79,7 +79,7 @@ protected:
 
     bool m_enableStencilTest = false;
 
-
+public:
     struct CombinedSamplerUnit
     {
         uint32_t unit;

@@ -63,7 +63,7 @@ namespace urhi
 
     void RenderPass::multiDrawIndirect(const grl::Rc<Buffer> &commandsBuffer, uint32_t count, uint32_t startCommandIndex)
     {
-        m_commands->emplace(CmdMultiDrawIndirect{commandsBuffer, startCommandIndex, count});
+        m_commands->emplace(CmdMultiDrawIndirect{commandsBuffer, count, startCommandIndex});
     }
 
     void RenderPass::multiDrawIndirectCount(const grl::Rc<Buffer> &commandsBuffer, const grl::Rc<Buffer> &countsBuffer, uint32_t startCommandIndex, uint32_t countIndex, uint32_t maxDrawCount)
@@ -76,7 +76,7 @@ namespace urhi
 
     void RenderPass::multiDrawIndexedIndirect(const grl::Rc<Buffer> &commandsBuffer, const uint32_t count, const uint32_t startCommandIndex)
     {
-        m_commands->emplace(CmdMultiDrawIndexedIndirect{commandsBuffer, startCommandIndex, count});
+        m_commands->emplace(CmdMultiDrawIndexedIndirect{commandsBuffer, count, startCommandIndex});
     }
 
     void RenderPass::multiDrawIndexedIndirectCount(const grl::Rc<Buffer> &commandsBuffer, const grl::Rc<Buffer> &countsBuffer, const uint32_t startCommandIndex, const uint32_t countIndex, uint32_t maxDrawCount)

@@ -8,12 +8,16 @@ class VkDevice;
 class VkShader final : public Shader
 {
 public:
-    VkShader(VkDevice* device, const ShaderEntryPoint& entryPoint);
-    ShaderEntryPoint entryPoint() override;
+    VkShader(VkDevice* device, const ShaderEntryPoint& ep);
+
     [[nodiscard]] vk::ShaderModule getModule() const;
+
+    refl::Data reflection() override { return m_reflection; }
+    ShaderStage stage() override { return m_stage; }
 private:
     VkDevice* m_device;
     vk::ShaderModule m_shaderModule;
-    ShaderEntryPoint m_entryPoint;
+    refl::Data m_reflection;
+    ShaderStage m_stage;
 };
 }

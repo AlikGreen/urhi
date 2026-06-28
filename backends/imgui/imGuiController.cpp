@@ -8,7 +8,7 @@
 #include "imguiShader.h"
 #include "glm/glm.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
-#include "slang/compiler.h"
+#include "slang/slangCompiler.h"
 
 namespace urhi
 {
@@ -322,22 +322,23 @@ namespace urhi
 
     void ImGuiController::createPipeline()
     {
-        slang::CompileDesc compileDesc{};
-        compileDesc.moduleName = "imgui";
-        compileDesc.modulePath = "imgui.slang";
-        compileDesc.moduleSource = imGuiShaderSource;
+        SlangSource source{};
+        source.path = "imgui.slang";
+        source.source = imGuiShaderSource;
 
-        const auto module = slang::Compiler::compileModule(compileDesc);
+        const auto module = SlangCompiler::compile(source);
+        if (!module.has_value())
+            clogr::fatal("Failed to compile imgui shader: {}", module.error());
 
-        slang::LinkDesc linkDesc{};
-        linkDesc.modules = { module };
+        SlangLinkDesc linkDesc{};
+        linkDesc.modules = { module.value() };
 
-        slang::Diagnostics diags;
+        const auto linked = SlangCompiler::link(linkDesc);
+        if (!linked.has_value())
+            clogr::fatal("Failed to link imgui shader: {}", module.error());
 
-        const auto shaders = slang::Compiler::linkToShaderSet(linkDesc, &diags);
-
-        const auto vertexShader = m_device->createShader(*shaders.find(ShaderStage::Vertex));
-        const auto fragmentShader = m_device->createShader(*shaders.find(ShaderStage::Fragment));
+        const auto vertexShader = m_device->createShader(SlangCompiler::extract(linked.value(), ShaderStage::Vertex).value());
+        const auto fragmentShader = m_device->createShader(SlangCompiler::extract(linked.value(), ShaderStage::Fragment).value());
 
         GraphicsPipelineDesc pipelineDescription{};
         pipelineDescription.shaders         = { vertexShader, fragmentShader };

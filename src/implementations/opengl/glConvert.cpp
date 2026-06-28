@@ -455,18 +455,18 @@ namespace urhi
         }
     }
 
-    GLint GlConvert::componentCount(const ShaderReflection::DataType type)
+    GLint GlConvert::componentCount(const refl::DataType type)
     {
         switch (type)
         {
-            case ShaderReflection::DataType::Float:  case ShaderReflection::DataType::Int:  case ShaderReflection::DataType::UInt:  return 1;
-            case ShaderReflection::DataType::Float2: case ShaderReflection::DataType::Int2: case ShaderReflection::DataType::UInt2: return 2;
-            case ShaderReflection::DataType::Float3: case ShaderReflection::DataType::Int3: case ShaderReflection::DataType::UInt3: return 3;
-            case ShaderReflection::DataType::Float4: case ShaderReflection::DataType::Int4: case ShaderReflection::DataType::UInt4: return 4;
+            case refl::DataType::Float:  case refl::DataType::Int:  case refl::DataType::UInt:  return 1;
+            case refl::DataType::Float2: case refl::DataType::Int2: case refl::DataType::UInt2: return 2;
+            case refl::DataType::Float3: case refl::DataType::Int3: case refl::DataType::UInt3: return 3;
+            case refl::DataType::Float4: case refl::DataType::Int4: case refl::DataType::UInt4: return 4;
 
             // Matrices are set up as N consecutive float4 attributes
-            case ShaderReflection::DataType::Mat3: return 3;
-            case ShaderReflection::DataType::Mat4: return 4;
+            case refl::DataType::Float3x3: return 3;
+            case refl::DataType::Float4x4: return 4;
 
             default:
                 URHI_VALIDATE(false, "Invalid DataType for vertex attribute");
@@ -474,28 +474,28 @@ namespace urhi
         }
     }
 
-    GLenum GlConvert::vertexBaseType(const ShaderReflection::DataType type)
+    GLenum GlConvert::vertexBaseType(const refl::DataType type)
     {
         switch (type)
         {
-            case ShaderReflection::DataType::Float:
-            case ShaderReflection::DataType::Float2:
-            case ShaderReflection::DataType::Float3:
-            case ShaderReflection::DataType::Float4:
-            case ShaderReflection::DataType::Mat3:
-            case ShaderReflection::DataType::Mat4:
+            case refl::DataType::Float:
+            case refl::DataType::Float2:
+            case refl::DataType::Float3:
+            case refl::DataType::Float4:
+            case refl::DataType::Float3x3:
+            case refl::DataType::Float4x4:
                 return GL_FLOAT;
 
-            case ShaderReflection::DataType::Int:
-            case ShaderReflection::DataType::Int2:
-            case ShaderReflection::DataType::Int3:
-            case ShaderReflection::DataType::Int4:
+            case refl::DataType::Int:
+            case refl::DataType::Int2:
+            case refl::DataType::Int3:
+            case refl::DataType::Int4:
                 return GL_INT;
 
-            case ShaderReflection::DataType::UInt:
-            case ShaderReflection::DataType::UInt2:
-            case ShaderReflection::DataType::UInt3:
-            case ShaderReflection::DataType::UInt4:
+            case refl::DataType::UInt:
+            case refl::DataType::UInt2:
+            case refl::DataType::UInt3:
+            case refl::DataType::UInt4:
                 return GL_UNSIGNED_INT;
 
             default:
@@ -504,14 +504,14 @@ namespace urhi
         }
     }
 
-    bool GlConvert::isIntegerType(const ShaderReflection::DataType type)
+    bool GlConvert::isIntegerType(const refl::DataType type)
     {
         switch (type)
         {
-            case ShaderReflection::DataType::Int:  case ShaderReflection::DataType::Int2:
-            case ShaderReflection::DataType::Int3:  case ShaderReflection::DataType::Int4:
-            case ShaderReflection::DataType::UInt: case ShaderReflection::DataType::UInt2:
-            case ShaderReflection::DataType::UInt3: case ShaderReflection::DataType::UInt4:
+            case refl::DataType::Int:   case refl::DataType::Int2:
+            case refl::DataType::Int3:  case refl::DataType::Int4:
+            case refl::DataType::UInt:  case refl::DataType::UInt2:
+            case refl::DataType::UInt3: case refl::DataType::UInt4:
                 return true;
             default:
                 return false;

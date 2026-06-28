@@ -22,32 +22,31 @@ namespace urhi
 
         for(const auto& shader : shaders)
         {
-            URHI_VALIDATE(!m_shaderMap.contains(shader->entryPoint().stage), "Duplicate shader types - Pipeline cannot be created with multiple shaders of the same type");
+            URHI_VALIDATE(!m_shaderMap.contains(shader->stage()), "Duplicate shader types - Pipeline cannot be created with multiple shaders of the same type");
             auto vkShader = std::dynamic_pointer_cast<VkShader>(shader);
-            auto entryPoint = vkShader->entryPoint();
-            auto stageBit = VkConvert::shaderStage(entryPoint.stage);
+            auto stageBit = VkConvert::shaderStage(vkShader->stage());
 
-            m_shaderMap.emplace(entryPoint.stage, vkShader);
+            m_shaderMap.emplace(vkShader->stage(), vkShader);
 
-            if(entryPoint.reflection.pushConstant.has_value())
+            if(vkShader->reflection().pushConst.has_value())
             {
-                const auto pc = entryPoint.reflection.pushConstant.value();
+                const auto pc = vkShader->reflection().pushConst.value();
                 if(m_pushConstantRange != nullptr)
                 {
-                    m_pushConstantRange->stageFlags |= VkConvert::shaderStage(entryPoint.stage);
+                    m_pushConstantRange->stageFlags |= VkConvert::shaderStage(vkShader->stage());
                 }
                 else
                 {
                     const auto range = new vk::PushConstantRange();
-                    range->stageFlags = VkConvert::shaderStage(entryPoint.stage);
+                    range->stageFlags = VkConvert::shaderStage(vkShader->stage());
                     range->size = pc.size;
-                    range->offset = pc.offset;
+                    range->offset = 0;
                     m_pushConstantRange = range;
                 }
             }
 
 
-            for (const auto& resource : entryPoint.reflection.resources)
+            for (const auto& resource : vkShader->reflection().resources)
             {
                 const auto descriptorType = VkConvert::descriptorType(resource.type);
                 auto& setBindings = setsMap[resource.set]; // Access the map for this specific set

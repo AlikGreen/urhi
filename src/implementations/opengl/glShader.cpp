@@ -1,8 +1,10 @@
 #include "glShader.h"
 
+#include <regex>
+
 #include "glContext.h"
 #include "glConvert.h"
-#include "spirv_hlsl.hpp"
+#include "spirv_glsl.hpp"
 #include "validation.h"
 
 
@@ -10,24 +12,12 @@ namespace urhi
 {
     std::unordered_map<uint32_t, std::string> GlShader::m_glslCache{};
 
-    GlShader::GlShader(GlDevice* device, const ShaderEntryPoint& entryPoint)
-    : m_device(device), m_entryPoint(entryPoint)
+    GlShader::GlShader(GlDevice* device, const ShaderEntryPoint& ep)
+    : m_device(device), m_reflection(ep.reflection), m_stage(ep.stage)
     {
-        // TODO fix this whole thing. the name setting and reflection is not robust
-        spirv_cross::CompilerGLSL compiler(entryPoint.spirv);
+        const std::string glsl = getOrCompileGlsl(ep.spirvCode);
 
-        spirv_cross::CompilerGLSL::Options opts;
-        opts.version = 460;
-        opts.es = false;
-        opts.emit_push_constant_as_uniform_buffer = true;
-
-        compiler.set_common_options(opts);
-
-        reflect(compiler, entryPoint.stage);
-
-        const std::string glsl = getOrCompileGlsl(compiler, entryPoint.spirv);
-
-        const GLenum glStage = GlConvert::shaderStage(entryPoint.stage);
+        const GLenum glStage = GlConvert::shaderStage(ep.stage);
         m_handle = glCreateShader(glStage);
         const char* src = glsl.c_str();
         glShaderSource(m_handle, 1, &src, nullptr);
@@ -48,89 +38,74 @@ namespace urhi
         glDeleteShader(m_handle);
     }
 
-    void GlShader::reflect(spirv_cross::CompilerGLSL& compiler, ShaderStage stage)
+    std::vector<uint32_t> stripNonUniform(const std::vector<uint32_t>& spirv)
     {
-        compiler.build_combined_image_samplers();
-        reflectCombinedSamplers(compiler);
-        reflectUbos(compiler);
+        std::vector<uint32_t> result;
+        result.insert(result.end(), spirv.begin(), spirv.begin() + 5);
+
+        size_t i = 5;
+        while (i < spirv.size())
+        {
+            uint16_t wordCount = spirv[i] >> 16;
+            uint16_t opcode    = spirv[i] & 0xFFFF;
+            bool skip = false;
+
+            // OpCapability = 17
+            if (opcode == 17 && wordCount >= 2)
+            {
+                uint32_t cap = spirv[i + 1];
+                switch (cap)
+                {
+                    case 5301: // ShaderNonUniformEXT
+                    case 5302: // RuntimeDescriptorArrayEXT  <-- THIS WAS MISSING
+                    case 5303: // InputAttachmentArrayDynamicIndexingEXT
+                    case 5304: // UniformTexelBufferArrayDynamicIndexingEXT
+                    case 5305: // StorageTexelBufferArrayDynamicIndexingEXT
+                    case 5306: // UniformBufferArrayNonUniformIndexingEXT
+                    case 5307: // SampledImageArrayNonUniformIndexingEXT
+                    case 5308: // StorageBufferArrayNonUniformIndexingEXT
+                    case 5309: // StorageImageArrayNonUniformIndexingEXT
+                    case 5310: // InputAttachmentArrayNonUniformIndexingEXT
+                    case 5311: // UniformTexelBufferArrayNonUniformIndexingEXT
+                    case 5312: // StorageTexelBufferArrayNonUniformIndexingEXT
+                        skip = true;
+                        break;
+                }
+            }
+
+            // OpDecorate = 71, OpDecorateId = 332
+            if ((opcode == 71 || opcode == 332) && wordCount >= 3)
+            {
+                if (spirv[i + 2] == 5300) // NonUniformEXT
+                    skip = true;
+            }
+
+            // OpMemberDecorate = 72
+            if (opcode == 72 && wordCount >= 4)
+            {
+                if (spirv[i + 3] == 5300) // NonUniformEXT
+                    skip = true;
+            }
+
+            // OpExtension = 10 - strip SPV_EXT_descriptor_indexing
+            if (opcode == 10)
+            {
+                // Extension name is packed into words starting at i+1
+                const char* extName = reinterpret_cast<const char*>(&spirv[i + 1]);
+                if (std::string(extName) == "SPV_EXT_descriptor_indexing")
+                    skip = true;
+            }
+
+            if (!skip)
+                result.insert(result.end(), spirv.begin() + i, spirv.begin() + i + wordCount);
+
+            i += wordCount;
+        }
+
+        return result;
     }
 
-   void GlShader::reflectCombinedSamplers(const spirv_cross::CompilerGLSL& compiler)
-    {
-        for (auto& combined : compiler.get_combined_image_samplers())
-        {
-            CombinedSamplerInfo info;
-            info.textureUnit     = compiler.get_decoration(combined.combined_id, spv::DecorationBinding);
-            info.combinedName    = compiler.get_name(combined.combined_id);
-            info.texNameHash     = NameRegistry::getHash(compiler.get_name(combined.image_id));
-            info.samplerNameHash = NameRegistry::getHash(compiler.get_name(combined.sampler_id));
-            m_combinedSamplers.push_back(info);
-        }
-
-        auto resources = compiler.get_shader_resources();
-
-        for (auto& image : resources.storage_images)
-        {
-            StorageImageInfo info{};
-            info.unit = compiler.get_decoration(image.id, spv::DecorationBinding);
-            info.name = compiler.get_name(image.id);
-
-            spirv_cross::Bitset flags = compiler.get_buffer_block_flags(image.id);
-
-            if(flags.get(spv::DecorationNonWritable))
-                info.access = ResourceAccess::ReadOnly;
-            if(flags.get(spv::DecorationNonReadable))
-                info.access = ResourceAccess::WriteOnly;
-            else
-                info.access = ResourceAccess::ReadWrite;
-
-            m_storageImage.push_back(info);
-        }
-    }
-
-    void GlShader::reflectUbos(spirv_cross::CompilerGLSL& compiler)
-    {
-        auto resources = compiler.get_shader_resources();
-
-        for (const auto& ubo : resources.uniform_buffers)
-        {
-            BufferReflection refl;
-            refl.instanceName = compiler.get_name(ubo.id);
-            refl.binding      = compiler.get_decoration(ubo.id, spv::DecorationBinding);
-            refl.access       = ResourceAccess::ReadOnly;
-
-            m_ubos.push_back(refl);
-        }
-
-        for (auto& ssbo : resources.storage_buffers)
-        {
-            BufferReflection refl;
-            refl.instanceName = compiler.get_name(ssbo.id);
-            refl.binding      = compiler.get_decoration(ssbo.id, spv::DecorationBinding);
-
-            spirv_cross::Bitset flags = compiler.get_buffer_block_flags(ssbo.id);
-            if      (flags.get(spv::DecorationNonWritable)) refl.access = ResourceAccess::ReadOnly;
-            else if (flags.get(spv::DecorationNonReadable)) refl.access = ResourceAccess::WriteOnly;
-            else                                               refl.access = ResourceAccess::ReadWrite;
-
-            m_ssbos.push_back(refl);
-        }
-
-        for (auto& pc : resources.push_constant_buffers)
-        {
-            BufferReflection refl;
-            refl.instanceName = compiler.get_name(pc.id);
-            refl.binding      = 0;
-            refl.access       = ResourceAccess::ReadOnly;
-
-            compiler.set_name(pc.base_type_id, kPushConstantBlockName);
-
-            m_pushConstant = refl;
-        }
-
-    }
-
-    std::string GlShader::getOrCompileGlsl(spirv_cross::CompilerGLSL& compiler, const std::vector<uint32_t>& spirv) const
+    std::string GlShader::getOrCompileGlsl(const std::vector<uint32_t>& spirv) const
     {
         uint32_t hash = grl::Hash::fnv1a32(std::as_bytes(std::span(spirv)));
         grl::Hash::hashCombine(hash, compilerVersion);
@@ -143,6 +118,55 @@ namespace urhi
 
         try
         {
+            auto cleanedSpirv = stripNonUniform(spirv);
+            spirv_cross::CompilerGLSL compiler(cleanedSpirv);
+
+            uint32_t idBound = compiler.get_current_id_bound();
+            for (uint32_t id = 0; id < idBound; ++id)
+            {
+                if (compiler.has_decoration(id, spv::DecorationNonUniform))
+                {
+                    compiler.unset_decoration(id, spv::DecorationNonUniform);
+                }
+
+                try
+                {
+                    const auto& type = compiler.get_type(id);
+                    if (type.basetype == spirv_cross::SPIRType::Struct)
+                    {
+                        for (uint32_t i = 0; i < type.member_types.size(); ++i)
+                        {
+                            if (compiler.has_member_decoration(id, i, spv::DecorationNonUniform))
+                            {
+                                compiler.unset_member_decoration(id, i, spv::DecorationNonUniform);
+                            }
+                        }
+                    }
+                }
+                catch (const spirv_cross::CompilerError&)
+                {
+
+                }
+            }
+
+            spirv_cross::CompilerGLSL::Options opts;
+            opts.version = 460;
+            opts.es = false;
+            opts.emit_push_constant_as_uniform_buffer = true;
+            opts.vulkan_semantics = false;
+            // opts.enable_row_major_load_workaround
+
+            compiler.set_common_options(opts);
+
+            compiler.build_combined_image_samplers();
+
+            spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+
+            if(!resources.push_constant_buffers.empty())
+            {
+                compiler.set_name(resources.push_constant_buffers[0].base_type_id, kPushConstantBlockName);
+            }
+
             const std::string glsl = compiler.compile();
             saveDisk(hash, glsl);
             return m_glslCache[hash] = glsl;
@@ -173,4 +197,5 @@ namespace urhi
 
         grl::File::write(path.string(), glsl);
     }
+
 }

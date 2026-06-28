@@ -44,10 +44,10 @@ public:
 
     static vk::BufferUsageFlags bufferUsage(BufferUsage usage);
 
-    static vk::DescriptorType descriptorType(ShaderReflection::ResourceType type);
+    static vk::DescriptorType descriptorType(refl::ResType type);
     static vk::ShaderStageFlags shaderStage(ShaderStage stage);
     static vk::ShaderStageFlagBits shaderStageBits(ShaderStage stage);
-    static vk::Format format(ShaderReflection::DataType type);
+    static vk::Format format(refl::DataType type);
 
     static vk::AttachmentLoadOp loadOp(LoadOp loadOp);
     static vk::AttachmentStoreOp storeOp(StoreOp storeOp);

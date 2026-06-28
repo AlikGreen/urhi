@@ -1,5 +1,6 @@
 #pragma once
-#include "descriptions/shaderEntryPoint.h"
+#include "descriptions/shaderReflection.h"
+#include "enums/shaderStage.h"
 
 namespace urhi
 {
@@ -12,6 +13,7 @@ public:
     Shader(const Shader&) = delete;
     Shader& operator= (const Shader&) = delete;
 
-    virtual ShaderEntryPoint entryPoint() = 0;
+    virtual refl::Data reflection() = 0;
+    virtual ShaderStage stage() = 0;
 };
 }
